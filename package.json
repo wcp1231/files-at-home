@@ -8,8 +8,12 @@
     "start": "next start",
     "lint": "next lint"
   },
+  "packageManager": "bun@1.2.3",
   "dependencies": {
+    "@types/peerjs": "^1.1.0",
+    "@types/simple-peer": "^9.11.8",
     "next": "15.2.0",
+    "peerjs": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",

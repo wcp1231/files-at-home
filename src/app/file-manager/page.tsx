@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import FileManager from '@/components/FileManager';
-import useFileSystemStore, { FileItem } from '@/store/fileSystemStore';
+import useFileSystemStore, { FSFile } from '@/store/fileSystemStore';
 
 declare global {
   interface Window {
@@ -11,25 +11,15 @@ declare global {
 }
 
 export default function FileManagerPage() {
-  const { openDir, rootDir, setRootDir } = useFileSystemStore();
-  
-  // 初始化时加载根目录
-  // useEffect(() => {
-  //   const loadRootDir = async () => {
-  //     const rootDirHandle = await window.showDirectoryPicker();
-  //     setFileItem('/', new FileItem(rootDirHandle, 'root', '/'));
-  //     await openDir('/');
-  //   };
-  //   loadRootDir();
-  // }, [setFileItem, openDir]);
+  const { rootDir, setRootDir, selectDirectory } = useFileSystemStore();
 
   const handleRootDirSelect = async () => {
     const rootDirHandle = await window.showDirectoryPicker();
     setRootDir(rootDirHandle);
-    await openDir('/');
+    await selectDirectory('/');
   };
   
-  const handleFileSelect = (file: FileItem) => {
+  const handleFileSelect = (file: FSFile) => {
     console.log('Selected file:', file);
     // 这里可以添加其他处理逻辑，如打开文件预览等
   };

@@ -1,31 +1,59 @@
 import { create } from 'zustand';
 
-// 文件类型接口
-export class FileItem {
+class BaseFSEntry {
   handle: FileSystemHandle;
   name: string;
   path: string;
-  size?: number;
-  modifiedAt?: Date;
-  type?: string;
 
   constructor(handle: FileSystemHandle, name: string, path: string) {
     this.handle = handle;
     this.name = name;
     this.path = path;
   }
+}
 
-  get isDirectory() {
-    return this.handle instanceof FileSystemDirectoryHandle;
+export type FSEntry = FSDirectory | FSFile;
+
+export class FSDirectory extends BaseFSEntry {
+  files: FSEntry[] = [];
+
+  constructor(handle: FileSystemDirectoryHandle, name: string, path: string) {
+    super(handle, name, path);
   }
 
-  async getFileMetadata() {
-    if (!this.isDirectory) {
-      const file = await (this.handle as FileSystemFileHandle).getFile();
-      this.size = file.size;
-      this.type = file.type;
-      this.modifiedAt = new Date(file.lastModified);
+  async getFiles() {
+    if (this.files.length > 0) {
+      return this.files;
     }
+    const files = [];
+    for await (const [name, handle] of this.handle.entries()) {
+      if (handle instanceof FileSystemDirectoryHandle) {
+        files.push(new FSDirectory(handle, name, `${this.path}${name}/`));
+      } else if (handle instanceof FileSystemFileHandle) {
+        files.push(new FSFile(handle, name, `${this.path}${name}`));
+      }
+    }
+    this.files = files;
+    return this.files;
+  }
+}
+export class FSFile extends BaseFSEntry {
+  file?: File;
+  size?: number;
+  modifiedAt?: Date;
+  type?: string;
+  constructor(handle: FileSystemFileHandle, name: string, path: string) {
+    super(handle, name, path);
+  }
+
+  async getFile() {
+    if (!this.file) { 
+      this.file = await (this.handle as FileSystemFileHandle).getFile();
+      this.size = this.file.size;
+      this.type = this.file.type;
+      this.modifiedAt = new Date(this.file.lastModified);
+    }
+    return this.file;
   }
 }
 
@@ -35,20 +63,23 @@ interface FileSystemState {
 
   // 每个文件和目录的句柄
   rootDir: FileSystemDirectoryHandle | null;
-  fileMap?: Map<string, FileItem>;
+  fileMap?: Map<string, FSEntry>;
   currentPath: string;
-  files: FileItem[];
+  files: FSEntry[];
   loading: boolean;
   error: string | null;
-  selectedFile: FileItem | null;
+  selectedFile: FSFile | null;
   breadcrumbs: string[];
   
   // 操作
   setRootDir: (rootDir: FileSystemDirectoryHandle) => void;
-  setFileItem: (path: string, fileItem: FileItem) => void;
+  setDirectory: (directory: FSDirectory) => void;
+  setFiles: (files: FSEntry[]) => void;
   setCurrentPath: (path: string) => void;
-  openDir: (path: string) => Promise<void>;
-  selectFile: (file: FileItem | null) => void;
+  selectDirectory: (path: string) => Promise<void>;
+  selectFile: (filePath: string) => void;
+  getDirectory: (path: string, recursive: boolean) => FSDirectory | null;
+  getFile: (filePath: string) => FSFile | null;
   navigateUp: () => void;
   navigateToBreadcrumb: (index: number) => void;
 }
@@ -57,7 +88,7 @@ interface FileSystemState {
 const useFileSystemStore = create<FileSystemState>((set, get) => ({
   // 初始状态
   rootDir: null,
-  fileMap: new Map<string, FileItem>(),
+  fileMap: new Map<string, FSEntry>(),
   currentPath: '/',
   files: [],
   loading: false,
@@ -69,44 +100,51 @@ const useFileSystemStore = create<FileSystemState>((set, get) => ({
   setRootDir: (rootDir: FileSystemDirectoryHandle) => {
     set((state) => ({ 
       rootDir: rootDir, 
-      fileMap: new Map(state.fileMap).set('/', new FileItem(rootDir, 'root', '/'))
+      fileMap: new Map(state.fileMap).set('/', new FSDirectory(rootDir, 'root', '/'))
     }));
   },
-  
-  // 设置句柄
-  setFileItem: (path: string, fileItem: FileItem) => {
-    set((state) => ({ fileMap: new Map(state.fileMap).set(path, fileItem) }));
+
+  // 设置目录
+  setDirectory: (directory: FSDirectory) => {
+    set((state) => ({ fileMap: new Map(state.fileMap).set(directory.path, directory) }));
+  },
+
+  // 设置文件
+  setFiles: (files: FSEntry[]) => {
+    set((state) => {
+      const newFileMap = new Map(state.fileMap);
+      files.forEach((file) => {
+        newFileMap.set(file.path, file);
+      });
+      return { fileMap: newFileMap };
+    });
   },
 
   // 设置当前路径
   setCurrentPath: (path: string) => {
     set({ currentPath: path });
-    get().openDir(path);
+    get().selectDirectory(path);
   },
 
-  openDir: async (path: string) => {
-    set({ loading: true, error: null });
+  selectDirectory: async (path: string) => {
     try {
-      const fileItem = get().fileMap?.get(path);
+      const fileMap = get().fileMap;
+      const fileItem = fileMap?.get(path);
       if (!fileItem) {
         throw new Error('文件不存在');
       }
-      if (!fileItem.isDirectory) {
+      if (!(fileItem instanceof FSDirectory)) {
         throw new Error('不是目录');
       }
-      const files: FileItem[] = [];
-      const dirHandle = fileItem.handle as FileSystemDirectoryHandle;
-      for await (const [name, handle] of dirHandle.entries()) {
-        console.log('entry', name, handle);
-        const filePath = `${path}${name}/`;
-        const fileItem = new FileItem(handle, name, filePath);
-        await fileItem.getFileMetadata();
-        get().setFileItem(filePath, fileItem);
-        files.push(fileItem);
-      }
+      const newFileMap = new Map(fileMap);
+      const files = await (fileItem as FSDirectory).getFiles();
+      files.forEach((file) => {
+        newFileMap.set(file.path, file);
+      });
       // 更新状态
       const pathParts = path.split('/').filter(Boolean);
       set({ 
+        fileMap: newFileMap,
         files: files, 
         loading: false,
         breadcrumbs: ['/', ...pathParts]
@@ -121,8 +159,29 @@ const useFileSystemStore = create<FileSystemState>((set, get) => ({
   },
   
   // 选择文件
-  selectFile: (file: FileItem | null) => {
-    set({ selectedFile: file });
+  selectFile: (filePath: string) => {
+    try {
+      const file = get().fileMap?.get(filePath);
+      if (!file) {
+        throw new Error('文件不存在');
+      }
+      if (!(file instanceof FSFile)) {
+        throw new Error('不是文件');
+      }
+      set({ selectedFile: file as FSFile });
+    } catch (err) {
+      set({ error: '选择文件失败，请重试。', loading: false });
+      console.error('Error selecting file:', err);
+    }
+  },
+
+  getDirectory: (path: string, recursive: boolean) => {
+    const { fileMap } = get();
+    return getDirectory(fileMap, path, recursive);
+  },
+
+  getFile: (filePath: string) => {
+    return get().fileMap?.get(filePath) as FSFile || null;
   },
   
   // 返回上一级目录
@@ -154,3 +213,24 @@ const useFileSystemStore = create<FileSystemState>((set, get) => ({
 }));
 
 export default useFileSystemStore; 
+
+function getDirectory(fileMap: Map<String, FSEntry> | undefined, path: string, recursive: boolean = false): FSDirectory | null {
+  if (!fileMap) {
+    return null;
+  }
+  const directory = fileMap.get(path) as FSDirectory | null;
+  if (directory) {
+    return directory;
+  }
+  if (!recursive) {
+    return null;
+  }
+  const pathParts = path.split('/').filter(Boolean);
+  const dirName = pathParts.pop();
+  const currentPath = '/' + pathParts.join('/');
+  const parentDirectory = getDirectory(fileMap, currentPath, true);
+  if (parentDirectory) {
+    return parentDirectory.files.find((file) => file.name === dirName) as FSDirectory;
+  }
+  return null;
+}
