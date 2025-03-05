@@ -21,13 +21,13 @@ function ToolBarAndBreadcrumbs({
   onRefresh
 }: ToolBarAndBreadcrumbsProps) {
   return (
-    <div className="flex items-center p-2 divide-x-4">
+    <div className="flex items-center p-2 divide-x-1 space-x-2">
       <div className="flex items-center">
         <Button
           variant="ghost"
           size="sm"
           onClick={onRefresh}
-          className="flex items-center text-xs"
+          className="flex items-center text-xs h-6"
           title="刷新"
         >
           <RefreshCw className="h-3.5 w-3.5" />

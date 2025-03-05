@@ -1,144 +1,66 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ConnectionState, SharedFileInfo } from '@/lib/webrtc';
-import FileBrowser, { FileViewEntry } from '@/components/FileBrowser';
-import { useWebRTCClient } from '@/hooks/useWebRTCClient';
+import { Button } from '@/components/ui/button';
+import { FileViewEntry } from '@/components/FileBrowser';
+
+// Import components from the barrel export
+import {
+  ConnectionPanel,
+  FileBrowserWrapper
+} from '@/components/receive';
 
 export default function ReceivePage() {
   const searchParams = useSearchParams();
-  const [connectionIdInput, setConnectionIdInput] = useState('');
-
-  const {
-    connectionState,
-    error,
-    initializeClient,
-    disconnect,
-    requestFile,
-    requestDirectory
-  } = useWebRTCClient();
+  const initialConnectionId = searchParams.get('id') || undefined;
   
-  // 从 URL 参数中获取连接 ID
-  useEffect(() => {
-    const id = searchParams.get('id');
-    if (id) {
-      setConnectionIdInput(id);
-      handleConnect(id);
-    }
-  }, [searchParams]);
+  const [fileSelectHandler, setFileSelectHandler] = useState<((path: string) => Promise<FileViewEntry | null>) | null>(null);
+  const [directorySelectHandler, setDirectorySelectHandler] = useState<((path: string) => Promise<FileViewEntry[]>) | null>(null);
   
-  // 连接到主机
-  const handleConnect = (id: string = connectionIdInput) => {
-    if (!id) return;
-    initializeClient(id);
-  };
+  // 当连接成功时，设置文件和目录处理函数
+  const handleConnected = useCallback((
+    handleFileSelect: (path: string) => Promise<FileViewEntry | null>,
+    handleDirectorySelect: (path: string) => Promise<FileViewEntry[]>
+  ) => {
+    setFileSelectHandler(() => handleFileSelect);
+    setDirectorySelectHandler(() => handleDirectorySelect);
+  }, []);
   
-  // 断开连接
-  const handleDisconnect = () => {
-    disconnect();
-  };
-
-  // 将FSEntry映射到FileEntry
-  const mapFSEntryToFileEntry = (entry: SharedFileInfo | null): FileViewEntry | null => {
-    if (!entry) {
-      return null
-    }
-    return {
-      name: entry.name,
-      path: entry.path,
-      size: entry.size,
-      type: entry.type,
-      modifiedAt: entry.modifiedAt,
-      isDirectory: entry.isDirectory
-    };
-  };
-  
-  // 处理文件请求
-  const handleFileSelect = async (path: string) => {
-    const file = await requestFile(path);
-    return mapFSEntryToFileEntry(file);
-  };
-
-  // 处理目录请求
-  const handleDirectorySelect = async (path: string) => {
-    const files = await requestDirectory(path);
-    return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
-  };
-  
-  // 渲染连接表单
-  const renderConnectionForm = () => (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-xl font-semibold mb-4">连接到分享</h2>
-      <div className="mb-4">
-        <label htmlFor="connectionId" className="block text-sm font-medium text-gray-700 mb-1">
-          连接 ID
-        </label>
-        <input
-          type="text"
-          id="connectionId"
-          value={connectionIdInput}
-          onChange={(e) => setConnectionIdInput(e.target.value)}
-          placeholder="粘贴连接 ID 或 URL"
-          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+  // 渲染内容
+  const renderContent = () => {
+    // 如果已连接并且有处理函数，显示文件浏览器
+    if (fileSelectHandler && directorySelectHandler) {
+      return (
+        <FileBrowserWrapper
+          handleFileSelect={fileSelectHandler}
+          handleDirectorySelect={directorySelectHandler}
         />
-      </div>
-      <button
-        onClick={() => handleConnect()}
-        disabled={!connectionIdInput || connectionState === ConnectionState.CONNECTING}
-        className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-      >
-        {connectionState === ConnectionState.CONNECTING ? '连接中...' : '连接'}
-      </button>
-    </div>
-  );
+      );
+    }
+    
+    // 否则只显示连接面板
+    return null;
+  };
   
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">接收分享</h1>
+    <div className="container max-w-8xl mx-auto py-8 px-4">
+      <div className="space-y-6">
+        <ConnectionPanel
+          initialConnectionId={initialConnectionId}
+          onConnected={handleConnected}
+        />
+        
+        {renderContent()}
+      </div>
       
-      {error && (
-        <div className="bg-red-100 text-red-700 p-4 rounded-md mb-6">
-          {error}
-        </div>
-      )}
-      
-      {connectionState === ConnectionState.DISCONNECTED && renderConnectionForm()}
-      
-      {connectionState === ConnectionState.CONNECTING && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6 flex flex-col items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-          <p className="text-gray-600">正在连接...</p>
-        </div>
-      )}
-      
-      {connectionState === ConnectionState.CONNECTED && (
-        <div className="mb-6">
-          <FileBrowser
-            initialPath="/"
-            onFileSelect={handleFileSelect}
-            onDirectorySelect={handleDirectorySelect}
-          />
-          
-          <div className="mt-4 text-center">
-            <button
-              onClick={handleDisconnect}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md transition-colors"
-            >
-              断开连接
-            </button>
-          </div>
-        </div>
-      )}
-      
-      <div className="text-center mt-6">
-        <Link
-          href="/"
-          className="text-blue-500 hover:underline"
-        >
-          返回首页
-        </Link>
+      <div className="text-center mt-8">
+        <Button variant="link" asChild>
+          <Link href="/">
+            返回首页
+          </Link>
+        </Button>
       </div>
     </div>
   );
