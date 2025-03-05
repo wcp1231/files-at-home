@@ -1,0 +1,9 @@
+---
+description: 使用 bun 进行开发和依赖管理
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- 这个项目使用 bun 进行开发和依赖管理，需要安装和删除依赖时请使用 bun。

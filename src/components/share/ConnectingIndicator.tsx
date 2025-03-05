@@ -1,10 +1,14 @@
 import React from 'react';
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 export default function ConnectingIndicator() {
   return (
-    <div className="flex items-center justify-center py-6 px-4">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-4"></div>
-      <p className="text-gray-600">正在初始化连接...</p>
-    </div>
+    <Card>
+      <CardContent className="flex items-center justify-center py-6">
+        <Loader2 className="h-6 w-6 text-primary animate-spin mr-3" />
+        <p className="text-muted-foreground">正在初始化连接...</p>
+      </CardContent>
+    </Card>
   );
 } 

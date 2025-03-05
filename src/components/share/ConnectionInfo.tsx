@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { FaLink, FaCopy, FaCheck } from 'react-icons/fa';
+import { Link2, Copy, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ConnectionInfoProps {
   connectionId: string | null;
@@ -18,43 +21,45 @@ export default function ConnectionInfo({ connectionId, shareUrl, onDisconnect }:
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between py-3 px-4 mb-4 border-b">
-      <div className="flex items-center">
-        <div className="bg-green-50 p-2 rounded-full mr-3">
-          <FaLink className="text-green-500 text-xl" />
+    <Card className="mb-6">
+      <CardHeader className="pb-3">
+        <div className="flex items-center">
+          <div className="bg-primary/10 p-2 rounded-full mr-3">
+            <Link2 className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <CardTitle className="text-lg">目录已准备好分享</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Peer ID: <span className="font-mono bg-muted px-2 py-0.5 rounded">{connectionId}</span>
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-semibold">目录已准备好分享</h2>
-          <p className="text-sm text-gray-600">
-            Peer ID: <span className="font-mono bg-gray-100 px-2 py-0.5 rounded">{connectionId}</span>
-          </p>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-3 items-center">
+          <div className="flex-1 min-w-[200px]">
+            <div className="flex h-10 items-center rounded-md border bg-background pl-3 focus-within:ring-1 focus-within:ring-ring">
+              <Input
+                value={shareUrl}
+                readOnly
+                className="flex-1 border-0 bg-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopyLink}
+                className="h-8 w-8"
+                title="复制链接"
+              >
+                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={onDisconnect}>
+            断开连接
+          </Button>
         </div>
-      </div>
-      
-      <div className="flex items-center mt-2 md:mt-0">
-        <div className="bg-gray-50 p-2 rounded-md flex items-center mr-3">
-          <input
-            type="text"
-            value={shareUrl}
-            readOnly
-            className="w-40 md:w-64 bg-transparent border-none focus:outline-none text-sm"
-          />
-          <button
-            onClick={handleCopyLink}
-            className="ml-2 p-1 text-gray-500 hover:text-blue-500"
-            title="复制链接"
-          >
-            {copied ? <FaCheck className="text-green-500" /> : <FaCopy />}
-          </button>
-        </div>
-        
-        <button
-          onClick={onDisconnect}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 text-sm rounded-md transition-colors"
-        >
-          断开连接
-        </button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 } 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useFileSystem } from '@/hooks/useFileSystem';
 import { ConnectionState } from '@/lib/webrtc';
 import { useWebRTCHost } from '@/hooks/useWebRTCHost';
+import { Button } from '@/components/ui/button';
 
 // Import components from the barrel export
 import {
@@ -88,20 +89,19 @@ export default function SharePage() {
   };
   
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container max-w-8xl mx-auto py-8 px-4">
       <ShareHeader error={error} />
       
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div className="space-y-6">
         {renderContent()}
       </div>
       
-      <div className="text-center">
-        <Link
-          href="/"
-          className="text-blue-500 hover:underline"
-        >
-          返回首页
-        </Link>
+      <div className="text-center mt-8">
+        <Button variant="link" asChild>
+          <Link href="/">
+            返回首页
+          </Link>
+        </Button>
       </div>
     </div>
   );

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import FileManager, { FileViewEntry } from '@/components/FileManager';
 import { FSEntry, FSFile } from '@/lib/filesystem';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface FileExplorerProps {
   rootDirHandle: FileSystemDirectoryHandle | null;
@@ -65,25 +68,31 @@ export default function FileExplorer({ rootDirHandle, getFile, listFiles }: File
   }
 
   return (
-    <div className="mt-2">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold">共享目录内容</h3>
-        <div className="text-sm text-gray-600">
-          目录: <span className="font-semibold">{`/`}</span>
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">共享目录内容</CardTitle>
+          <div className="text-xs text-muted-foreground">
+            目录: <span className="font-medium">{`/`}</span>
+          </div>
         </div>
-      </div>
-      
-      {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
-          {error}
-        </div>
-      )}
-      
-      <FileManager
-        initialPath={rootDirHandle ? "/" : ""}
-        onFileSelect={handleFileSelect}
-        onDirectorySelect={handleDirectorySelect}
-      />
-    </div>
+      </CardHeader>
+      <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <FileManager
+          initialPath={rootDirHandle ? "/" : ""}
+          onFileSelect={handleFileSelect}
+          onDirectorySelect={handleDirectorySelect}
+        />
+      </CardContent>
+    </Card>
   );
 } 
