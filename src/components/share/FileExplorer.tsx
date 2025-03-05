@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import FileBrowser, { FileViewEntry } from '@/components/FileBrowser';
+import FileBrowser, { FileViewEntry } from '@/components/filebrowser';
 import { FSEntry, FSFile } from '@/lib/filesystem';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 

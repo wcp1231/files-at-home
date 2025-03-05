@@ -1,9 +1,10 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileBrowserHeader } from './filebrowser/FileBrowserHeader';
-import { FileList } from './filebrowser/FileList';
-import { FilePreview } from './filebrowser/FilePreview';
-import { getFileIcon } from './filebrowser/FileIcons';
+import { HeaderTitle } from './HeaderTitle';
+import { FileList } from './FileList';
+import { FilePreview } from './FilePreview';
+import { getFileIcon } from './FileIcons';
+import HeaderToolbar from './HeaderToolbar';
 
 // Generic file interface that can work with both local and remote files
 export interface FileViewEntry {
@@ -133,12 +134,15 @@ export default function FileBrowser<T extends FileViewEntry>({
 
   return (
     <Card className="overflow-hidden">
-      <FileBrowserHeader 
-        title="File Browser" 
-        breadcrumbs={breadcrumbs} 
-        onBreadcrumbClick={navigateToBreadcrumb} 
-        onRefresh={refreshCurrentDirectory} 
-      />
+      <div className="bg-card border-b">
+        <HeaderTitle title="File Browser" />
+
+        <HeaderToolbar 
+          breadcrumbs={breadcrumbs} 
+          onBreadcrumbClick={navigateToBreadcrumb} 
+          onRefresh={refreshCurrentDirectory} 
+        />
+      </div>
       
       <CardContent className="p-0">
         <div className="flex flex-col md:flex-row">

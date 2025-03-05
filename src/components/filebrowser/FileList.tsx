@@ -34,7 +34,7 @@ export function FileList<T extends FileViewEntry>({
   }
 
   return (
-    <div className="border-r overflow-hidden">
+    <div className="overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>

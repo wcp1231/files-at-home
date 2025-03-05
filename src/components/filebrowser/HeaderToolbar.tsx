@@ -1,25 +1,18 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Home, ArrowLeft, RefreshCw } from 'lucide-react';
+import { ChevronRight, Home, RefreshCw } from 'lucide-react';
 
-interface FileBrowserHeaderProps {
-  title: string;
+interface HeaderToolbarProps {
   breadcrumbs: string[];
   onBreadcrumbClick: (index: number) => Promise<void>;
   onRefresh: () => Promise<void>;
 }
 
-interface ToolBarAndBreadcrumbsProps {
-  breadcrumbs: string[];
-  onBreadcrumbClick: (index: number) => Promise<void>;
-  onRefresh: () => Promise<void>;
-}
-
-function ToolBarAndBreadcrumbs({
+export default function HeaderToolbar({
   breadcrumbs,
   onBreadcrumbClick,
   onRefresh
-}: ToolBarAndBreadcrumbsProps) {
+}: HeaderToolbarProps) {
   return (
     <div className="flex items-center p-2 divide-x-1 space-x-2">
       <div className="flex items-center">
@@ -54,27 +47,3 @@ function ToolBarAndBreadcrumbs({
     </div>
   )
 }
-    
-
-export function FileBrowserHeader({ 
-  title, 
-  breadcrumbs, 
-  onBreadcrumbClick,
-  onRefresh
-}: FileBrowserHeaderProps) {
-  return (
-    <div className="bg-card border-b">
-      {/* 标题 */}
-      <div className="flex items-center justify-between px-3 py-2">
-        <h2 className="text-xl font-semibold">{title}</h2>
-      </div>
-      
-      {/* 工具栏和面包屑导航 */}
-      <ToolBarAndBreadcrumbs 
-        breadcrumbs={breadcrumbs} 
-        onBreadcrumbClick={onBreadcrumbClick} 
-        onRefresh={onRefresh} 
-      />
-    </div>
-  );
-} 
