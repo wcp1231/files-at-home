@@ -190,7 +190,7 @@ export default function FileBrowser<T extends FileViewEntry>({
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="h-full overflow-hidden">
       <div className="bg-card border-b">
         <HeaderTitle title="File Browser">
           {titlePanel}
@@ -203,9 +203,9 @@ export default function FileBrowser<T extends FileViewEntry>({
         />
       </div>
       
-      <CardContent className="p-0">
-        <div className="flex flex-col md:flex-row">
-          <div className="w-full md:w-2/3 border-r">
+      <CardContent className="p-0 h-[calc(100%-85px)]">
+        <div className="flex flex-col md:flex-row h-full">
+          <div className="w-full md:w-2/3 border-r overflow-y-scroll">
             <FileList 
               files={currentFiles} 
               selectedFile={selectedFile} 
