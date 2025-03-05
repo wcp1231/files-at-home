@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import FileManager, { FileViewEntry } from '@/components/FileManager';
+import FileBrowser, { FileViewEntry } from '@/components/FileBrowser';
 import { FSEntry, FSFile } from '@/lib/filesystem';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -87,7 +87,7 @@ export default function FileExplorer({ rootDirHandle, getFile, listFiles }: File
           </Alert>
         )}
         
-        <FileManager
+        <FileBrowser
           initialPath={rootDirHandle ? "/" : ""}
           onFileSelect={handleFileSelect}
           onDirectorySelect={handleDirectorySelect}

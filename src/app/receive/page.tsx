@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ConnectionState, SharedFileInfo } from '@/lib/webrtc';
-import FileManager, { FileViewEntry } from '@/components/FileManager';
+import FileBrowser, { FileViewEntry } from '@/components/FileBrowser';
 import { useWebRTCClient } from '@/hooks/useWebRTCClient';
 
 export default function ReceivePage() {
@@ -115,7 +115,7 @@ export default function ReceivePage() {
       
       {connectionState === ConnectionState.CONNECTED && (
         <div className="mb-6">
-          <FileManager
+          <FileBrowser
             initialPath="/"
             onFileSelect={handleFileSelect}
             onDirectorySelect={handleDirectorySelect}
