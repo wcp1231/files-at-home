@@ -68,31 +68,21 @@ export default function FileExplorer({ rootDirHandle, getFile, listFiles }: File
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">共享目录内容</CardTitle>
-          <div className="text-xs text-muted-foreground">
-            目录: <span className="font-medium">{`/`}</span>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <FileBrowser
-          initialPath={rootDirHandle ? "/" : ""}
-          onFileSelect={handleFileSelect}
-          onDirectorySelect={handleDirectorySelect}
-        />
-      </CardContent>
-    </Card>
+    <>
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <FileBrowser
+        initialPath={rootDirHandle ? "/" : ""}
+        onFileSelect={handleFileSelect}
+        onDirectorySelect={handleDirectorySelect}
+      />
+    </>
   );
 } 

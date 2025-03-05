@@ -32,7 +32,7 @@ export function FilePreview<T extends FileViewEntry>({
     '—';
 
   return (
-    <Card>
+    <Card className='h-full border-0 shadow-none'>
       <CardHeader>
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 flex items-center justify-center">

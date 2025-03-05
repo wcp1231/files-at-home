@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { FileBrowserHeader } from './filebrowser/FileBrowserHeader';
 import { FileList } from './filebrowser/FileList';
 import { FilePreview } from './filebrowser/FilePreview';
-import { FileBrowserToolbar } from './filebrowser/FileBrowserToolbar';
 import { getFileIcon } from './filebrowser/FileIcons';
 
 // Generic file interface that can work with both local and remote files
@@ -138,17 +137,12 @@ export default function FileBrowser<T extends FileViewEntry>({
         title="File Browser" 
         breadcrumbs={breadcrumbs} 
         onBreadcrumbClick={navigateToBreadcrumb} 
-      />
-      
-      <FileBrowserToolbar 
-        currentPath={currentPath} 
-        onNavigateUp={navigateUp} 
         onRefresh={refreshCurrentDirectory} 
       />
       
-      <CardContent className="p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="w-full md:w-2/3">
+      <CardContent className="p-0">
+        <div className="flex flex-col md:flex-row">
+          <div className="w-full md:w-2/3 border-r">
             <FileList 
               files={currentFiles} 
               selectedFile={selectedFile} 
