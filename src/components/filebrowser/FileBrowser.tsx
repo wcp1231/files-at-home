@@ -42,13 +42,16 @@ export default function FileBrowser<T extends FileViewEntry>({
   const [currentFiles, setCurrentFiles] = useState<T[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<string[]>(['/']);
   const [selectedFile, setSelectedFile] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (onDirectorySelect) {
+    if (initialPath) {
       navigateToDirectory(initialPath);
+    } else {
+      setCurrentFiles([])
+      setLoading(true)
     }
-  }, [initialPath, onDirectorySelect]);
+  }, [initialPath]);
 
   // 获取文件列表
   const fetchFiles = async (path: string) => {

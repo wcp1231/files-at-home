@@ -23,6 +23,7 @@ interface FlatConnectionPanelProps {
     handleFileSelect: (path: string) => Promise<FileViewEntry | null>,
     handleDirectorySelect: (path: string) => Promise<FileViewEntry[]>
   ) => void;
+  onDisconnected: () => void;
 }
 
 // 使用模块级变量来跟踪连接状态，确保它在组件重新渲染或卸载时不会重置
@@ -30,7 +31,8 @@ let isConnectionInitialized = false;
 
 export default function FlatConnectionPanel({ 
   initialConnectionId,
-  onConnected
+  onConnected,
+  onDisconnected
 }: FlatConnectionPanelProps) {
   const {
     connectionState,
@@ -119,8 +121,10 @@ export default function FlatConnectionPanel({
   useEffect(() => {
     if (connectionState === ConnectionState.CONNECTED) {
       onConnected(handleFileSelect, handleDirectorySelect);
+    } else if (connectionState === ConnectionState.DISCONNECTED) {
+      onDisconnected();
     }
-  }, [connectionState, onConnected]);
+  }, [connectionState, onConnected, onDisconnected]);
   
   // 获取按钮状态和标签
   const getButtonProps = () => {

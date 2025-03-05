@@ -19,16 +19,22 @@ export default function FileBrowserWrapper({initialConnectionId}: FileBrowserWra
     setDirectorySelectHandler(() => handleDirectorySelect);
   }, []);
 
+  const handleDisconnected = useCallback(() => {
+    setFileSelectHandler(undefined);
+    setDirectorySelectHandler(undefined);
+  }, []);
+
   return (
     <div className="mb-6">
       <FileBrowser
-        initialPath="/"
+        initialPath={directorySelectHandler ? "/" : ""}
         onFileSelect={fileSelectHandler}
         onDirectorySelect={directorySelectHandler}
         titlePanel={
           <FlatConnectionPanel 
             initialConnectionId={initialConnectionId}
             onConnected={handleConnected}
+            onDisconnected={handleDisconnected}
           />
         }
       />

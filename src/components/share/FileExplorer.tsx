@@ -13,7 +13,6 @@ interface FileExplorerProps {
 }
 
 export default function FileExplorer({ rootDirHandle, getDirectory, getFile, listFiles }: FileExplorerProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 将FSEntry映射到FileEntry
@@ -33,7 +32,6 @@ export default function FileExplorer({ rootDirHandle, getDirectory, getFile, lis
 
   // 处理本地文件浏览
   const handleFileSelect = async (path: string) => {
-    setIsLoading(true);
     setError(null);
     try {
       const file = await getFile(path);
@@ -42,14 +40,11 @@ export default function FileExplorer({ rootDirHandle, getDirectory, getFile, lis
       console.error('Error selecting file:', err);
       setError('无法加载文件');
       return null;
-    } finally {
-      setIsLoading(false);
     }
   };
 
   // 处理本地目录导航
   const handleDirectorySelect = async (path: string) => {
-    setIsLoading(true);
     setError(null);
     try {
       const files = await listFiles(path);
@@ -59,8 +54,6 @@ export default function FileExplorer({ rootDirHandle, getDirectory, getFile, lis
       console.error('Error listing directory:', err);
       setError('无法加载目录内容');
       return [];
-    } finally {
-      setIsLoading(false);
     }
   };
 
