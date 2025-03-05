@@ -3,25 +3,31 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { FaFolder, FaLink, FaCopy, FaCheck } from 'react-icons/fa';
-import useWebRTCStore, { ConnectionState, PeerRole } from '@/store/webrtcStore';
-import FileManager from '@/components/FileManager';
-import useFileSystemStore from '@/store/fileSystemStore';
+import FileManager, { FileViewEntry } from '@/components/FileManager';
+import { useFileSystem } from '@/hooks/useFileSystem';
+import { FSEntry, FSFile } from '@/lib/filesystem';
+import { ConnectionState } from '@/lib/webrtc';
+import { useWebRTCHost } from '@/hooks/useWebRTCHost';
 
 export default function SharePage() {
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
 
-  const { rootDir, setRootDir, selectDirectory, getDirectory, getFile } = useFileSystemStore();
+  const {
+    rootDirHandle,
+    openDirectory,
+    getFile,
+    listFiles,
+    getDirectory,
+  } = useFileSystem();
 
-  const { 
-    connectionState, 
-    connectionId, 
-    error, 
-    initializeHost, 
-    disconnect 
-  } = useWebRTCStore();
-
-
+  const {
+    connectionState,
+    connectionId,
+    error,
+    initializeHost,
+    disconnect
+  } = useWebRTCHost({ getDirectory, getFile });
   
   // 当连接 ID 变化时更新分享 URL
   useEffect(() => {
@@ -36,14 +42,9 @@ export default function SharePage() {
   // 选择目录
   const handleSelectDirectory = async () => {
     try {
-      const dirHandle = await window.showDirectoryPicker();
+      await openDirectory();
       // 设置文件系统的根目录
-      setRootDir(dirHandle);
-      await Promise.all([
-        selectDirectory('/'),
-        // 初始化 WebRTC 主机
-        initializeHost(getDirectory, getFile)
-      ]);
+      await initializeHost()
     } catch (err) {
       console.error('Failed to select directory:', err);
     }
@@ -60,6 +61,34 @@ export default function SharePage() {
   // 断开连接
   const handleDisconnect = () => {
     disconnect();
+  };
+
+  // 将FSEntry映射到FileEntry
+  const mapFSEntryToFileEntry = (entry: FSEntry | null): FileViewEntry | null => {
+    if (!entry) {
+      return null
+    }
+    return {
+      name: entry.name,
+      path: entry.path,
+      size: entry instanceof FSFile ? entry.size : undefined,
+      type: entry instanceof FSFile ? entry.type : undefined,
+      modifiedAt: entry instanceof FSFile ? entry.modifiedAt : undefined,
+      isDirectory: !(entry instanceof FSFile)
+    };
+  };
+
+  // 处理本地文件浏览
+  const handleFileSelect = async (path: string) => {
+    const file = await getFile(path);
+    return mapFSEntryToFileEntry(file);
+  };
+
+  // 处理本地目录导航
+  const handleDirectorySelect = async (path: string) => {
+    const files = await listFiles(path);
+    if (!files) return [];  
+    return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
   };
   
   return (
@@ -140,10 +169,14 @@ export default function SharePage() {
             </div>
             
             {/* 文件管理器组件 */}
-            {rootDir && (
+            {rootDirHandle && (
               <div className="mt-4">
                 <h3 className="text-lg font-semibold mb-4">共享目录内容</h3>
-                <FileManager initialPath="/" />
+                <FileManager
+                  initialPath={rootDirHandle ? "/" : ""}
+                  onFileSelect={handleFileSelect}
+                  onDirectorySelect={handleDirectorySelect}
+                />
               </div>
             )}
           </div>

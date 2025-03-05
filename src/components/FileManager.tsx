@@ -1,53 +1,144 @@
-import { useEffect } from 'react';
-import { FaArrowLeft } from 'react-icons/fa';
-import useFileSystemStore, { FSEntry, FSDirectory, FSFile } from '@/store/fileSystemStore';
-import { formatFileSize, getFileIcon } from '@/utils/fileUtils';
+import { useEffect, useState, ReactNode } from 'react';
+import { FaFolder, FaFile, FaArrowLeft } from 'react-icons/fa';
+import { formatFileSize } from '@/lib/filesystem/util';
 
-// 文件管理器属性接口
-interface FileManagerProps {
-  initialPath?: string;
-  onFileSelect?: (file: FSFile) => void;
+// Generic file interface that can work with both local and remote files
+export interface FileViewEntry {
+  name: string;
+  path: string;
+  size?: number;
+  type?: string;
+  modifiedAt?: string | Date;
+  isDirectory: boolean;
 }
 
-export default function FileManager({ initialPath = '/', onFileSelect }: FileManagerProps) {
-  // 使用 Zustand store
-  const {
-    currentPath,
-    files,
-    loading,
-    error,
-    selectedFile,
-    breadcrumbs,
-    setCurrentPath,
-    selectDirectory,
-    selectFile,
-    navigateUp,
-    navigateToBreadcrumb
-  } = useFileSystemStore();
+// Props interface
+interface UnifiedFileManagerProps<T extends FileViewEntry> {
+  // Initial path
+  initialPath?: string;
 
-  // 初始化和路径变化时获取文件
+  // Callback handlers
+  onFileSelect?: (path: string) => Promise<T | null>;
+  onDirectorySelect?: (path: string) => Promise<T[]>;
+  
+  // Custom icon renderer
+  renderFileIcon?: (file: T) => ReactNode;
+}
+
+export default function UnifiedFileManager<T extends FileViewEntry>({
+  initialPath = '/',
+  onFileSelect,
+  onDirectorySelect,
+  renderFileIcon,
+}: UnifiedFileManagerProps<T>) {
+  const [currentPath, setCurrentPath] = useState(initialPath);
+  const [currentFiles, setCurrentFiles] = useState<T[]>([]);
+  const [breadcrumbs, setBreadcrumbs] = useState<string[]>(['/']);
+  const [selectedFile, setSelectedFile] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    setCurrentPath(initialPath);
-  }, [initialPath, setCurrentPath]);
+    console.log('initialPath', initialPath);
+    navigateToDirectory(initialPath);
+  }, [initialPath]);
 
-  // 处理文件或目录点击
-  const handleItemClick = (item: FSEntry) => {
-    if (item instanceof FSDirectory) {
-      // 如果是目录，则导航到该目录
-      setCurrentPath(item.path.endsWith('/') ? item.path : `${item.path}/`);
-      selectDirectory(item.path);
-    } else {
-      // 如果是文件，则选择该文件
-      selectFile(item.path);
-      if (onFileSelect) {
-        onFileSelect(item as FSFile);
-      }
+  // 获取文件列表
+  const fetchFiles = async (path: string) => {
+    if (!onDirectorySelect) return;
+    setLoading(true);
+    try {
+      const files = await onDirectorySelect(path);
+      console.log('files', files);
+      setCurrentFiles(files);
+    } catch (error) {
+      console.error('Error loading files:', error);
+    } finally {
+      setLoading(false);
     }
   };
+  
+  // 导航到目录
+  const navigateToDirectory = async (path: string) => {
+    // 确保路径以 / 结尾
+    const normalizedPath = path.endsWith('/') ? path : `${path}/`;
+    await fetchFiles(normalizedPath);
+    setCurrentPath(normalizedPath);
+    
+    // 更新面包屑
+    const pathParts = normalizedPath.split('/').filter(Boolean);
+    setBreadcrumbs(['/', ...pathParts]);
+  };
+  
+  // 导航到面包屑
+  const navigateToBreadcrumb = async (index: number) => {
+    if (index === 0) {
+      await navigateToDirectory('/');
+    } else {
+      const pathParts = breadcrumbs.slice(1, index + 1);
+      await navigateToDirectory(`/${pathParts.join('/')}/`);
+    }
+  };
+  
+  // 导航到上一级目录
+  const navigateUp = async () => {
+    if (currentPath === '/') return;
+    
+    const pathParts = currentPath.split('/').filter(Boolean);
+    pathParts.pop();
+    const newPath = pathParts.length ? `/${pathParts.join('/')}/` : '/';
+    
+    await navigateToDirectory(newPath);
+  };
 
+  const handleFileSelect = async (file: T) => {
+    if (!onFileSelect) return;
+    setLoading(true);
+    const result = await onFileSelect(file.path);
+    setSelectedFile(result);
+    setLoading(false);
+    console.log('handleFileSelect', result);
+    // TODO 后续处理，比如预览文件等
+  }
+
+  // 处理文件或目录点击
+  const handleItemClick = async (file: T) => {
+    if (file.isDirectory) {
+      // 如果是目录，则导航到该目录
+      await navigateToDirectory(file.path);
+      return
+    }
+    // 如果是文件，则选择该文件
+    await handleFileSelect(file);
+  };
+  
+  // 请求下载文件
+  const handleFileDownload = (file: T) => {
+    console.log('handleFileDownload', file);
+  };
+  
+  // 获取文件图标
+  const getFileIcon = (file: T) => {
+    // 如果提供了自定义图标渲染器，使用它
+    if (renderFileIcon) {
+      return renderFileIcon(file);
+    }
+    
+    // 默认图标
+    return file.isDirectory ? 
+      <FaFolder className="text-yellow-500" /> : 
+      <FaFile className="text-gray-400" />;
+  };
+  
   // 渲染文件预览
   const renderFilePreview = () => {
     if (!selectedFile) return null;
+    
+    const modifiedDate = selectedFile.modifiedAt ? 
+      (typeof selectedFile.modifiedAt === 'string' ? 
+        new Date(selectedFile.modifiedAt) : 
+        selectedFile.modifiedAt
+      ).toLocaleDateString() : 
+      '--';
     
     return (
       <div className="border rounded-lg p-4 bg-white shadow-sm">
@@ -60,22 +151,26 @@ export default function FileManager({ initialPath = '/', onFileSelect }: FileMan
           <div>Size:</div>
           <div>{formatFileSize(selectedFile.size)}</div>
           <div>Modified:</div>
-          <div>{selectedFile.modifiedAt?.toLocaleDateString()}</div>
+          <div>{modifiedDate}</div>
           <div>Path:</div>
           <div className="truncate">{selectedFile.path}</div>
         </div>
-        {selectedFile.type?.startsWith('image/') && (
+        {!selectedFile.isDirectory && (
           <div className="mt-4">
-            <p className="text-gray-500 text-sm mb-2">Preview:</p>
-            <div className="border rounded bg-gray-50 p-2 flex items-center justify-center">
-              {/* 在实际应用中，这里应该是真实的图片URL */}
-              <div className="text-gray-400 italic">Image preview would appear here</div>
-            </div>
+            <button
+              onClick={() => handleFileDownload(selectedFile)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition-colors"
+            >
+              Download File
+            </button>
           </div>
         )}
       </div>
     );
   };
+
+  // 使用外部传入的loading状态或内部状态
+  const isLoading = loading;
 
   return (
     <div className="bg-gray-50 rounded-lg shadow-md overflow-hidden">
@@ -101,13 +196,7 @@ export default function FileManager({ initialPath = '/', onFileSelect }: FileMan
       <div className="flex flex-col md:flex-row">
         {/* 文件列表 */}
         <div className="w-full md:w-2/3 p-4">
-          {error && (
-            <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-          
-          {loading ? (
+          {isLoading ? (
             <div className="flex justify-center items-center h-40">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
             </div>
@@ -140,14 +229,14 @@ export default function FileManager({ initialPath = '/', onFileSelect }: FileMan
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {files.length === 0 ? (
+                    {currentFiles.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="px-6 py-4 text-center text-gray-500">
                           This folder is empty
                         </td>
                       </tr>
                     ) : (
-                      files.map((file) => (
+                      currentFiles.map((file) => (
                         <tr 
                           key={file.path}
                           onClick={() => handleItemClick(file)}
@@ -166,10 +255,16 @@ export default function FileManager({ initialPath = '/', onFileSelect }: FileMan
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {file instanceof FSDirectory ? '--' : formatFileSize((file as FSFile).size)}
+                            {file.isDirectory ? '--' : formatFileSize(file.size)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {file instanceof FSFile ? file.modifiedAt?.toLocaleDateString() || '--' : '--'}
+                            {file.modifiedAt ? 
+                              (typeof file.modifiedAt === 'string' ? 
+                                new Date(file.modifiedAt) : 
+                                file.modifiedAt
+                              ).toLocaleDateString() : 
+                              '--'
+                            }
                           </td>
                         </tr>
                       ))
@@ -194,4 +289,4 @@ export default function FileManager({ initialPath = '/', onFileSelect }: FileMan
       </div>
     </div>
   );
-}
+} 

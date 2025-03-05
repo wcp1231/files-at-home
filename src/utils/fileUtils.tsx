@@ -1,16 +1,6 @@
 import { ReactNode } from 'react';
 import { FaFolder, FaFile, FaFileImage, FaFilePdf, FaFileAlt, FaFileCode } from 'react-icons/fa';
-import { FSDirectory, FSEntry, FSFile } from '../store/fileSystemStore';
-
-// 格式化文件大小
-export const formatFileSize = (bytes?: number): string => {
-  if (bytes === undefined) return 'Unknown';
-  
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-};
+import { FSDirectory, FSEntry, FSFile } from '@/lib/filesystem';
 
 // 获取文件图标
 export const getFileIcon = (entry: FSEntry): ReactNode => {

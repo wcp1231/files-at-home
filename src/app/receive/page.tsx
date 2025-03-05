@@ -3,23 +3,22 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { FaFolder } from 'react-icons/fa';
-import useWebRTCStore, { ConnectionState } from '@/store/webrtcStore';
-import { SharedFileInfo } from '@/utils/webrtcUtils';
-import RemoteFileManager from '@/components/RemoteFileManager';
+import { ConnectionState, SharedFileInfo } from '@/lib/webrtc';
+import FileManager, { FileViewEntry } from '@/components/FileManager';
+import { useWebRTCClient } from '@/hooks/useWebRTCClient';
 
 export default function ReceivePage() {
   const searchParams = useSearchParams();
   const [connectionIdInput, setConnectionIdInput] = useState('');
-  
-  const { 
-    connectionState, 
-    error, 
-    initializeClient, 
+
+  const {
+    connectionState,
+    error,
+    initializeClient,
     disconnect,
     requestFile,
     requestDirectory
-  } = useWebRTCStore();
+  } = useWebRTCClient();
   
   // 从 URL 参数中获取连接 ID
   useEffect(() => {
@@ -40,17 +39,32 @@ export default function ReceivePage() {
   const handleDisconnect = () => {
     disconnect();
   };
+
+  // 将FSEntry映射到FileEntry
+  const mapFSEntryToFileEntry = (entry: SharedFileInfo | null): FileViewEntry | null => {
+    if (!entry) {
+      return null
+    }
+    return {
+      name: entry.name,
+      path: entry.path,
+      size: entry.size,
+      type: entry.type,
+      modifiedAt: entry.modifiedAt,
+      isDirectory: entry.isDirectory
+    };
+  };
   
   // 处理文件请求
-  const handleFileSelect = (file: SharedFileInfo) => {
-    if (!file.isDirectory) {
-      requestFile(file.path);
-    }
+  const handleFileSelect = async (path: string) => {
+    const file = await requestFile(path);
+    return mapFSEntryToFileEntry(file);
   };
 
   // 处理目录请求
-  const handleDirectorySelect = (file: SharedFileInfo) => {
-    console.log('directory select', file)
+  const handleDirectorySelect = async (path: string) => {
+    const files = await requestDirectory(path);
+    return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
   };
   
   // 渲染连接表单
@@ -101,7 +115,11 @@ export default function ReceivePage() {
       
       {connectionState === ConnectionState.CONNECTED && (
         <div className="mb-6">
-          <RemoteFileManager onFileSelect={handleFileSelect} onDirectorySelect={handleDirectorySelect} />
+          <FileManager
+            initialPath="/"
+            onFileSelect={handleFileSelect}
+            onDirectorySelect={handleDirectorySelect}
+          />
           
           <div className="mt-4 text-center">
             <button
