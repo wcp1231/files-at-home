@@ -173,7 +173,7 @@ export function useWebRTCHost({ getDirectory, getFile }: UseWebRTCHostProps) {
   }
 
   const initializeHost = async () => {
-    setConnectionState(ConnectionState.CONNECTING);
+    setConnectionState(ConnectionState.INITIALIZING);
     setRole(PeerRole.HOST);
 
     // 创建一个随机 ID 的 Peer
@@ -182,6 +182,7 @@ export function useWebRTCHost({ getDirectory, getFile }: UseWebRTCHostProps) {
     // 设置事件监听器
     peer.on('open', (id) => {
       console.log('Host peer ID:', id, peer.id);
+      setConnectionState(ConnectionState.WAITING_FOR_CONNECTION);
       // 使用 peer ID 作为连接 ID
       setConnectionId(id);
     });
@@ -213,7 +214,7 @@ export function useWebRTCHost({ getDirectory, getFile }: UseWebRTCHostProps) {
     setPeer(peer);
 
     // 等待生成连接 ID
-    return new Promise((resolve) => {
+    return new Promise<string>((resolve) => {
       const checkConnectionId = () => {
         if (connectionIdRef.current) {
           resolve(connectionIdRef.current);

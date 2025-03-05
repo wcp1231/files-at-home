@@ -9,9 +9,17 @@ declare global {
 
 // 连接状态枚举
 export enum ConnectionState {
+  // 未连接
   DISCONNECTED = 'disconnected',
+  // 初始化中
+  INITIALIZING = 'initializing',
+  // 等待连接
+  WAITING_FOR_CONNECTION = 'waiting_for_connection',
+  // 连接中
   CONNECTING = 'connecting',
+  // 已连接
   CONNECTED = 'connected',
+  // 连接错误
   ERROR = 'error',
 }
 

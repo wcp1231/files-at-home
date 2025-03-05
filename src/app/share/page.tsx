@@ -1,24 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import Link from 'next/link';
 import { useFileSystem } from '@/hooks/useFileSystem';
-import { ConnectionState } from '@/lib/webrtc';
-import { useWebRTCHost } from '@/hooks/useWebRTCHost';
 import { Button } from '@/components/ui/button';
 
 // Import components from the barrel export
 import {
-  ShareHeader,
   DirectorySelector,
-  ConnectionInfo,
+  ConnectionPanel,
   FileExplorer,
-  ConnectingIndicator
 } from '@/components/share';
 
 export default function SharePage() {
-  const [shareUrl, setShareUrl] = useState('');
-
   const {
     rootDirHandle,
     openDirectory,
@@ -26,72 +20,45 @@ export default function SharePage() {
     listFiles,
     getDirectory,
   } = useFileSystem();
-
-  const {
-    connectionState,
-    connectionId,
-    error,
-    initializeHost,
-    disconnect
-  } = useWebRTCHost({ getDirectory, getFile });
-  
-  // 当连接 ID 变化时更新分享 URL
-  useEffect(() => {
-    if (connectionId) {
-      const url = `${window.location.origin}/receive?id=${connectionId}`;
-      setShareUrl(url);
-    } else {
-      setShareUrl('');
-    }
-  }, [connectionId]);
   
   // 选择目录 - 使用 useCallback 优化
   const handleSelectDirectory = useCallback(async () => {
     try {
+      // 打开目录
       await openDirectory();
-      // 设置文件系统的根目录
-      await initializeHost()
     } catch (err) {
       console.error('Failed to select directory:', err);
     }
-  }, [openDirectory, initializeHost]);
+  }, [openDirectory]);
   
-  // 根据连接状态渲染不同的内容
+  // 渲染内容
   const renderContent = () => {
-    if (connectionState === ConnectionState.DISCONNECTED) {
+    // 如果没有选择目录，显示目录选择器
+    if (!rootDirHandle) {
       return <DirectorySelector onSelectDirectory={handleSelectDirectory} />;
     }
     
-    if (connectionState === ConnectionState.CONNECTING && !connectionId) {
-      return <ConnectingIndicator />;
-    }
-    
-    if (connectionState === ConnectionState.CONNECTED || 
-        (connectionState === ConnectionState.CONNECTING && connectionId)) {
-      return (
-        <>
-          <ConnectionInfo 
-            connectionId={connectionId} 
-            shareUrl={shareUrl} 
-            onDisconnect={disconnect} 
-          />
-          
-          <FileExplorer 
-            rootDirHandle={rootDirHandle} 
-            getFile={getFile} 
-            listFiles={listFiles} 
-          />
-        </>
-      );
-    }
-    
-    return null;
+    // 一旦有了目录，就显示文件浏览器和连接信息
+    return (
+      <>
+        {/* 连接信息组件 - 包含 WebRTC 连接管理和标题 */}
+        <ConnectionPanel
+          getDirectory={getDirectory}
+          getFile={getFile}
+        />
+        
+        {/* 文件浏览器组件 - 一旦选择了目录就显示 */}
+        <FileExplorer 
+          rootDirHandle={rootDirHandle} 
+          getFile={getFile} 
+          listFiles={listFiles} 
+        />
+      </>
+    );
   };
   
   return (
     <div className="container max-w-8xl mx-auto py-8 px-4">
-      <ShareHeader error={error} />
-      
       <div className="space-y-6">
         {renderContent()}
       </div>
