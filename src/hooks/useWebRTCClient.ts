@@ -98,6 +98,7 @@ export function useWebRTCClient() {
   }
 
   const handleConnection = (conn: DataConnection) => {
+    setConnectionState(ConnectionState.CONNECTING);
     setConnection(conn);
         
     // 设置连接事件
@@ -126,7 +127,7 @@ export function useWebRTCClient() {
   // 初始化客户端
   const initializeClient = (connectionId: string) => {
     try {
-      setConnectionState(ConnectionState.CONNECTING);
+      setConnectionState(ConnectionState.INITIALIZING);
       setRole(PeerRole.CLIENT);
       setError(null);
       setConnectionId(connectionId);

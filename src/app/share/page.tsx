@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 // Import components from the barrel export
 import {
   DirectorySelector,
-  ConnectionPanel,
   FileExplorer,
 } from '@/components/share';
 
@@ -40,25 +39,17 @@ export default function SharePage() {
     
     // 一旦有了目录，就显示文件浏览器和连接信息
     return (
-      <>
-        {/* 连接信息组件 - 包含 WebRTC 连接管理和标题 */}
-        <ConnectionPanel
-          getDirectory={getDirectory}
-          getFile={getFile}
-        />
-        
-        {/* 文件浏览器组件 - 一旦选择了目录就显示 */}
-        <FileExplorer 
-          rootDirHandle={rootDirHandle} 
-          getFile={getFile} 
-          listFiles={listFiles} 
-        />
-      </>
+      <FileExplorer 
+        rootDirHandle={rootDirHandle}
+        getDirectory={getDirectory}
+        getFile={getFile} 
+        listFiles={listFiles} 
+      />
     );
   };
   
   return (
-    <div className="container max-w-8xl mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4">
       <div className="space-y-6">
         {renderContent()}
       </div>

@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import FileBrowser, { FileViewEntry } from '@/components/filebrowser';
-import { FSEntry, FSFile } from '@/lib/filesystem';
+import { FSEntry, FSFile, FSDirectory } from '@/lib/filesystem';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import FlatConnectionPanel from './FlatConnectionPanel';
 
 interface FileExplorerProps {
   rootDirHandle: FileSystemDirectoryHandle | null;
+  getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
   getFile: (path: string) => Promise<FSFile | null>;
   listFiles: (path: string) => Promise<FSEntry[] | undefined>;
 }
 
-export default function FileExplorer({ rootDirHandle, getFile, listFiles }: FileExplorerProps) {
+export default function FileExplorer({ rootDirHandle, getDirectory, getFile, listFiles }: FileExplorerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,6 +83,12 @@ export default function FileExplorer({ rootDirHandle, getFile, listFiles }: File
         initialPath={rootDirHandle ? "/" : ""}
         onFileSelect={handleFileSelect}
         onDirectorySelect={handleDirectorySelect}
+        titlePanel={
+          <FlatConnectionPanel 
+            getDirectory={getDirectory}
+            getFile={getFile}
+          />
+        }
       />
     </>
   );

@@ -69,7 +69,7 @@ async function handleDirectoryRequest(
   requestId?: string
 ) {
   try {
-    const directory = await getDirectory(path, false);
+    const directory = await getDirectory(path, true);
     
     if (!directory) {
       throw new Error('目录不存在');

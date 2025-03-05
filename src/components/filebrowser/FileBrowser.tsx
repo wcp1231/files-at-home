@@ -27,6 +27,8 @@ interface FileBrowserProps<T extends FileViewEntry> {
   
   // Custom icon renderer
   renderFileIcon?: (file: T) => ReactNode;
+
+  titlePanel?: ReactNode;
 }
 
 export default function FileBrowser<T extends FileViewEntry>({
@@ -34,16 +36,19 @@ export default function FileBrowser<T extends FileViewEntry>({
   onFileSelect,
   onDirectorySelect,
   renderFileIcon,
+  titlePanel,
 }: FileBrowserProps<T>) {
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentFiles, setCurrentFiles] = useState<T[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<string[]>(['/']);
   const [selectedFile, setSelectedFile] = useState<T | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    navigateToDirectory(initialPath);
-  }, [initialPath]);
+    if (onDirectorySelect) {
+      navigateToDirectory(initialPath);
+    }
+  }, [initialPath, onDirectorySelect]);
 
   // 获取文件列表
   const fetchFiles = async (path: string) => {
@@ -135,7 +140,9 @@ export default function FileBrowser<T extends FileViewEntry>({
   return (
     <Card className="overflow-hidden">
       <div className="bg-card border-b">
-        <HeaderTitle title="File Browser" />
+        <HeaderTitle title="File Browser">
+          {titlePanel}
+        </HeaderTitle>
 
         <HeaderToolbar 
           breadcrumbs={breadcrumbs} 
