@@ -32,8 +32,11 @@ export enum PeerRole {
 // 定义消息类型
 export enum MessageType {
   DIRECTORY_REQUEST = 'DIRECTORY_REQUEST',
-  FILE_REQUEST = 'FILE_REQUEST',
-  FILE_DATA = 'FILE_DATA',
+  DIRECTORY_RESPONSE = 'DIRECTORY_RESPONSE',
+  FILE_INFO_REQUEST = 'FILE_INFO_REQUEST',
+  FILE_DATA_REQUEST = 'FILE_DATA_REQUEST',
+  FILE_INFO_RESPONSE = 'FILE_INFO_RESPONSE',
+  FILE_DATA_RESPONSE = 'FILE_DATA_RESPONSE',
   ERROR = 'ERROR',
 }
 
@@ -52,4 +55,11 @@ export interface SharedFileInfo {
   isDirectory: boolean;
   modifiedAt?: string;
   type?: string;
+}
+
+export interface SharedFileData {
+  name: string;
+  size?: number;
+  type?: string;
+  data: string;
 }

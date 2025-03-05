@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link2, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ConnectionState, SharedFileInfo } from '@/lib/webrtc';
+import { ConnectionState, SharedFileData, SharedFileInfo } from '@/lib/webrtc';
 import { useWebRTCClient } from '@/hooks/useWebRTCClient';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { 
@@ -21,6 +21,7 @@ interface FlatConnectionPanelProps {
   initialConnectionId?: string;
   onConnected: (
     handleFileSelect: (path: string) => Promise<FileViewEntry | null>,
+    handleFileData: (path: string) => Promise<SharedFileData | null>,
     handleDirectorySelect: (path: string) => Promise<FileViewEntry[]>
   ) => void;
   onDisconnected: () => void;
@@ -40,6 +41,7 @@ export default function FlatConnectionPanel({
     initializeClient,
     disconnect,
     requestFile,
+    requestFileData,
     requestDirectory
   } = useWebRTCClient();
   
@@ -66,6 +68,12 @@ export default function FlatConnectionPanel({
   const handleFileSelect = async (path: string) => {
     const file = await requestFile(path);
     return mapFSEntryToFileEntry(file);
+  };
+
+  // 处理文件数据请求
+  const handleFileData = async (path: string) => {
+    const file = await requestFileData(path);
+    return file;
   };
 
   // 处理目录请求
@@ -120,7 +128,7 @@ export default function FlatConnectionPanel({
   // 当连接状态变为已连接时，调用onConnected回调
   useEffect(() => {
     if (connectionState === ConnectionState.CONNECTED) {
-      onConnected(handleFileSelect, handleDirectorySelect);
+      onConnected(handleFileSelect, handleFileData, handleDirectorySelect);
     } else if (connectionState === ConnectionState.DISCONNECTED) {
       onDisconnected();
     }

@@ -8,20 +8,24 @@ interface FileBrowserWrapperProps {
 
 export default function FileBrowserWrapper({initialConnectionId}: FileBrowserWrapperProps) {
   const [fileSelectHandler, setFileSelectHandler] = useState<((path: string) => Promise<FileViewEntry | null>) | undefined>();
+  const [fileDataHandler, setFileDataHandler] = useState<((path: string) => Promise<FileViewEntry | null>) | undefined>();
   const [directorySelectHandler, setDirectorySelectHandler] = useState<((path: string) => Promise<FileViewEntry[]>) | undefined>();
 
   // 当连接成功时，设置文件和目录处理函数
   const handleConnected = useCallback((
     handleFileSelect: (path: string) => Promise<FileViewEntry | null>,
+    handleFileData: (path: string) => Promise<FileViewEntry | null>,
     handleDirectorySelect: (path: string) => Promise<FileViewEntry[]>
   ) => {
     setFileSelectHandler(() => handleFileSelect);
+    setFileDataHandler(() => handleFileData);
     setDirectorySelectHandler(() => handleDirectorySelect);
   }, []);
 
   const handleDisconnected = useCallback(() => {
     setFileSelectHandler(undefined);
     setDirectorySelectHandler(undefined);
+    setFileDataHandler(undefined);
   }, []);
 
   return (
@@ -29,6 +33,7 @@ export default function FileBrowserWrapper({initialConnectionId}: FileBrowserWra
       <FileBrowser
         initialPath={directorySelectHandler ? "/" : ""}
         onFileSelect={fileSelectHandler}
+        onFileData={fileDataHandler}
         onDirectorySelect={directorySelectHandler}
         titlePanel={
           <FlatConnectionPanel 

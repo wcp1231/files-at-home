@@ -5,6 +5,7 @@ import { FileList } from './FileList';
 import { FilePreview } from './FilePreview';
 import { getFileIcon } from './FileIcons';
 import HeaderToolbar from './HeaderToolbar';
+import { SharedFileData } from '@/lib/webrtc';
 
 // Generic file interface that can work with both local and remote files
 export interface FileViewEntry {
@@ -14,6 +15,7 @@ export interface FileViewEntry {
   type?: string;
   modifiedAt?: string | Date;
   isDirectory: boolean;
+  data?: ArrayBuffer; // 添加数据字段，用于存储文件内容
 }
 
 // Props interface
@@ -23,6 +25,7 @@ interface FileBrowserProps<T extends FileViewEntry> {
 
   // Callback handlers
   onFileSelect?: (path: string) => Promise<T | null>;
+  onFileData?: (path: string) => Promise<SharedFileData | null>;
   onDirectorySelect?: (path: string) => Promise<T[]>;
   
   // Custom icon renderer
@@ -34,6 +37,7 @@ interface FileBrowserProps<T extends FileViewEntry> {
 export default function FileBrowser<T extends FileViewEntry>({
   initialPath = '/',
   onFileSelect,
+  onFileData,
   onDirectorySelect,
   renderFileIcon,
   titlePanel,
@@ -120,8 +124,53 @@ export default function FileBrowser<T extends FileViewEntry>({
   };
   
   // 请求下载文件
-  const handleFileDownload = (file: T) => {
-    console.log('handleFileDownload', file);
+  const handleFileDownload = async (file: T) => {
+    try {      
+      // 否则，先请求文件数据
+      setLoading(true);
+      
+      // 重新请求文件以获取完整数据
+      if (onFileData) {
+        const fileWithData = await onFileData(file.path);
+        if (fileWithData && fileWithData.data) {
+          downloadFileFromData(fileWithData);
+        } else {
+          console.error('Failed to get file data');
+        }
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 从数据创建并下载文件
+  const downloadFileFromData = (file: SharedFileData) => {
+    if (!file.data) {
+      console.error('No file data available for download');
+      return;
+    }
+    
+    // 创建Blob对象
+    const arrayBuffer = Buffer.from(file.data, 'base64');
+    const blob = new Blob([arrayBuffer], { type: file.type || 'application/octet-stream' });
+    
+    // 创建下载链接
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    
+    // 添加到文档并触发点击
+    document.body.appendChild(a);
+    a.click();
+    
+    // 清理
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
   };
   
   // 获取文件图标
