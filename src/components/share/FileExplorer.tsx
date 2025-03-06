@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import FileBrowser, { FileViewEntry } from '@/components/filebrowser';
+import React, { useEffect, useState } from 'react';
+import { FileBrowser, useFileBrowserStore, type FileViewEntry } from '@/components/filebrowser';
 import { FSEntry, FSFile, FSDirectory } from '@/lib/filesystem';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -14,6 +14,7 @@ interface FileExplorerProps {
 
 export default function FileExplorer({ rootDirHandle, getDirectory, getFile, listFiles }: FileExplorerProps) {
   const [error, setError] = useState<string | null>(null);
+  const store = useFileBrowserStore();
 
   // 将FSEntry映射到FileEntry
   const mapFSEntryToFileEntry = (entry: FSEntry | null): FileViewEntry | null => {
@@ -57,6 +58,15 @@ export default function FileExplorer({ rootDirHandle, getDirectory, getFile, lis
     }
   };
 
+  useEffect(() => {
+    store.setCallbacks({
+      onFileSelect: handleFileSelect,
+      onDirectorySelect: handleDirectorySelect,
+      renderFileIcon: undefined
+    });
+    store.initialize('/');
+  }, []);
+
   if (!rootDirHandle) {
     return null;
   }
@@ -73,9 +83,6 @@ export default function FileExplorer({ rootDirHandle, getDirectory, getFile, lis
       )}
       
       <FileBrowser
-        initialPath={rootDirHandle ? "/" : ""}
-        onFileSelect={handleFileSelect}
-        onDirectorySelect={handleDirectorySelect}
         titlePanel={
           <FlatConnectionPanel 
             getDirectory={getDirectory}
