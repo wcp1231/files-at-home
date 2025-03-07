@@ -1,11 +1,12 @@
 import { HEADER_KEY, MessageType } from "@/types/worker";
 import { MESSAGE_TYPE } from "@/types/worker";
+import { ConnectionState } from "..";
 
 export class WorkerManager {
   public static channel: MessageChannel | null = null;
   public static worker: ServiceWorkerRegistration | null = null;
   public static writer: Map<string, WritableStreamDefaultWriter<Uint8Array>> = new Map();
-  public static messageHandler: (path: string, writer: WritableStreamDefaultWriter<Uint8Array>) => void = () => {};
+  public static messageHandler: (path: string, writer: WritableStreamDefaultWriter<Uint8Array>) => Promise<void> = async () => {};
 
   public static async register(): Promise<ServiceWorkerRegistration | null> {
     if (!navigator.serviceWorker) {
@@ -33,11 +34,9 @@ export class WorkerManager {
   }
 
   private static async initChannel() {
-    console.log('[WorkerManager] initChannel', WorkerManager.channel);
     if (!WorkerManager.channel) {
       WorkerManager.channel = new MessageChannel();
       WorkerManager.channel.port1.onmessage = WorkerManager.onMessage;
-      console.log('[WorkerManager] send port2', WorkerManager.channel.port2);
       WorkerManager.worker?.active?.postMessage({ type: MESSAGE_TYPE.INIT_CHANNEL }, [
         WorkerManager.channel.port2,
       ]);
@@ -52,14 +51,23 @@ export class WorkerManager {
     }, 5000);
   }
 
-  public static setMessageHandler(handler: (path: string, writer: WritableStreamDefaultWriter<Uint8Array>) => void) {
+  public static setMessageHandler(handler: (path: string, writer: WritableStreamDefaultWriter<Uint8Array>) => Promise<void>) {
     WorkerManager.messageHandler = handler;
   }
 
-  public static onMessage(event: MessageEvent) {
+  public static onWebRTCStateChange(state: ConnectionState) {
+    WorkerManager.worker?.active?.postMessage({ type: MESSAGE_TYPE.WEBRTC_STATE_CHANGE, state });
+  }
+
+  public static async onMessage(event: MessageEvent) {
     const { path, writable } = event.data;
     const writer = writable.getWriter();
-    WorkerManager.messageHandler(path, writer);
+    // 处理未创建 peer 的情况
+    try {
+      await WorkerManager.messageHandler(path, writer);
+    } finally {
+      writer.close();
+    }
   }
 
   public static isTrustEnv() {

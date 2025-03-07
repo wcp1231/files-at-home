@@ -2,6 +2,88 @@
 
 export type {};
 declare let self: ServiceWorkerGlobalScope;
+const holder = {} as {
+  port: MessagePort | null;
+  state: string | null;
+};
+
+function findReceiveClient(clients: readonly Client[]) {
+  for (const client of clients) {
+    const url = new URL(client.url);
+    // 返回没有 hash 的 receive 页面
+    if (url.pathname === '/receive' && url.hash === '') {
+      return client;
+    }
+  }
+  return null;
+}
+
+function handleInitChannel(event: ExtendableMessageEvent) {
+  if (event.ports.length > 0) {
+    holder.port = event.ports[0];
+  }
+}
+
+function handleWebrtcStateChange(event: ExtendableMessageEvent) {
+  const state = event.data.state;
+  holder.state = state;
+}
+
+function handlePing(event: ExtendableMessageEvent) {
+  if (!holder.port) {
+    console.log('port missing');
+  }
+}
+
+/**
+ * 在 Service Worker 中检查页面状态是否正常
+ * 也就是是否有 receive 页面，并且 WebRTC 连接是否正常
+ * @returns 
+ */
+async function checkStateOK() {
+  const allClients = await self.clients.matchAll({
+    includeUncontrolled: true,
+  });
+  const client = findReceiveClient(allClients);
+  if (!client) {
+    return false;
+  }
+  if (holder.state !== 'connected') {
+    return false;
+  }
+  return true;
+}
+
+function proxyDownloadRequest(event: FetchEvent, url: URL) {
+  const filePath = url.searchParams.get('path');
+  const fileName = url.searchParams.get('name')!;
+  const fileSize = url.searchParams.get('size')!;
+  if (!filePath) {
+    return new Response(null, { status: 404 });
+  }
+  const newFileName = encodeURIComponent(fileName).replace(/\*/g, "%2A");
+  const responseHeader = new Headers({
+    'X-File-Size': fileSize,
+    'X-File-Name': newFileName,
+    "Content-Type": "application/octet-stream; charset=utf-8",
+    "Content-Security-Policy": "default-src 'none'",
+    "X-Content-Security-Policy": "default-src 'none'",
+    "X-WebKit-CSP": "default-src 'none'",
+    "X-XSS-Protection": "1; mode=block",
+    "Cross-Origin-Embedder-Policy": "require-corp",
+    "Content-Disposition": "attachment; filename*=UTF-8''" + newFileName,
+    "Content-Length": fileSize,
+  });
+  const ts = new TransformStream();
+  holder.port!.postMessage({
+    type: 'TRANSFER_START',
+    path: filePath,
+    writable: ts.writable,
+  }, [ts.writable]);
+  return new Response(ts.readable, {
+    headers: responseHeader,
+  });
+}
 
 // Install event - cache initial resources
 self.addEventListener('install', (event) => {
@@ -19,53 +101,40 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-const holder = {};
-
 self.addEventListener('message', (event) => {
-  if (event.ports.length > 0) {
-    holder.port = event.ports[0];
+  const type = event.data.type;
+  if (type === 'INIT_CHANNEL') {
+    handleInitChannel(event);
+    return;
   }
-  if (!holder.port) {
-    console.log('port missing');
+  if (type === 'WEBRTC_STATE_CHANGE') {
+    handleWebrtcStateChange(event);
+    return;
+  }
+  if (type === 'PING') {
+    handlePing(event);
+    return;
   }
 });
 
 // Fetch event - intercept requests
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (url.pathname !== '/receive/download') {
+  if (url.pathname !== '/receive') {
     event.respondWith(fetch(event.request));
     return;
   }
-  console.log('[Service Worker] Fetch', url);
-  const filePath = url.searchParams.get('path');
-  const fileName = url.searchParams.get('name')!;
-  const fileSize = url.searchParams.get('size')!;
-  if (!filePath) {
-    event.respondWith(new Response(null, { status: 404 }));
-    return;
-  }
-  const ts = new TransformStream();
-  holder.port!.postMessage({
-    type: 'TRANSFER_START',
-    path: filePath,
-    writable: ts.writable,
-  }, [ts.writable]);
-  const newFileName = encodeURIComponent(fileName).replace(/\*/g, "%2A");
-  const responseHeader = new Headers({
-    'X-File-Size': fileSize,
-    'X-File-Name': newFileName,
-    "Content-Type": "application/octet-stream; charset=utf-8",
-    "Content-Security-Policy": "default-src 'none'",
-    "X-Content-Security-Policy": "default-src 'none'",
-    "X-WebKit-CSP": "default-src 'none'",
-    "X-XSS-Protection": "1; mode=block",
-    "Cross-Origin-Embedder-Policy": "require-corp",
-    "Content-Disposition": "attachment; filename*=UTF-8''" + newFileName,
-    "Content-Length": fileSize,
-  });
-  const response = new Response(ts.readable, {
-    headers: responseHeader,
-  });
-  return event.respondWith(response);
+  event.respondWith((async () => {
+    const receivePageOk = await checkStateOK();
+    if (!receivePageOk) {
+      return await fetch(event.request);
+    }
+    console.log('receivePageOk', receivePageOk, holder.state);
+    // 下载文件
+    if (url.hash === '#download') {
+      return proxyDownloadRequest(event, url);
+    }
+    // 其他请求
+    return await fetch(event.request);
+  })());
 }); 

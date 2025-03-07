@@ -9,12 +9,14 @@ export const MESSAGE_TYPE = {
   INIT_CHANNEL: "INIT_CHANNEL",
   TRANSFER_START: "TRANSFER_START",
   TRANSFER_CLOSE: "TRANSFER_CLOSE",
+  WEBRTC_STATE_CHANGE: "WEBRTC_STATE_CHANGE",
 } as const;
 
 export type MessageTypeMap = {
   [MESSAGE_TYPE.INIT_CHANNEL]: Record<string, never>;
   [MESSAGE_TYPE.TRANSFER_START]: { id: string; readable: ReadableStream<Uint8Array> };
   [MESSAGE_TYPE.TRANSFER_CLOSE]: { id: string };
+  [MESSAGE_TYPE.WEBRTC_STATE_CHANGE]: { state: string };
 };
 
 import type { Object } from "./type";

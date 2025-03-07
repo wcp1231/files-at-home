@@ -198,7 +198,6 @@ export class ClientRequestManager {
   async workerMessageHandler(path: string, writer: WritableStreamDefaultWriter<Uint8Array>) {
     const result = await this.requestFileData(path);
     writer.write(Buffer.from(result.data, 'base64'));
-    writer.close();
   }
 }
 

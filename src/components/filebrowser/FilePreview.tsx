@@ -52,7 +52,7 @@ export function FilePreview<T extends FileViewEntry>() {
       iframe.setAttribute('id', selectedFile.path);
       iframe.hidden = true
       iframe.style.display = "none";
-      iframe.src = `/receive/download?path=${selectedFile.path}&name=${selectedFile.name}&size=${selectedFile.size}`;
+      iframe.src = `/receive?path=${selectedFile.path}&name=${selectedFile.name}&size=${selectedFile.size}#download`;
       iframe.onload = function() {
         console.log("iframe loaded");
         document.body.removeChild(iframe);
@@ -98,7 +98,7 @@ export function FilePreview<T extends FileViewEntry>() {
                 <CloudDownload className="h-4 w-4" />
               </Button>
               <a 
-                href={`/receive/download?path=${selectedFile.path}&name=${selectedFile.name}&size=${selectedFile.size}`}
+                href={`/receive?path=${selectedFile.path}&name=${selectedFile.name}&size=${selectedFile.size}#download`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors"

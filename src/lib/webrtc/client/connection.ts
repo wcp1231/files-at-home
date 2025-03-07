@@ -11,14 +11,14 @@ export class ClientConnectionManager {
   private messageHandler: ClientMessageHandler;
   
   // 状态回调函数
-  private onStateChange: (state: ConnectionState) => void;
+  private onStateChangeHandler: (state: ConnectionState) => void;
   private onError: (error: string) => void;
   
   constructor(
     onStateChange: (state: ConnectionState) => void,
     onError: (error: string) => void
   ) {
-    this.onStateChange = onStateChange;
+    this.onStateChangeHandler = onStateChange;
     this.onError = onError;
     
     this.requestManager = new ClientRequestManager();
@@ -104,8 +104,13 @@ export class ClientConnectionManager {
     });
   }
 
-  private workerMessageHandler(path: string, writer: WritableStreamDefaultWriter<Uint8Array>) {
-    this.requestManager.workerMessageHandler(path, writer);
+  private onStateChange(state: ConnectionState) {
+    this.onStateChangeHandler(state);
+    WorkerManager.onWebRTCStateChange(state);
+  }
+
+  private async workerMessageHandler(path: string, writer: WritableStreamDefaultWriter<Uint8Array>) {
+    await this.requestManager.workerMessageHandler(path, writer);
   }
   
   disconnect() {
