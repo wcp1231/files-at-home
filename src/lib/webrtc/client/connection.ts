@@ -2,6 +2,7 @@ import { Peer, DataConnection } from 'peerjs';
 import { ConnectionState, PeerRole, createPeer } from '@/lib/webrtc';
 import { ClientMessageHandler } from './message-handler';
 import { ClientRequestManager } from './request-manager';
+import { WorkerManager } from './worker';
 
 export class ClientConnectionManager {
   private peer: Peer | null = null;
@@ -22,6 +23,7 @@ export class ClientConnectionManager {
     
     this.requestManager = new ClientRequestManager();
     this.messageHandler = new ClientMessageHandler(this.requestManager, this.onError);
+    WorkerManager.setMessageHandler(this.workerMessageHandler.bind(this));
   }
   
   initializeClient(connectionId: string) {
@@ -100,6 +102,10 @@ export class ClientConnectionManager {
       this.connection = null;
       this.requestManager.setConnection(null);
     });
+  }
+
+  private workerMessageHandler(path: string, writer: WritableStreamDefaultWriter<Uint8Array>) {
+    this.requestManager.workerMessageHandler(path, writer);
   }
   
   disconnect() {

@@ -29,14 +29,30 @@ export default function Home() {
             className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
             href="/file-manager"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 11V5c0-1.1-.9-2-2-2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"></path>
-              <path d="M2 11h20"></path>
-              <path d="M12 16l4 4 4-4"></path>
-              <path d="M16 12v8"></path>
-            </svg>
-            文件管理器
+            <Image
+              src="/file.svg"
+              alt="File icon"
+              width={20}
+              height={20}
+              className="dark:invert"
+            />
+            File Manager
           </Link>
+          
+          <Link
+            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+            href="/sw-demo"
+          >
+            <Image
+              src="/globe.svg"
+              alt="Globe icon"
+              width={20}
+              height={20}
+              className="dark:invert"
+            />
+            Service Worker Demo
+          </Link>
+          
           <Link
             className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
             href="/share"

@@ -194,6 +194,12 @@ export class ClientRequestManager {
       this.pendingDirectoryRequests.delete(requestId);
     }
   }
+
+  async workerMessageHandler(path: string, writer: WritableStreamDefaultWriter<Uint8Array>) {
+    const result = await this.requestFileData(path);
+    writer.write(Buffer.from(result.data, 'base64'));
+    writer.close();
+  }
 }
 
 export default ClientRequestManager; 

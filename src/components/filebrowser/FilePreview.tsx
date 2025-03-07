@@ -8,7 +8,7 @@ import {
   CardDescription 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, CloudDownload, FileDown } from 'lucide-react';
 import { formatFileSize } from '@/lib/filesystem/util';
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
 import { getFileIcon } from './FileIcons';
@@ -46,6 +46,21 @@ export function FilePreview<T extends FileViewEntry>() {
     }
   };
 
+  const handleDownload2 = async () => {
+    if (selectedFile) {
+      let iframe = document.createElement('iframe');
+      iframe.setAttribute('id', selectedFile.path);
+      iframe.hidden = true
+      iframe.style.display = "none";
+      iframe.src = `/receive/download?path=${selectedFile.path}&name=${selectedFile.name}&size=${selectedFile.size}`;
+      iframe.onload = function() {
+        console.log("iframe loaded");
+        document.body.removeChild(iframe);
+      };
+      document.body.appendChild(iframe);
+    }
+  };
+
   return (
     <Card className="h-full border-0 rounded-none shadow-none">
       <CardHeader className="pb-2">
@@ -65,14 +80,33 @@ export function FilePreview<T extends FileViewEntry>() {
           </div>
           
           {!selectedFile.isDirectory && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDownload}
-              title="Download"
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDownload}
+                title="Download"
             >
-              <Download className="h-4 w-4" />
-            </Button>
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDownload2}
+                title="Download"
+            >
+                <CloudDownload className="h-4 w-4" />
+              </Button>
+              <a 
+                href={`/receive/download?path=${selectedFile.path}&name=${selectedFile.name}&size=${selectedFile.size}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                title="Download"
+              >
+                <FileDown className="h-4 w-4"/>
+              </a>
+            </div>
           )}
         </div>
       </CardHeader>
