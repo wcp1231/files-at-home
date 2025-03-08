@@ -14,36 +14,40 @@ export class HostMessageHandler {
   handleMessage(conn: DataConnection, data: string) {
     try {
       const message = deserializeMessage(data);
+      const requestId = message.requestId;
       
       switch (message.type) {
-        case MessageType.FILE_INFO_REQUEST:
-          // 处理文件请求
-          this.requestHandler.handleFileRequest(conn, message.payload, message.requestId);
-          break;
-          
-        case MessageType.FILE_DATA_REQUEST:
-          // 处理文件内容请求
-          this.requestHandler.handleFileDataRequest(conn, message.payload, message.requestId);
-          break;
-          
         case MessageType.DIRECTORY_REQUEST:
           // 处理目录请求
-          this.requestHandler.handleDirectoryRequest(conn, message.payload, message.requestId);
+          this.requestHandler.handleDirectoryRequest(conn, message.payload.path, requestId);
+          break;
+          
+        case MessageType.FILE_INFO_REQUEST:
+          // 处理文件信息请求并开始传输
+          this.requestHandler.handleFileInfoAndTransferRequest(conn, message.payload.path, requestId);
+          break;
+          
+        case MessageType.FILE_CHUNK_REQUEST:
+          // 处理文件块请求
+          this.requestHandler.handleFileChunkRequest(conn, message.payload, requestId);
+          break;
+          
+        case MessageType.FILE_TRANSFER_CANCEL:
+          // 处理取消传输
+          // TODO: 实现取消逻辑
           break;
           
         case MessageType.ERROR:
           // 处理客户端发来的错误消息
-          const errorMsg = typeof message.payload === 'string' 
-            ? message.payload 
-            : message.payload?.message || '未知错误';
-          this.onError(errorMsg);
+          console.error('Client error:', message.payload);
+          this.onError(message.payload);
           break;
           
         default:
-          console.log('Unhandled message type:', message.type);
+          console.log('主机端收到未处理的消息类型:', message.type);
       }
     } catch (error) {
-      console.error('Failed to parse message:', error);
+      console.error('解析消息失败:', error);
     }
   }
 }

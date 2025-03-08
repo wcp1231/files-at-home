@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
-import { SharedFileData } from '@/lib/webrtc';
 import React from 'react';
 
 // 定义 store 的状态和操作
@@ -15,14 +14,14 @@ interface FileBrowserState<T extends FileViewEntry> {
 
   // 回调函数
   onFileSelect?: (path: string) => Promise<T | null>;
-  onFileData?: (path: string) => Promise<SharedFileData | null>;
+  onFileData?: (path: string) => Promise<Blob | null>;
   onDirectorySelect?: (path: string) => Promise<T[]>;
   renderFileIcon?: (file: T) => React.ReactNode;
   
   // 设置回调函数
   setCallbacks: (callbacks: {
     onFileSelect?: (path: string) => Promise<T | null>;
-    onFileData?: (path: string) => Promise<SharedFileData | null>;
+    onFileData?: (path: string) => Promise<Blob | null>;
     onDirectorySelect?: (path: string) => Promise<T[]>;
     renderFileIcon?: (file: T) => React.ReactNode;
   }) => void;
@@ -42,7 +41,7 @@ interface FileBrowserState<T extends FileViewEntry> {
   handleFileSelect: (file: T) => Promise<void>;
   handleItemClick: (file: T) => Promise<void>;
   handleFileDownload: (file: T) => Promise<void>;
-  downloadFileFromData: (file: SharedFileData) => void;
+  downloadFileFromBlob: (blob: Blob, fileName: string) => void;
   refreshCurrentDirectory: () => Promise<void>;
   
   // 初始化
@@ -209,7 +208,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
 
       // 请求下载文件
       handleFileDownload: async (file) => {
-        const { downloadFileFromData, onFileData } = get();
+        const { downloadFileFromBlob, onFileData } = get();
         
         try {
           set((state) => {
@@ -218,9 +217,9 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
           
           // 重新请求文件以获取完整数据
           if (onFileData) {
-            const fileWithData = await onFileData(file.path);
-            if (fileWithData && fileWithData.data) {
-              downloadFileFromData(fileWithData);
+            const blob = await onFileData(file.path);
+            if (blob) {
+              downloadFileFromBlob(blob, file.name);
             } else {
               console.error('Failed to get file data');
             }
@@ -234,36 +233,14 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         }
       },
 
-      // 从数据创建并下载文件
-      downloadFileFromData: (file) => {
-        if (!file.data) {
-          console.error('No file data available for download');
-          return;
-        }
-        
+      // 从Blob创建并下载文件
+      downloadFileFromBlob: (blob, fileName) => {
         try {
-          // 创建Blob对象
-          let arrayBuffer: ArrayBuffer;
-          
-          if (typeof file.data === 'string') {
-            // 如果是base64字符串，转换为ArrayBuffer
-            const buffer = Buffer.from(file.data, 'base64');
-            arrayBuffer = buffer.buffer.slice(
-              buffer.byteOffset,
-              buffer.byteOffset + buffer.byteLength
-            );
-          } else {
-            // 如果已经是ArrayBuffer，直接使用
-            arrayBuffer = file.data;
-          }
-          
-          const blob = new Blob([arrayBuffer], { type: file.type || 'application/octet-stream' });
-          
           // 创建下载链接
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = file.name;
+          a.download = fileName;
           
           // 添加到文档并触发点击
           document.body.appendChild(a);

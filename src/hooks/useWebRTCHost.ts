@@ -47,6 +47,7 @@ export function useWebRTCHost({ getDirectory, getFile }: UseWebRTCHostProps) {
     );
     
     return () => {
+      // TODO 发生错误时这里会直接断开连接，需要优化一下
       // 在组件卸载时断开连接
       if (connectionManager.current) {
         connectionManager.current.disconnect();

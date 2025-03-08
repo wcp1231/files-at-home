@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link2, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ConnectionState, SharedFileData, SharedFileInfo } from '@/lib/webrtc';
+import { ConnectionState, SharedFileInfo } from '@/lib/webrtc';
 import { useWebRTCClient } from '@/hooks/useWebRTCClient';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { 
@@ -21,7 +21,7 @@ interface FlatConnectionPanelProps {
   initialConnectionId?: string;
   onConnected: (
     handleFileSelect: (path: string) => Promise<FileViewEntry | null>,
-    handleFileData: (path: string) => Promise<SharedFileData | null>,
+    handleFileData: (path: string) => Promise<Blob | null>,
     handleDirectorySelect: (path: string) => Promise<FileViewEntry[]>
   ) => void;
   onDisconnected: () => void;

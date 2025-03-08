@@ -1,5 +1,5 @@
 import { Peer, DataConnection } from 'peerjs';
-import { ConnectionState, PeerRole, createPeer } from '@/lib/webrtc';
+import { ConnectionState, PeerRole, createPeer, FileTransfer } from '@/lib/webrtc';
 import { ClientMessageHandler } from './message-handler';
 import { ClientRequestManager } from './request-manager';
 import { WorkerManager } from './worker';
@@ -13,15 +13,23 @@ export class ClientConnectionManager {
   // 状态回调函数
   private onStateChangeHandler: (state: ConnectionState) => void;
   private onError: (error: string) => void;
+  private onTransferStatusChange: (transfer: FileTransfer) => void;
   
   constructor(
     onStateChange: (state: ConnectionState) => void,
-    onError: (error: string) => void
+    onError: (error: string) => void,
+    onTransferStatusChange?: (transfer: FileTransfer) => void
   ) {
     this.onStateChangeHandler = onStateChange;
     this.onError = onError;
+    this.onTransferStatusChange = onTransferStatusChange || (() => {});
     
-    this.requestManager = new ClientRequestManager();
+    this.requestManager = new ClientRequestManager(
+      null, 
+      30000, 
+      () => {}, // 进度回调会在请求管理器中直接设置
+      this.onTransferStatusChange
+    );
     this.messageHandler = new ClientMessageHandler(this.requestManager, this.onError);
     WorkerManager.setMessageHandler(this.workerMessageHandler.bind(this));
   }

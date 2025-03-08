@@ -1,7 +1,6 @@
 import React, { useCallback } from 'react';
 import { FileBrowser, useFileBrowserStore, type FileViewEntry } from '@/components/filebrowser';
 import FlatConnectionPanel from './FlatConnectionPanel';
-import { SharedFileData } from '@/lib/webrtc';
 
 interface FileBrowserWrapperProps {
   initialConnectionId?: string;
@@ -13,7 +12,7 @@ export default function FileBrowserWrapper({initialConnectionId}: FileBrowserWra
   // 当连接成功时，设置文件和目录处理函数
   const handleConnected = useCallback((
     handleFileSelect: (path: string) => Promise<FileViewEntry | null>,
-    handleFileData: (path: string) => Promise<SharedFileData | null>,
+    handleFileData: (path: string) => Promise<Blob | null>,
     handleDirectorySelect: (path: string) => Promise<FileViewEntry[]>
   ) => {
     setCallbacks({

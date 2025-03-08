@@ -16,41 +16,31 @@ export class ClientMessageHandler {
       const message = deserializeMessage(data);
       
       switch (message.type) {
-        case MessageType.DIRECTORY_RESPONSE:
-          // 处理远程的目录列表响应
-          if (message.requestId) {
-            this.requestManager.handleDirectoryResponse(message.requestId, message.payload);
-          } else {
-            console.log('Received directory request without requestId:', message.payload);
-          }
-          break;
-          
         case MessageType.FILE_INFO_RESPONSE:
-          // 处理远程的文件信息响应
-          if (message.requestId) {
-            this.requestManager.handleFileInfoResponse(message.requestId, message.payload);
-          } else {
-            console.log('Received file info response without requestId:', message.payload);
-          }
+          // 处理文件信息响应
+          this.requestManager.handleFileInfoResponse(message.requestId!, message.payload);
           break;
           
-        case MessageType.FILE_DATA_RESPONSE:
-          // 处理远程的文件数据请求响应
-          if (message.requestId) {
-            this.requestManager.handleFileDataResponse(message.requestId, message.payload);
-          } else {
-            console.log('Received file data request without requestId:', message.payload);
-          }
+        case MessageType.DIRECTORY_RESPONSE:
+          // 处理目录响应
+          this.requestManager.handleDirectoryResponse(message.requestId!, message.payload);
           break;
           
         case MessageType.ERROR:
           // 处理错误响应
-          const errorMsg = message.payload?.message || message.payload;
-          this.onError(errorMsg);
+          this.requestManager.handleErrorResponse(message.requestId!, message.payload.error);
+          this.onError(message.payload.error);
+          break;
           
-          // 检查是否有关联的请求需要拒绝
-          if (message.requestId) {
-            this.requestManager.handleErrorResponse(message.requestId, errorMsg);
+        case MessageType.FILE_CHUNK:
+          // 处理文件块
+          this.requestManager.handleFileChunk(message.payload, message.requestId);
+          break;
+          
+        case MessageType.FILE_TRANSFER_CANCEL:
+          // 处理传输取消
+          if (message.payload && message.payload.fileId) {
+            this.requestManager.cancelFileTransfer(message.payload.fileId);
           }
           break;
           
