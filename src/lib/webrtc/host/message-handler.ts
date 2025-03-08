@@ -22,11 +22,14 @@ export class HostMessageHandler {
           this.requestHandler.handleDirectoryRequest(conn, message.payload.path, requestId);
           break;
           
-        case MessageType.FILE_INFO_REQUEST:
+        case MessageType.FILE_INFO_AND_TRANSFER_REQUEST:
           // 处理文件信息请求并开始传输
           this.requestHandler.handleFileInfoAndTransferRequest(conn, message.payload.path, requestId);
           break;
-          
+        case MessageType.FILE_INFO_REQUEST:
+          // 处理文件信息请求并开始传输
+          this.requestHandler.handleFileRequest(conn, message.payload.path, requestId);
+          break;
         case MessageType.FILE_CHUNK_REQUEST:
           // 处理文件块请求
           this.requestHandler.handleFileChunkRequest(conn, message.payload, requestId);

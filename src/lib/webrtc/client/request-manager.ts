@@ -1,6 +1,8 @@
 import { DataConnection } from 'peerjs';
 import { MessageType, serializeMessage, SharedFileInfo, FileChunk, FileTransferInfo, FileTransferStatus, FileTransfer } from '@/lib/webrtc';
 import { v4 } from 'uuid';
+import { ChunkProcessor, BufferedChunkProcessor, StreamChunkProcessor } from './chunk-processors';
+
 // 请求类型
 export interface PendingFileRequest {
   resolve: (data: SharedFileInfo | null) => void;
@@ -18,20 +20,10 @@ export interface PendingFileDataRequest {
   resolve: (data: Blob) => void;
   reject: (error: Error) => void;
   path: string;
+  stream?: WritableStream<Uint8Array>;
 }
 
 export type RequestId = string;
-
-// 文件传输状态接口
-interface FileTransferState {
-  transferInfo: FileTransferInfo;
-  receivedChunks: Map<number, Uint8Array>;
-  resolver: (data: Blob) => void;
-  rejecter: (error: Error) => void;
-  progress: number;
-  startTime: number;
-  transfer: FileTransfer;
-}
 
 export class ClientRequestManager {
   private pendingFileRequests: Map<RequestId, PendingFileRequest> = new Map();
@@ -40,8 +32,10 @@ export class ClientRequestManager {
   private connection: DataConnection | null = null;
   private timeoutDuration: number = 30000; // 30秒默认超时
   
-  // 新增文件传输追踪
-  private activeFileTransfers: Map<string, FileTransferState> = new Map();
+  // 活跃的文件传输处理器
+  private activeChunkProcessors: Map<string, ChunkProcessor> = new Map();
+  
+  // 回调函数
   private onProgressCallback: ((fileId: string, progress: number, speed: number) => void) | null = null;
   private onTransferStatusChange: ((transfer: FileTransfer) => void) | null = null;
   
@@ -97,6 +91,10 @@ export class ClientRequestManager {
       const request = this.pendingDirectoryRequests.get(requestId)!;
       request.reject(new Error(errorMessage));
       this.pendingDirectoryRequests.delete(requestId);
+    } else if (this.pendingFileDataRequests.has(requestId)) {
+      const request = this.pendingFileDataRequests.get(requestId)!;
+      request.reject(new Error(errorMessage));
+      this.pendingFileDataRequests.delete(requestId);
     }
   }
 
@@ -110,165 +108,103 @@ export class ClientRequestManager {
     this.onTransferStatusChange = callback;
   }
 
-  // 处理文件块消息 - 合并了之前的三个处理方法
+  // 处理文件块消息
   handleFileChunk(chunk: FileChunk, requestId?: string) {
     const fileId = chunk.fileId;
     
-    // 如果是第一个块，且带有文件信息，创建新的传输状态
-    if (chunk.isFirst && chunk.fileName && chunk.fileSize) {
+    // 如果是第一个块，且带有文件信息，创建处理器
+    if (chunk.isFirst && chunk.fileName && chunk.fileSize && !this.activeChunkProcessors.has(fileId)) {
       const request = requestId ? this.pendingFileDataRequests.get(requestId) : null;
-      if (!request && !this.activeFileTransfers.has(fileId)) {
+      if (!request) {
         console.warn('Received first chunk without active request:', fileId);
         return;
       }
       
-      // 创建传输状态
-      if (!this.activeFileTransfers.has(fileId) && request) {
-        // 创建传输信息
-        const transferInfo: FileTransferInfo = {
+      // 创建传输信息
+      const transferInfo: FileTransferInfo = {
+        fileId,
+        fileName: chunk.fileName,
+        fileSize: chunk.fileSize,
+        totalChunks: chunk.totalChunks,
+        chunkSize: chunk.chunkSize,
+        fileType: chunk.fileType || '',
+        filePath: chunk.filePath || ''
+      };
+      
+      // 创建处理器
+      let processor: ChunkProcessor;
+      
+      if (request.stream) {
+        // 使用流式处理器
+        try {
+          processor = new StreamChunkProcessor(
+            fileId,
+            transferInfo,
+            request.stream,
+            this.requestFileChunk.bind(this),
+            request.resolve,
+            request.reject,
+            this.onProgressCallback || undefined,
+            this.onTransferStatusChange || undefined
+          );
+        } catch (error) {
+          console.error('Failed to create stream processor, falling back to buffered:', error);
+          // 如果创建流处理器失败，回退到缓冲处理器
+          processor = new BufferedChunkProcessor(
+            fileId,
+            transferInfo,
+            this.requestFileChunk.bind(this),
+            request.resolve,
+            request.reject,
+            this.onProgressCallback || undefined,
+            this.onTransferStatusChange || undefined
+          );
+        }
+      } else {
+        // 使用缓冲处理器
+        processor = new BufferedChunkProcessor(
           fileId,
-          fileName: chunk.fileName,
-          fileSize: chunk.fileSize,
-          totalChunks: chunk.totalChunks,
-          chunkSize: chunk.chunkSize,
-          fileType: chunk.fileType || '',
-          filePath: chunk.filePath || ''
-        };
-        
-        // 创建文件传输状态
-        const transfer: FileTransfer = {
-          fileId,
-          fileName: chunk.fileName,
-          filePath: chunk.filePath || '',
-          fileSize: chunk.fileSize,
-          progress: 0,
-          speed: 0,
-          status: FileTransferStatus.INITIALIZING,
-          startTime: Date.now()
-        };
-        
-        // 保存传输状态
-        this.activeFileTransfers.set(fileId, {
           transferInfo,
-          receivedChunks: new Map(),
-          resolver: request.resolve,
-          rejecter: request.reject,
-          progress: 0,
-          startTime: Date.now(),
-          transfer
-        });
-        
-        // 更新状态为传输中
-        transfer.status = FileTransferStatus.TRANSFERRING;
-        this.notifyTransferStatusChange(transfer);
+          this.requestFileChunk.bind(this),
+          request.resolve,
+          request.reject,
+          this.onProgressCallback || undefined,
+          this.onTransferStatusChange || undefined
+        );
       }
+      
+      // 保存处理器
+      this.activeChunkProcessors.set(fileId, processor);
     }
     
-    // 获取传输状态
-    const transferState = this.activeFileTransfers.get(fileId);
-    if (!transferState) {
+    // 获取处理器
+    const processor = this.activeChunkProcessors.get(fileId);
+    if (!processor) {
       console.warn('Received chunk for unknown file transfer:', fileId);
       return;
     }
     
-    // 存储分块数据
-    const binaryData = Buffer.from(chunk.data, 'base64');
-    transferState.receivedChunks.set(chunk.chunkIndex, new Uint8Array(binaryData));
+    // 处理块
+    processor.processChunk(chunk);
     
-    // 计算进度
-    const progress = (transferState.receivedChunks.size / chunk.totalChunks) * 100;
-    transferState.progress = progress;
-    
-    // 计算速度 (字节/秒)
-    const elapsedSeconds = (Date.now() - transferState.startTime) / 1000 || 0.001; // 防止除零
-    const receivedBytes = [...transferState.receivedChunks.values()].reduce(
-      (sum, chunk) => sum + chunk.length, 0
-    );
-    const speed = elapsedSeconds > 0 ? receivedBytes / elapsedSeconds : 0;
-    
-    // 更新传输对象
-    transferState.transfer.progress = progress;
-    transferState.transfer.speed = speed;
-    
-    // 通知进度和状态变化
-    this.updateProgress(fileId, progress, speed);
-    this.notifyTransferStatusChange(transferState.transfer);
-    
-    // 如果是最后一个块或者已经接收所有块，组装文件
-    if (chunk.isLast || transferState.receivedChunks.size === chunk.totalChunks) {
-      this.assembleFile(fileId);
-    } else if (transferState.receivedChunks.size < chunk.totalChunks) {
-      // 请求下一个块
-      const receivedChunks = Array.from(transferState.receivedChunks.keys());
-      for (let i = 0; i < chunk.totalChunks; i++) {
-        if (!receivedChunks.includes(i)) {
-          // 请求缺失的块，但只请求下一个
-          this.requestFileChunk(fileId, i, transferState.transferInfo.filePath);
-          break;
-        }
-      }
+    // 如果应该完成传输，调用完成方法
+    if (processor.shouldComplete(chunk)) {
+      this.completeTransfer(fileId);
     }
   }
 
-  // 组装文件
-  private assembleFile(fileId: string) {
-    const transferState = this.activeFileTransfers.get(fileId);
-    if (!transferState) return;
-    
-    const { transferInfo, receivedChunks, resolver } = transferState;
+  // 完成传输
+  private async completeTransfer(fileId: string) {
+    const processor = this.activeChunkProcessors.get(fileId);
+    if (!processor) return;
     
     try {
-      // 更新传输状态
-      transferState.transfer.status = FileTransferStatus.ASSEMBLING;
-      transferState.transfer.progress = 100;
-      transferState.transfer.endTime = Date.now();
-      this.notifyTransferStatusChange(transferState.transfer);
-      
-      // 如果只有一个块，直接使用它
-      if (transferInfo.totalChunks === 1 && receivedChunks.has(0)) {
-        const chunk = receivedChunks.get(0)!;
-        const blob = new Blob([chunk], { type: transferInfo.fileType });
-        resolver(blob);
-      } else {
-        // 合并所有块
-        const chunks: Uint8Array[] = [];
-        let isComplete = true;
-        
-        for (let i = 0; i < transferInfo.totalChunks; i++) {
-          if (!receivedChunks.has(i)) {
-            isComplete = false;
-            break;
-          }
-          chunks.push(receivedChunks.get(i)!);
-        }
-        
-        if (isComplete) {
-          // 合并所有块创建最终文件
-          const blob = new Blob(chunks, { type: transferInfo.fileType });
-          resolver(blob);
-        } else {
-          // 请求缺失的块
-          const missingChunks = [];
-          for (let i = 0; i < transferInfo.totalChunks; i++) {
-            if (!receivedChunks.has(i)) {
-              missingChunks.push(i);
-            }
-          }
-          this.requestMissingChunks(fileId, transferInfo.filePath, missingChunks);
-          return;
-        }
-      }
-      
-      // 更新状态并清理
-      transferState.transfer.status = FileTransferStatus.COMPLETED;
-      this.notifyTransferStatusChange(transferState.transfer);
-      this.activeFileTransfers.delete(fileId);
-    } catch (error: any) {
-      transferState.transfer.status = FileTransferStatus.ERROR;
-      transferState.transfer.error = error.message;
-      this.notifyTransferStatusChange(transferState.transfer);
-      transferState.rejecter(error);
-      this.activeFileTransfers.delete(fileId);
+      await processor.complete();
+      // 传输完成后清理处理器
+      this.activeChunkProcessors.delete(fileId);
+    } catch (error) {
+      console.error('Error completing transfer:', error);
+      // 不删除处理器，允许重试
     }
   }
 
@@ -289,33 +225,14 @@ export class ClientRequestManager {
     
     this.connection.send(serializeMessage(message));
   }
-  
-  // 请求缺失的分块
-  private requestMissingChunks(fileId: string, filePath: string, missingChunks: number[]) {
-    if (!this.connection) {
-      return;
-    }
-    
-    // 对于每个缺失的分块，发送请求
-    for (const chunkIndex of missingChunks) {
-      this.requestFileChunk(fileId, chunkIndex, filePath);
-    }
-  }
-  
-  // 更新进度
-  private updateProgress(fileId: string, progress: number, speed: number) {
-    if (this.onProgressCallback) {
-      this.onProgressCallback(fileId, progress, speed);
-    }
-  }
-  
+
   // 取消文件传输
   cancelFileTransfer(fileId: string) {
-    if (!this.connection || !this.activeFileTransfers.has(fileId)) {
+    if (!this.connection || !this.activeChunkProcessors.has(fileId)) {
       return;
     }
     
-    const transfer = this.activeFileTransfers.get(fileId)!;
+    const processor = this.activeChunkProcessors.get(fileId)!;
     
     // 发送取消消息
     const message = {
@@ -327,17 +244,12 @@ export class ClientRequestManager {
     
     this.connection.send(serializeMessage(message));
     
-    // 更新状态为已取消
-    transfer.transfer.status = FileTransferStatus.CANCELLED;
-    transfer.transfer.endTime = Date.now();
-    this.notifyTransferStatusChange(transfer.transfer);
+    // 取消处理
+    processor.cancel(new Error('传输已取消'));
     
-    // 拒绝 Promise
-    transfer.rejecter(new Error('传输已取消'));
-    
-    // 延迟清理状态
+    // 延迟清理处理器
     setTimeout(() => {
-      this.activeFileTransfers.delete(fileId);
+      this.activeChunkProcessors.delete(fileId);
     }, 10000);
   }
 
@@ -377,7 +289,7 @@ export class ClientRequestManager {
   }
 
   // 请求文件数据
-  async requestFileData(filePath: string): Promise<Blob> {
+  async requestFileData(filePath: string, options?: { stream?: WritableStream<Uint8Array> }): Promise<Blob> {
     if (!this.connection) {
       throw new Error('未连接');
     }
@@ -389,7 +301,8 @@ export class ClientRequestManager {
       const pendingRequest = {
         resolve,
         reject,
-        path: filePath
+        path: filePath,
+        stream: options?.stream
       };
       
       this.pendingFileDataRequests.set(requestId, pendingRequest);
@@ -405,7 +318,7 @@ export class ClientRequestManager {
     
     // 发送请求
     const message = {
-      type: MessageType.FILE_INFO_REQUEST,
+      type: MessageType.FILE_INFO_AND_TRANSFER_REQUEST,
       payload: { path: filePath },
       requestId
     };
@@ -430,7 +343,7 @@ export class ClientRequestManager {
       
       this.pendingDirectoryRequests.set(requestId, pendingRequest);
       
-      // 设置超时处理
+      // 设置超时
       setTimeout(() => {
         if (this.pendingDirectoryRequests.has(requestId)) {
           this.pendingDirectoryRequests.delete(requestId);
@@ -442,7 +355,7 @@ export class ClientRequestManager {
     // 发送请求
     this.connection.send(serializeMessage({
       type: MessageType.DIRECTORY_REQUEST,
-      payload: { path, },
+      payload: { path },
       requestId
     }));
     
@@ -462,24 +375,34 @@ export class ClientRequestManager {
       request.reject(new Error(error));
       this.pendingDirectoryRequests.delete(requestId);
     }
-  }
-
-  async workerMessageHandler(path: string, writer: WritableStreamDefaultWriter<Uint8Array>) {
-    const blob = await this.requestFileData(path);
-    const arrayBuffer = await blob.arrayBuffer();
-    writer.write(new Uint8Array(arrayBuffer));
-  }
-
-  // 通知传输状态变化
-  private notifyTransferStatusChange(transfer: FileTransfer) {
-    if (this.onTransferStatusChange) {
-      this.onTransferStatusChange(transfer);
+    
+    // 拒绝所有未完成的文件数据请求
+    for (const [requestId, request] of this.pendingFileDataRequests.entries()) {
+      request.reject(new Error(error));
+      this.pendingFileDataRequests.delete(requestId);
+    }
+    
+    // 取消所有活跃的传输
+    for (const [fileId, processor] of this.activeChunkProcessors.entries()) {
+      processor.cancel(new Error(error));
+      this.activeChunkProcessors.delete(fileId);
     }
   }
-  
+
+  // 处理 worker 消息
+  async workerMessageHandler(path: string, writable: WritableStream<Uint8Array>) {
+    try {
+      // 使用流式方式请求文件
+      await this.requestFileData(path, { stream: writable });
+    } catch (error) {
+      console.error('Error in worker message handler:', error);
+      writable.close();
+    }
+  }
+
   // 获取所有活跃传输
   getAllActiveTransfers(): FileTransfer[] {
-    return Array.from(this.activeFileTransfers.values()).map(state => state.transfer);
+    return Array.from(this.activeChunkProcessors.values()).map(processor => processor.getTransfer());
   }
 }
 

@@ -6,7 +6,7 @@ export class WorkerManager {
   public static channel: MessageChannel | null = null;
   public static worker: ServiceWorkerRegistration | null = null;
   public static writer: Map<string, WritableStreamDefaultWriter<Uint8Array>> = new Map();
-  public static messageHandler: (path: string, writer: WritableStreamDefaultWriter<Uint8Array>) => Promise<void> = async () => {};
+  public static messageHandler: (path: string, writable: WritableStream<Uint8Array>) => Promise<void> = async () => {};
 
   public static async register(): Promise<ServiceWorkerRegistration | null> {
     if (!navigator.serviceWorker) {
@@ -51,7 +51,7 @@ export class WorkerManager {
     }, 5000);
   }
 
-  public static setMessageHandler(handler: (path: string, writer: WritableStreamDefaultWriter<Uint8Array>) => Promise<void>) {
+  public static setMessageHandler(handler: (path: string, writable: WritableStream<Uint8Array>) => Promise<void>) {
     WorkerManager.messageHandler = handler;
   }
 
@@ -60,14 +60,8 @@ export class WorkerManager {
   }
 
   public static async onMessage(event: MessageEvent) {
-    const { path, writable } = event.data;
-    const writer = writable.getWriter();
-    // 处理未创建 peer 的情况
-    try {
-      await WorkerManager.messageHandler(path, writer);
-    } finally {
-      writer.close();
-    }
+    const { path, writable }: { path: string, writable: WritableStream<Uint8Array> } = event.data;
+    await WorkerManager.messageHandler(path, writable);
   }
 
   public static isTrustEnv() {

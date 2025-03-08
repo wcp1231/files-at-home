@@ -117,8 +117,8 @@ export class ClientConnectionManager {
     WorkerManager.onWebRTCStateChange(state);
   }
 
-  private async workerMessageHandler(path: string, writer: WritableStreamDefaultWriter<Uint8Array>) {
-    await this.requestManager.workerMessageHandler(path, writer);
+  private async workerMessageHandler(path: string, writable: WritableStream<Uint8Array>) {
+    await this.requestManager.workerMessageHandler(path, writable);
   }
   
   disconnect() {
