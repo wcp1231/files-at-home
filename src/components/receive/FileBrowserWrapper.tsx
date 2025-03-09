@@ -35,7 +35,7 @@ export default function FileBrowserWrapper({initialConnectionId}: FileBrowserWra
   }, [setCallbacks, cleanup]);
 
   return (
-    <div className="mb-6 h-[calc(100dvh-9rem)]">
+    <div className="mb-6 h-[calc(100dvh-5rem)]">
       <FileBrowser
         titlePanel={
           <FlatConnectionPanel 
