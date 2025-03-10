@@ -321,7 +321,6 @@ export class ClientRequestManager {
     }
     // 保存处理器
     this.activeChunkProcessors.set(fileId, processor);
-    console.log('startTransfer', fileId, processor);
 
     const chunkRequestPromise = new Promise<FileChunk>((resolve, reject) => {
       const pendingRequest: PendingFileChunkRequest = {
@@ -368,7 +367,8 @@ export class ClientRequestManager {
           request.resolve,
           request.reject,
           this.onProgressCallback || undefined,
-          this.onTransferStatusChange || undefined
+          this.onTransferStatusChange || undefined,
+          this.onProcessorError.bind(this, fileId)
         );
         return processor;
       } catch (error) {
@@ -385,7 +385,8 @@ export class ClientRequestManager {
       request.resolve,
       request.reject,
       this.onProgressCallback || undefined,
-      this.onTransferStatusChange || undefined
+      this.onTransferStatusChange || undefined,
+      this.onProcessorError.bind(this, fileId)
     );
     return processor;
   }
@@ -466,6 +467,11 @@ export class ClientRequestManager {
       console.error('Error completing transfer:', error);
       // 不删除处理器，允许重试
     }
+  }
+
+  private onProcessorError(fileId: string, error: Error) {
+    console.error('processor error:', error);
+    this.cancelFileTransfer(fileId);
   }
 
   // 更新最后一次处理块的时间

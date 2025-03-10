@@ -52,6 +52,7 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
   protected requestChunkCallback: (fileId: string, chunkIndex: number, filePath: string) => void;
   protected onProgressCallback?: (fileId: string, progress: number, speed: number) => void;
   protected onTransferStatusChangeCallback?: (transfer: FileTransfer) => void;
+  protected onErrorCallback?: (error: Error) => void;
   protected resolver: (data: Blob) => void;
   protected rejecter: (error: Error) => void;
   
@@ -63,7 +64,8 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
     resolver: (data: Blob) => void,
     rejecter: (error: Error) => void,
     onProgressCallback?: (fileId: string, progress: number, speed: number) => void,
-    onTransferStatusChangeCallback?: (transfer: FileTransfer) => void
+    onTransferStatusChangeCallback?: (transfer: FileTransfer) => void,
+    onErrorCallback?: (error: Error) => void
   ) {
     this.parentRequestId = parentRequestId;
     this.fileId = fileId;
@@ -73,6 +75,7 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
     this.rejecter = rejecter;
     this.onProgressCallback = onProgressCallback;
     this.onTransferStatusChangeCallback = onTransferStatusChangeCallback;
+    this.onErrorCallback = onErrorCallback;
     this.startTime = Date.now();
     
     // 创建传输对象
@@ -270,7 +273,8 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     resolver: (data: Blob) => void,
     rejecter: (error: Error) => void,
     onProgressCallback?: (fileId: string, progress: number, speed: number) => void,
-    onTransferStatusChangeCallback?: (transfer: FileTransfer) => void
+    onTransferStatusChangeCallback?: (transfer: FileTransfer) => void,
+    onErrorCallback?: (error: Error) => void
   ) {
     super(
       parentRequestId,
@@ -280,7 +284,8 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
       resolver, 
       rejecter,
       onProgressCallback,
-      onTransferStatusChangeCallback
+      onTransferStatusChangeCallback,
+      onErrorCallback
     );
     
     this.stream = stream;
@@ -313,6 +318,14 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     // 通知进度更新
     this.notifyProgress(progress.progress, progress.speed);
     this.notifyTransferStatusChange();
+
+    const isStreamWriterReady = await this.checkStreamWriterReady();
+    if (!isStreamWriterReady) {
+      if (this.onErrorCallback) {
+        this.onErrorCallback(new Error('Stream writer not ready'));
+      }
+      return;
+    }
     
     // 如果收到的不是最后一个且还有未接收的块，请求下一个块
     if (!this.shouldComplete(chunk) && this.processedChunks.size < this.transferInfo.totalChunks) {
@@ -351,6 +364,15 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
         console.error('Error writing to stream:', error);
         break;
       }
+    }
+  }
+
+  private async checkStreamWriterReady(): Promise<boolean> {
+    try {
+      await this.streamWriter.ready;
+      return true;
+    } catch (error) {
+      return false;
     }
   }
   
