@@ -26,15 +26,14 @@ export class ClientMessageHandler {
           this.requestManager.handleDirectoryResponse(message.requestId!, message.payload);
           break;
           
-        case MessageType.ERROR:
-          // 处理错误响应
-          this.requestManager.handleErrorResponse(message.requestId!, message.payload.error);
-          this.onError(message.payload.error);
+        case MessageType.FILE_TRANSFER_RESPONSE:
+          // 处理文件信息和传输响应
+          this.requestManager.handleFileTransferResponse(message.requestId!, message.payload);
           break;
           
         case MessageType.FILE_CHUNK:
           // 处理文件块
-          this.requestManager.handleFileChunk(message.payload, message.requestId);
+          this.requestManager.handleFileChunkResponse(message.requestId!, message.payload);
           break;
           
         case MessageType.FILE_TRANSFER_CANCEL:
@@ -43,7 +42,12 @@ export class ClientMessageHandler {
             this.requestManager.cancelFileTransfer(message.payload.fileId);
           }
           break;
-          
+
+          case MessageType.ERROR:
+          // 处理错误响应
+          this.requestManager.handleErrorResponse(message.requestId!, message.payload.error);
+          this.onError(message.payload.error);
+          break;
         default:
           console.log('Unhandled message type:', message.type);
       }

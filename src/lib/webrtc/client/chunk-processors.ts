@@ -44,6 +44,7 @@ export interface ChunkProcessor {
  * 基础块处理器抽象类，实现一些共用的功能
  */
 export abstract class BaseChunkProcessor implements ChunkProcessor {
+  protected parentRequestId: string;
   protected fileId: string;
   protected transferInfo: FileTransferInfo;
   protected transfer: FileTransfer;
@@ -55,6 +56,7 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
   protected rejecter: (error: Error) => void;
   
   constructor(
+    parentRequestId: string,
     fileId: string,
     transferInfo: FileTransferInfo,
     requestChunkCallback: (fileId: string, chunkIndex: number, filePath: string) => void,
@@ -63,6 +65,7 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
     onProgressCallback?: (fileId: string, progress: number, speed: number) => void,
     onTransferStatusChangeCallback?: (transfer: FileTransfer) => void
   ) {
+    this.parentRequestId = parentRequestId;
     this.fileId = fileId;
     this.transferInfo = transferInfo;
     this.requestChunkCallback = requestChunkCallback;
@@ -75,9 +78,10 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
     // 创建传输对象
     this.transfer = {
       fileId,
-      fileName: transferInfo.fileName,
-      filePath: transferInfo.filePath,
-      fileSize: transferInfo.fileSize,
+      name: transferInfo.name,
+      path: transferInfo.path,
+      size: transferInfo.size,
+      type: transferInfo.type,
       progress: 0,
       speed: 0,
       status: FileTransferStatus.INITIALIZING,
@@ -165,7 +169,7 @@ export class BufferedChunkProcessor extends BaseChunkProcessor {
     for (let i = 0; i < this.transferInfo.totalChunks; i++) {
       if (!receivedChunks.includes(i)) {
         // 请求缺失的块，但只请求下一个
-        this.requestChunkCallback(this.fileId, i, this.transferInfo.filePath);
+        this.requestChunkCallback(this.fileId, i, this.transferInfo.path);
         break;
       }
     }
@@ -180,7 +184,7 @@ export class BufferedChunkProcessor extends BaseChunkProcessor {
     }
     
     for (const chunkIndex of missingChunks) {
-      this.requestChunkCallback(this.fileId, chunkIndex, this.transferInfo.filePath);
+      this.requestChunkCallback(this.fileId, chunkIndex, this.transferInfo.path);
     }
   }
   
@@ -195,7 +199,7 @@ export class BufferedChunkProcessor extends BaseChunkProcessor {
       // 如果只有一个块，直接使用它
       if (this.transferInfo.totalChunks === 1 && this.receivedChunks.has(0)) {
         const chunk = this.receivedChunks.get(0)!;
-        const blob = new Blob([chunk], { type: this.transferInfo.fileType });
+        const blob = new Blob([chunk], { type: this.transferInfo.type });
         this.updateTransferStatus(FileTransferStatus.COMPLETED);
         return blob;
       } else {
@@ -213,7 +217,7 @@ export class BufferedChunkProcessor extends BaseChunkProcessor {
         
         if (isComplete) {
           // 合并所有块创建最终文件
-          const blob = new Blob(chunks, { type: this.transferInfo.fileType });
+          const blob = new Blob(chunks, { type: this.transferInfo.type });
           this.updateTransferStatus(FileTransferStatus.COMPLETED);
           return blob;
         } else {
@@ -258,6 +262,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
   private totalBytesProcessed = 0;
   
   constructor(
+    parentRequestId: string,
     fileId: string,
     transferInfo: FileTransferInfo,
     stream: WritableStream<Uint8Array>,
@@ -268,6 +273,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     onTransferStatusChangeCallback?: (transfer: FileTransfer) => void
   ) {
     super(
+      parentRequestId,
       fileId,
       transferInfo,
       requestChunkCallback,
@@ -351,7 +357,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
   requestNextChunk(): void {
     for (let i = 0; i < this.transferInfo.totalChunks; i++) {
       if (!this.processedChunks.has(i)) {
-        this.requestChunkCallback(this.fileId, i, this.transferInfo.filePath);
+        this.requestChunkCallback(this.fileId, i, this.transferInfo.path);
         break;
       }
     }
@@ -366,7 +372,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     }
     
     for (const chunkIndex of missingChunks) {
-      this.requestChunkCallback(this.fileId, chunkIndex, this.transferInfo.filePath);
+      this.requestChunkCallback(this.fileId, chunkIndex, this.transferInfo.path);
     }
   }
   
@@ -390,7 +396,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
       await this.streamWriter.close();
       
       // 创建一个空的 Blob 作为结果 (实际内容已经写入流中)
-      const emptyBlob = new Blob([], { type: this.transferInfo.fileType });
+      const emptyBlob = new Blob([], { type: this.transferInfo.type });
       this.updateTransferStatus(FileTransferStatus.COMPLETED);
       return emptyBlob;
     } catch (error: any) {

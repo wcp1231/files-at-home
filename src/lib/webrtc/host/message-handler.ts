@@ -22,9 +22,9 @@ export class HostMessageHandler {
           this.requestHandler.handleDirectoryRequest(conn, message.payload.path, requestId);
           break;
           
-        case MessageType.FILE_INFO_AND_TRANSFER_REQUEST:
+        case MessageType.FILE_TRANSFER_REQUEST:
           // 处理文件信息请求并开始传输
-          this.requestHandler.handleFileInfoAndTransferRequest(conn, message.payload.path, requestId);
+          this.requestHandler.handleFileTransferRequest(conn, message.payload.path, requestId);
           break;
         case MessageType.FILE_INFO_REQUEST:
           // 处理文件信息请求并开始传输

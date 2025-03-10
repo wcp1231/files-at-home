@@ -6,9 +6,7 @@ import {
   SharedFileInfo,
   handleToSharedFileInfo,
   FileChunk,
-  FileTransferInfo
 } from '@/lib/webrtc';
-import { v4 as uuidv4 } from 'uuid';
 
 // 常量配置
 const MAX_CHUNK_SIZE = 64 * 1024; // 64KB 块大小
@@ -58,9 +56,10 @@ export class HostRequestHandler {
   }
 
   // 处理文件数据请求，统一使用分块传输方式
-  async handleFileDataRequest(
+  // 处理文件信息请求并开始传输
+  async handleFileTransferRequest(
     conn: DataConnection,
-    filePath: string,
+    filePath: string, 
     requestId?: string
   ) {
     try {
@@ -68,14 +67,34 @@ export class HostRequestHandler {
       if (!file) {
         throw new Error('文件不存在');
       }
+
+      // 计算分块信息
+    const totalSize = file.size!;
+    const chunkSize = MAX_CHUNK_SIZE;
+    const totalChunks = Math.ceil(totalSize / chunkSize);
       
-      // 获取文件对象
+      // 发送文件信息响应
+      const message = {
+        type: MessageType.FILE_TRANSFER_RESPONSE,
+        payload: {
+          fileId: file.path,
+          path: filePath,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          totalChunks,
+          chunkSize,
+        },
+        requestId
+      };
+      
+      conn.send(serializeMessage(message));
+      
+      // 获取文件对象并开始传输
       const fileObj = await file.getFile();
-      
-      // 统一使用分块传输方式处理文件
       await this.handleFileTransfer(conn, file, fileObj, requestId);
     } catch (err: any) {
-      this.sendErrorResponse(conn, filePath, err.message || '文件处理错误', requestId);
+      this.sendErrorResponse(conn, filePath, err.message || '文件获取错误', requestId);
     }
   }
   
@@ -86,9 +105,6 @@ export class HostRequestHandler {
     fileObj: File,
     requestId?: string
   ) {
-    // 生成文件传输ID
-    const fileId = uuidv4();
-    
     // 计算分块信息
     const totalSize = file.size!;
     const chunkSize = MAX_CHUNK_SIZE;
@@ -101,9 +117,9 @@ export class HostRequestHandler {
       
       // 发送唯一的数据块 - 同时包含开始和结束的信息
       const chunk: FileChunk = {
-        fileId,
+        // 以文件路径作为文件ID
+        fileId: file.path,
         chunkIndex: 0,
-        totalChunks: 1,
         data: base64Data,
         chunkSize: buffer.byteLength,
         // 添加文件信息字段
@@ -133,9 +149,9 @@ export class HostRequestHandler {
       
       // 发送第一个块，包含文件信息
       const chunk: FileChunk = {
-        fileId,
+        // 以文件路径作为文件ID
+        fileId: file.path,
         chunkIndex: 0,
-        totalChunks,
         data: base64Data,
         chunkSize: firstChunkSize,
         // 添加文件信息字段
@@ -198,7 +214,6 @@ export class HostRequestHandler {
       const chunk: FileChunk = {
         fileId,
         chunkIndex,
-        totalChunks,
         data: base64Data,
         chunkSize: end - start,
         // 只在最后一个块添加isLast标记
@@ -250,42 +265,6 @@ export class HostRequestHandler {
       conn.send(serializeMessage(message));
     } catch (err: any) {
       this.sendErrorResponse(conn, path, err.message || '目录处理错误', requestId);
-    }
-  }
-
-  // 处理文件信息请求并开始传输
-  async handleFileInfoAndTransferRequest(
-    conn: DataConnection,
-    filePath: string, 
-    requestId?: string
-  ) {
-    try {
-      const file = await this.getFile(filePath);
-      if (!file) {
-        throw new Error('文件不存在');
-      }
-      
-      // 发送文件信息响应
-      const message = {
-        type: MessageType.FILE_INFO_RESPONSE,
-        payload: {
-          path: filePath,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          modifiedAt: file.modifiedAt?.toISOString(),
-          isDirectory: false,
-        },
-        requestId
-      };
-      
-      conn.send(serializeMessage(message));
-      
-      // 获取文件对象并开始传输
-      const fileObj = await file.getFile();
-      await this.handleFileTransfer(conn, file, fileObj, requestId);
-    } catch (err: any) {
-      this.sendErrorResponse(conn, filePath, err.message || '文件获取错误', requestId);
     }
   }
 
