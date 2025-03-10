@@ -1,10 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link2, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ConnectionState, SharedFileInfo } from '@/lib/webrtc';
-import { useWebRTCClient } from '@/hooks/useWebRTCClient';
-import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
+import { ConnectionState } from '@/lib/webrtc';
 import { 
   Popover,
   PopoverContent,
@@ -16,71 +14,25 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { useWebRTCClientStore } from '@/store/webrtcClientStore';
 
 interface FlatConnectionPanelProps {
   initialConnectionId?: string;
-  onConnected: (
-    handleFileSelect: (path: string) => Promise<FileViewEntry | null>,
-    handleFileData: (path: string) => Promise<Blob | null>,
-    handleDirectorySelect: (path: string) => Promise<FileViewEntry[]>
-  ) => void;
-  onDisconnected: () => void;
 }
 
 // 使用模块级变量来跟踪连接状态，确保它在组件重新渲染或卸载时不会重置
 let isConnectionInitialized = false;
 
-export default function FlatConnectionPanel({ 
-  initialConnectionId,
-  onConnected,
-  onDisconnected
-}: FlatConnectionPanelProps) {
+export default function FlatConnectionPanel({ initialConnectionId }: FlatConnectionPanelProps) {
   const {
-    connectionState,
-    error,
+    connectionId,
     initializeClient,
     disconnect,
-    requestFile,
-    requestFileData,
-    requestDirectory
-  } = useWebRTCClient();
+    connectionState,
+    error
+  } = useWebRTCClientStore()
   
-  // 存储连接ID和用户输入的连接ID
-  const [hostConnectionId, setHostConnectionId] = useState<string | null>(null);
   const [connectionIdInput, setConnectionIdInput] = useState<string>('');
-  
-  // 将FSEntry映射到FileEntry
-  const mapFSEntryToFileEntry = (entry: SharedFileInfo | null): FileViewEntry | null => {
-    if (!entry) {
-      return null;
-    }
-    return {
-      name: entry.name,
-      path: entry.path,
-      size: entry.size,
-      type: entry.type,
-      modifiedAt: entry.modifiedAt,
-      isDirectory: entry.isDirectory
-    };
-  };
-  
-  // 处理文件请求
-  const handleFileSelect = async (path: string) => {
-    const file = await requestFile(path);
-    return mapFSEntryToFileEntry(file);
-  };
-
-  // 处理文件数据请求
-  const handleFileData = async (path: string) => {
-    const file = await requestFileData(path);
-    return file;
-  };
-
-  // 处理目录请求
-  const handleDirectorySelect = async (path: string) => {
-    const files = await requestDirectory(path);
-    return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
-  };
 
   // 创建一个自定义的断开连接函数，它会重置连接初始化标志
   const handleDisconnect = () => {
@@ -110,10 +62,7 @@ export default function FlatConnectionPanel({
     
     if (!isConnectionInitialized) {
       isConnectionInitialized = true;
-      
       // 保存连接ID
-      setHostConnectionId(connectionId);
-      
       initializeClient(connectionId);
     }
   };
@@ -124,15 +73,6 @@ export default function FlatConnectionPanel({
       handleConnect(initialConnectionId);
     }
   }, [initialConnectionId]);
-
-  // 当连接状态变为已连接时，调用onConnected回调
-  useEffect(() => {
-    if (connectionState === ConnectionState.CONNECTED) {
-      onConnected(handleFileSelect, handleFileData, handleDirectorySelect);
-    } else if (connectionState === ConnectionState.DISCONNECTED) {
-      onDisconnected();
-    }
-  }, [connectionState, onConnected, onDisconnected]);
   
   // 获取按钮状态和标签
   const getButtonProps = () => {
@@ -206,9 +146,9 @@ export default function FlatConnectionPanel({
             <div className="space-y-3">
               <div className="flex flex-col">
                 <p className="text-sm font-medium mb-1">已连接到远程分享</p>
-                {hostConnectionId && (
+                {connectionId && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    ID: <span className="font-mono bg-muted px-1 py-0.5 rounded text-xs">{hostConnectionId}</span>
+                    ID: <span className="font-mono bg-muted px-1 py-0.5 rounded text-xs">{connectionId}</span>
                   </p>
                 )}
               </div>

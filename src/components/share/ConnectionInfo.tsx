@@ -11,25 +11,6 @@ interface ConnectionInfoProps {
   connectionState: ConnectionState;
   connectionId: string | null;
   disconnect: () => void;
-  initializeHost: () => Promise<string>;
-}
-
-function ErrorPanel({ error, initializeHost }: { error: string, initializeHost: () => Promise<string> }) {
-  return (
-    <>
-      <Alert variant="destructive" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-      <Card className="mb-6">
-        <CardContent className="flex items-center justify-center py-6">
-          <Button onClick={() => initializeHost().catch(console.error)}>
-            重新初始化连接
-          </Button>
-        </CardContent>
-      </Card>
-    </>
-  );
 }
 
 function InitializingPanel() {
@@ -221,7 +202,6 @@ export default function ConnectionInfo({
   connectionState,
   connectionId,
   disconnect,
-  initializeHost,
 }: ConnectionInfoProps) {
   console.log('ConnectionInfo', error, connectionState, connectionId);
 
@@ -234,8 +214,6 @@ export default function ConnectionInfo({
     <>
       {renderHeader()}
       
-      {error && <ErrorPanel error={error} initializeHost={initializeHost} />}
-
       {!error && connectionState === ConnectionState.INITIALIZING && <InitializingPanel />}
       {!error && connectionState === ConnectionState.WAITING_FOR_CONNECTION && <WaitingForConnectionPanel connectionId={connectionId} />}
       {!error && connectionState === ConnectionState.CONNECTING && <ConnectingPanel />}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ConnectionState, SharedFileInfo } from '@/lib/webrtc';
-import { useWebRTCClient } from '@/hooks/useWebRTCClient';
-import { FileViewEntry } from '@/components/FileBrowser';
+import { useWebRTCClientStore } from '@/store/webrtcClientStore';
+import { FileViewEntry } from '@/components/filebrowser';
 import ConnectionInfo from '@/components/receive/ConnectionInfo';
 
 interface ConnectionPanelProps {
@@ -26,7 +26,7 @@ export default function ConnectionPanel({
     disconnect,
     requestFile,
     requestDirectory
-  } = useWebRTCClient();
+  } = useWebRTCClientStore();
   
   // 存储连接ID
   const [hostConnectionId, setHostConnectionId] = useState<string | null>(null);
@@ -48,14 +48,12 @@ export default function ConnectionPanel({
   
   // 处理文件请求
   const handleFileSelect = async (path: string) => {
-    const file = await requestFile(path);
-    return mapFSEntryToFileEntry(file);
+    return await requestFile(path);
   };
 
   // 处理目录请求
   const handleDirectorySelect = async (path: string) => {
-    const files = await requestDirectory(path);
-    return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
+    return await requestDirectory(path);
   };
 
   // 创建一个自定义的断开连接函数，它会重置连接初始化标志

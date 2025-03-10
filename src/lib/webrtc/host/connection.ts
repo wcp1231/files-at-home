@@ -35,7 +35,7 @@ export class HostConnectionManager {
       this.onStateChange(ConnectionState.INITIALIZING);
       
       // 创建一个随机 ID 的 Peer
-      const peer = createPeer();
+      const peer = createPeer('my-test-peer-host-id-1231');
       this.peer = peer;
       
       // 设置事件监听器

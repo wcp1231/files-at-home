@@ -3,8 +3,6 @@ import { Link2, Copy, Check, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConnectionState } from '@/lib/webrtc';
-import { useWebRTCHost } from '@/hooks/useWebRTCHost';
-import { FSDirectory, FSFile } from "@/lib/filesystem";
 import { 
   Popover,
   PopoverContent,
@@ -16,19 +14,11 @@ import {
   TooltipProvider, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 
-interface FlatConnectionPanelProps {
-  getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
-  getFile: (filePath: string) => Promise<FSFile | null>;
-}
+interface FlatConnectionPanelProps {}
 
-// 使用模块级变量来跟踪连接状态，确保它在组件重新渲染或卸载时不会重置
-let isConnectionInitialized = false;
-
-export default function FlatConnectionPanel({ 
-  getDirectory, 
-  getFile,
-}: FlatConnectionPanelProps) {
+export default function FlatConnectionPanel({}: FlatConnectionPanelProps) {
   // 使用 useWebRTCHost hook 管理 WebRTC 连接
   const {
     connectionState,
@@ -36,7 +26,7 @@ export default function FlatConnectionPanel({
     error,
     initializeHost,
     disconnect
-  } = useWebRTCHost({ getDirectory, getFile });
+  } = useWebRTCHostStore();
 
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
@@ -51,12 +41,6 @@ export default function FlatConnectionPanel({
     }
   }, [connectionId]);
 
-  // 创建一个自定义的断开连接函数，它会重置连接初始化标志
-  const handleDisconnect = () => {
-    disconnect();
-    isConnectionInitialized = false;
-  };
-
   // 复制链接
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl).then(() => {
@@ -67,17 +51,7 @@ export default function FlatConnectionPanel({
 
   // 只在需要时初始化连接
   useEffect(() => {
-    // 如果连接尚未初始化，则初始化它
-    if (!isConnectionInitialized) {
-      isConnectionInitialized = true;
-      
-      initializeHost().catch(err => {
-        console.error('Failed to initialize host:', err);
-        // 如果初始化失败，重置标志以允许重试
-        isConnectionInitialized = false;
-      });
-    }
-    
+    initializeHost()
     return () => {
       console.log('FlatConnectionPanel unmounting, but keeping initialization state');
     };
@@ -190,7 +164,7 @@ export default function FlatConnectionPanel({
                 size="sm" 
                 variant="outline" 
                 className="w-full h-7 text-xs"
-                onClick={handleDisconnect}
+                onClick={disconnect}
               >
                 断开连接
               </Button>

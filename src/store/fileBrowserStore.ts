@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import React from 'react';
+import { FileTransfer } from '@/lib/webrtc/types';
 
 // 定义 store 的状态和操作
 interface FileBrowserState<T extends FileViewEntry> {
@@ -10,6 +11,7 @@ interface FileBrowserState<T extends FileViewEntry> {
   currentFiles: T[];
   breadcrumbs: string[];
   selectedFile: T | null;
+  selectedFileTransfer: FileTransfer | null;
   loading: boolean;
 
   // 回调函数
@@ -31,6 +33,7 @@ interface FileBrowserState<T extends FileViewEntry> {
   setCurrentFiles: (files: T[]) => void;
   setBreadcrumbs: (breadcrumbs: string[]) => void;
   setSelectedFile: (file: T | null) => void;
+  setSelectedFileTransfer: (fileTransfer: FileTransfer | null) => void;
   setLoading: (loading: boolean) => void;
   
   // Operations
@@ -59,6 +62,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
       currentFiles: [] as T[],
       breadcrumbs: ['/'],
       selectedFile: null,
+      selectedFileTransfer: null,
       loading: false,
       
       // 回调函数
@@ -87,6 +91,9 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
       }),
       setSelectedFile: (file) => set((state) => {
         state.selectedFile = file as any;  // 使用 any 类型绕过 immer 的类型检查
+      }),
+      setSelectedFileTransfer: (fileTransfer) => set((state) => {
+        state.selectedFileTransfer = fileTransfer as any;  // 使用 any 类型绕过 immer 的类型检查
       }),
       setLoading: (loading) => set((state) => {
         state.loading = loading;
@@ -274,6 +281,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
           state.currentFiles = [];
           state.breadcrumbs = ['/'];
           state.selectedFile = null;
+          state.selectedFileTransfer = null;
           state.loading = false;
           state.onFileSelect = undefined;
           state.onFileData = undefined;
