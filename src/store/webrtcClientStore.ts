@@ -10,6 +10,9 @@ import {
 import { ClientConnectionManager } from '@/lib/webrtc/client';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { useFileBrowserStore } from '@/components/filebrowser';
+import { enableMapSet } from 'immer';
+
+enableMapSet();
 
 // 将FSEntry映射到FileEntry
 function mapFSEntryToFileEntry(entry: SharedFileInfo | null): FileViewEntry | null {
@@ -35,7 +38,7 @@ interface WebRTCClientState {
   peer: Peer | null;
   connection: DataConnection | null;
   connectionId: string | null;
-  fileTransfers: FileTransfer[];
+  fileTransfers: Map<string, FileTransfer>;
   
   // 内部引用
   _connectionManager: ClientConnectionManager | null;
@@ -69,7 +72,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     peer: null,
     connection: null,
     connectionId: null,
-    fileTransfers: [],
+    fileTransfers: new Map(),
     _connectionManager: null,
 
     _createConnectionManager: () => {
@@ -140,15 +143,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     
     // 更新文件传输
     _updateFileTransfer: (transfer) => set((draft) => {
-      const index = draft.fileTransfers.findIndex(t => t.fileId === transfer.fileId);
-      
-      if (index !== -1) {
-        // 更新现有传输
-        draft.fileTransfers[index] = transfer;
-      } else {
-        // 添加新传输
-        draft.fileTransfers.push(transfer);
-      }
+      draft.fileTransfers.set(transfer.fileId, transfer);
     }),
     
     // 初始化客户端
@@ -164,7 +159,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
       }
       
       if (get()._connectionManager) {
-        get()._connectionManager.initializeClient(id);
+        get()._connectionManager!.initializeClient(id);
       }
     },
     
@@ -241,11 +236,11 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     
     // 清除已完成的传输记录
     clearCompletedTransfers: () => set((draft) => {
-      draft.fileTransfers = draft.fileTransfers.filter(transfer => 
+      draft.fileTransfers = new Map(Array.from(draft.fileTransfers.entries()).filter(([_, transfer]) => 
         transfer.status !== 'completed' && 
         transfer.status !== 'error' && 
         transfer.status !== 'cancelled'
-      );
+      ));
     })
   }))
 );
