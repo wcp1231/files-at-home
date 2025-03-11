@@ -1,5 +1,5 @@
 import { DataConnection } from 'peerjs';
-import { FSDirectory, FSFile } from "@/lib/filesystem";
+import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { 
   MessageType, 
   serializeMessage, 
@@ -13,13 +13,16 @@ const MAX_CHUNK_SIZE = 64 * 1024; // 64KB 块大小
 
 export class HostRequestHandler {
   private getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
+  private listFiles: (path: string) => Promise<FSEntry[] | null>;
   private getFile: (filePath: string) => Promise<FSFile | null>;
 
   constructor(
     getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>,
+    listFiles: (path: string) => Promise<FSEntry[] | null>,
     getFile: (filePath: string) => Promise<FSFile | null>
   ) {
     this.getDirectory = getDirectory;
+    this.listFiles = listFiles;
     this.getFile = getFile;
   }
 
@@ -245,12 +248,15 @@ export class HostRequestHandler {
       if (!directory) {
         throw new Error('目录不存在');
       }
-      
+
+      // 获取目录中的文件列表
+      const files = await this.listFiles(path);
+      if (!files) {
+        throw new Error('目录不存在');
+      }
+
       // 将目录中的文件和子目录转换为可共享的格式
       const fileList: SharedFileInfo[] = [];
-      
-      // 获取目录中的文件列表
-      const files = await directory.getFiles();
       for (const entry of files) {
         fileList.push(handleToSharedFileInfo(entry));
       }

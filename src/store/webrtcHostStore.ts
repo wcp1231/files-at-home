@@ -38,10 +38,10 @@ interface WebRTCHostState {
   isInitialized: boolean;
   
   // 访问处理函数
-  setFilesystemHandlers: (getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>, getFile: (filePath: string) => Promise<FSFile | null>, listFiles: (path: string) => Promise<FSEntry[] | undefined>) => void;
+  setFilesystemHandlers: (getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>, getFile: (filePath: string) => Promise<FSFile | null>, listFiles: (path: string) => Promise<FSEntry[] | null>) => void;
   getDirectory: ((path: string, recursive: boolean) => Promise<FSDirectory | null>) | null;
   getFile: ((filePath: string) => Promise<FSFile | null>) | null;
-  listFiles: ((path: string) => Promise<FSEntry[] | undefined>) | null;
+  listFiles: ((path: string) => Promise<FSEntry[] | null>) | null;
   
   // 内部引用
   _connectionManager: HostConnectionManager | null;
@@ -99,15 +99,16 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       // 如果已经初始化过，直接返回
       if (get().isInitialized) return;
       
-      const { getDirectory, getFile } = get();
+      const { getDirectory, getFile, listFiles } = get();
 
-      if (!getDirectory || !getFile) {
+      if (!getDirectory || !getFile || !listFiles) {
         console.error('必须先设置 getDirectory 和 getFile 处理函数');
         return;
       }
 
       const manager = new HostConnectionManager(
         getDirectory,
+        listFiles,
         getFile,
         (connectionState) => {
           const store = get();

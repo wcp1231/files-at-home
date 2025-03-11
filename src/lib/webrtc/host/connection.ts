@@ -1,6 +1,6 @@
 import { Peer, DataConnection } from 'peerjs';
 import { ConnectionState, PeerRole, createPeer } from '@/lib/webrtc';
-import { FSDirectory, FSFile } from "@/lib/filesystem";
+import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { HostMessageHandler } from './message-handler';
 import { HostRequestHandler } from './request-handler';
 
@@ -17,6 +17,7 @@ export class HostConnectionManager {
   
   constructor(
     getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>,
+    listFiles: (path: string) => Promise<FSEntry[] | null>,
     getFile: (filePath: string) => Promise<FSFile | null>,
     onStateChange: (state: ConnectionState) => void,
     onError: (error: string) => void,
@@ -26,7 +27,7 @@ export class HostConnectionManager {
     this.onError = onError;
     this.onConnectionIdGenerated = onConnectionIdGenerated;
     
-    this.requestHandler = new HostRequestHandler(getDirectory, getFile);
+    this.requestHandler = new HostRequestHandler(getDirectory, listFiles, getFile);
     this.messageHandler = new HostMessageHandler(this.requestHandler, this.onError);
   }
   

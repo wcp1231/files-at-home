@@ -52,19 +52,19 @@ export function useFileSystem() {
     }
   }
 
-  async function listFiles(path: string) {
+  async function listFiles(path: string): Promise<FSEntry[] | null> {
     if (!rootDirHandleRef.current) {
       setStatus({ error: "No directory handle opened", loading: false });
-      return;
+      return [];
     }
     const currentHandle = handlesCache.current.get(path);
     if (!currentHandle) {
       setStatus({ error: "Directory not found", loading: false });
-      return;
+      return [];
     }
     if (!(currentHandle instanceof FSDirectory)) {
       setStatus({ error: "Not a directory", loading: false });
-      return;
+      return [];
     }
     const files = await (currentHandle as FSDirectory).getFiles();
     files.forEach((file) => {
