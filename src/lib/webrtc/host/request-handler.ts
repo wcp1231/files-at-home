@@ -9,7 +9,7 @@ import {
 } from '@/lib/webrtc';
 
 // 常量配置
-const MAX_CHUNK_SIZE = 64 * 1024; // 64KB 块大小
+const MAX_CHUNK_SIZE = 64 * 1024 * 8; // 512KB 块大小
 
 export class HostRequestHandler {
   private getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
@@ -145,10 +145,9 @@ export class HostRequestHandler {
     } else {
       // 对于大文件，我们只发送第一个块，其余的等待客户端请求
       // 首先准备第一个块
-      const buffer = await fileObj.arrayBuffer();
-      const firstChunkSize = Math.min(chunkSize, buffer.byteLength);
-      const firstChunkBuffer = buffer.slice(0, firstChunkSize);
-      const base64Data = Buffer.from(firstChunkBuffer).toString('base64');
+      const firstChunkSize = Math.min(chunkSize, totalSize);
+      const firstChunkBuffer = fileObj.slice(0, firstChunkSize);
+      const base64Data = Buffer.from(await firstChunkBuffer.arrayBuffer()).toString('base64');
       
       // 发送第一个块，包含文件信息
       const chunk: FileChunk = {
@@ -205,9 +204,8 @@ export class HostRequestHandler {
       const start = chunkIndex * chunkSize;
       const end = Math.min(start + chunkSize, totalSize);
       
-      // 读取文件对应范围的数据
-      const buffer = await fileObj.arrayBuffer();
-      const chunkBuffer = buffer.slice(start, end);
+      // 从缓存的buffer中slice需要的部分
+      const chunkBuffer = await fileObj.slice(start, end).arrayBuffer();
       const base64Data = Buffer.from(chunkBuffer).toString('base64');
       
       // 判断是否为最后一个块
