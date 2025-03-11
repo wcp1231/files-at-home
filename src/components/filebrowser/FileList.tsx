@@ -1,38 +1,43 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { HTMLAttributes, useCallback, useMemo } from 'react';
 import { FileViewEntry } from './FileBrowser';
 import { 
   Table, 
-  TableBody, 
   TableCell, 
   TableHead, 
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
+import { TableVirtuoso } from 'react-virtuoso'
 import { formatFileSize } from '@/lib/filesystem/util';
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
 import { getFileIcon } from './FileIcons';
 
-// 单个文件行组件，使用 memo 避免不必要的重新渲染
-function FileRowComponent({ 
-  file, 
-  isSelected, 
-  getFileIcon, 
-  onClick 
-}: { 
-  file: FileViewEntry; 
-  isSelected: boolean; 
-  getFileIcon: (file: FileViewEntry) => React.ReactNode; 
-  onClick: (file: FileViewEntry) => Promise<void>; 
-}) {
-  const handleClick = useCallback(() => {
-    onClick(file);
-  }, [onClick, file]);
+const TableRowComponent = (selectedFilePath: string | null, rows: FileViewEntry[], handleFileClick: (file: FileViewEntry) => Promise<void>) =>
+  function getTableRow(props: HTMLAttributes<HTMLTableRowElement>) {
+    // @ts-expect-error data-index is a valid attribute
+    const index = props["data-index"];
+    const row = rows[index];
 
+    const handleClick = (file: FileViewEntry) => {
+      handleFileClick(file);
+    }
+
+    if (!row) return null;
+
+    return (
+      <TableRow
+        key={row.path}
+        onClick={() => handleClick(row)}
+        className={`py-2 cursor-pointer hover:bg-muted/50 ${selectedFilePath === row.path ? 'bg-muted' : ''}`}
+        {...props}
+      >
+      </TableRow>
+    );
+  };
+
+function RowComponent({ file, getFileIcon }: { file: FileViewEntry; getFileIcon: (file: FileViewEntry) => React.ReactNode; }) {
   return (
-    <TableRow 
-      className={`cursor-pointer hover:bg-muted/50 ${isSelected ? 'bg-muted' : ''}`}
-      onClick={handleClick}
-    >
+    <>
       <TableCell className="py-2">
         <div className="flex items-center">
           <div className="mr-2">
@@ -47,12 +52,9 @@ function FileRowComponent({
       <TableCell className="text-right">
         {file.modifiedAt ? new Date(file.modifiedAt).toLocaleString() : ''}
       </TableCell>
-    </TableRow>
+    </>
   );
 }
-
-// 使用 React.memo 优化渲染性能
-const MemoizedFileRow = React.memo(FileRowComponent) as typeof FileRowComponent;
 
 export function FileList() {
   const { 
@@ -79,11 +81,11 @@ export function FileList() {
   // 只传递选中文件的路径，而不是整个文件对象，减少不必要的渲染
   const selectedFilePath = selectedFile ? selectedFile.path : null;
 
-  const handleFileClick = useCallback(async (file: T) => {
+  const handleFileClick = useCallback(async (file: FileViewEntry) => {
     await handleItemClick(file);
   }, [handleItemClick]);
 
-  if (loading && (!currentFiles || currentFiles.length === 0)) {
+  if (loading) {
     return <div className="p-4 text-center">Loading...</div>;
   }
 
@@ -92,25 +94,30 @@ export function FileList() {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead className="text-right">Size</TableHead>
-          <TableHead className="text-right">Modified</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {currentFiles.map((file: FileViewEntry) => (
-          <MemoizedFileRow
-            key={file.path}
-            file={file}
-            isSelected={selectedFilePath === file.path}
+    <>
+      <TableVirtuoso
+        className='h-full w-full'
+        data={currentFiles}
+        components={{
+          Table: (props) => <Table {...props} />,
+          TableHead: (props) => <TableHeader {...props} />,
+          TableRow: TableRowComponent(selectedFilePath, currentFiles, handleFileClick),
+        }}
+        fixedHeaderContent={() => (
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead className="text-right">Size</TableHead>
+            <TableHead className="text-right">Modified</TableHead>
+          </TableRow>
+        )}
+        itemContent={(index) => (
+          <RowComponent
+            key={currentFiles[index].path}
+            file={currentFiles[index]}
             getFileIcon={getCustomFileIcon}
-            onClick={handleFileClick}
           />
-        ))}
-      </TableBody>
-    </Table>
+        )}
+      />
+    </>
   );
 } 

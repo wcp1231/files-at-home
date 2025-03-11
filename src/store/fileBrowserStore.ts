@@ -190,10 +190,6 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
           return;
         }
         
-        set((state) => {
-          state.loading = true;
-        });
-        
         try {
           const result = await onFileSelect(file.path);
           set((state) => {
@@ -201,10 +197,6 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
           });
         } catch (error) {
           console.error('Error selecting file:', error);
-        } finally {
-          set((state) => {
-            state.loading = false;
-          });
         }
       },
 
