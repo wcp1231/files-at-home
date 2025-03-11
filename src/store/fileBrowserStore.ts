@@ -13,12 +13,16 @@ interface FileBrowserState<T extends FileViewEntry> {
   selectedFile: T | null;
   selectedFileTransfer: FileTransfer | null;
   loading: boolean;
+  videoUrl: string | null;
+  videoDialogOpen: boolean;
 
   // 回调函数
   onFileSelect?: (path: string) => Promise<T | null>;
   onFileData?: (path: string) => Promise<Blob | null>;
   onDirectorySelect?: (path: string) => Promise<T[]>;
   renderFileIcon?: (file: T) => React.ReactNode;
+  setVideoUrl: (url: string | null) => void;
+  setVideoDialogOpen: (open: boolean) => void;
   
   // 设置回调函数
   setCallbacks: (callbacks: {
@@ -64,6 +68,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
       selectedFile: null,
       selectedFileTransfer: null,
       loading: false,
+      videoDialogOpen: false,
       
       // 回调函数
       onFileSelect: undefined,
@@ -97,6 +102,12 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
       }),
       setLoading: (loading) => set((state) => {
         state.loading = loading;
+      }),
+      setVideoUrl: (url) => set((state) => {
+        state.videoUrl = url;
+      }),
+      setVideoDialogOpen: (open) => set((state) => {
+        state.videoDialogOpen = open;
       }),
 
       // 获取文件列表

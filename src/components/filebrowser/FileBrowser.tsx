@@ -4,6 +4,7 @@ import { HeaderTitle } from './HeaderTitle';
 import { FileList } from './FileList';
 import { FilePreview } from './FilePreview';
 import HeaderToolbar from './HeaderToolbar';
+import VideoPlayerDialog from './VideoPlayerDialog';
 
 // Generic file interface that can work with both local and remote files
 export interface FileViewEntry {
@@ -44,6 +45,8 @@ export default function FileBrowser<T extends FileViewEntry>({
             <FilePreview />
           </div>
         </div>
+        {/* 使用抽取出来的视频播放对话框组件 */}
+        <VideoPlayerDialog />
       </CardContent>
     </Card>
   );
