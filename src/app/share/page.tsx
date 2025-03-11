@@ -49,17 +49,9 @@ export default function SharePage() {
   };
   
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container max-w-8xl mx-auto py-4 px-4">
       <div className="space-y-6">
         {renderContent()}
-      </div>
-      
-      <div className="text-center mt-8">
-        <Button variant="link" asChild>
-          <Link href="/">
-            返回首页
-          </Link>
-        </Button>
       </div>
     </div>
   );

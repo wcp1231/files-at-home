@@ -9,7 +9,7 @@ interface FileBrowserWrapperProps {
 
 export default function FileBrowserWrapper({initialConnectionId}: FileBrowserWrapperProps) {
   return (
-    <div className="mb-6 h-[calc(100dvh-5rem)]">
+    <div className="h-[calc(100dvh-2rem)]">
       <FileBrowser
         titlePanel={
           <div className="flex items-center justify-between w-full gap-2">

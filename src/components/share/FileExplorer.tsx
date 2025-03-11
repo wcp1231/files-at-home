@@ -10,7 +10,7 @@ interface FileExplorerProps {
   rootDirHandle: FileSystemDirectoryHandle | null;
   getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
   getFile: (path: string) => Promise<FSFile | null>;
-  listFiles: (path: string) => Promise<FSEntry[] | undefined>;
+  listFiles: (path: string) => Promise<FSEntry[] | null>;
 }
 
 export default function FileExplorer({ rootDirHandle, getDirectory, getFile, listFiles }: FileExplorerProps) {
@@ -28,20 +28,22 @@ export default function FileExplorer({ rootDirHandle, getDirectory, getFile, lis
 
   return (
     <>
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <FileBrowser
-        titlePanel={
-          <FlatConnectionPanel />
-        }
-      />
+      <div className="h-[calc(100dvh-2rem)]">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <FileBrowser
+          titlePanel={
+            <FlatConnectionPanel />
+          }
+        />
+      </div>
     </>
   );
 } 
