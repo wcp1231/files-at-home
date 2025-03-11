@@ -69,6 +69,8 @@ export interface FileTransferResponse {
   type: string;
   totalChunks: number;
   chunkSize: number;
+  start: number;
+  end: number;
 }
 
 // 分块数据结构 - 扩展版
@@ -99,6 +101,8 @@ export interface FileTransferInfo {
   type: string;      // 文件类型
   totalChunks: number;   // 总块数
   chunkSize: number;     // 每块大小(字节)
+  start: number;       // 开始位置
+  end: number;         // 结束位置
 }
 
 // 文件传输状态枚举

@@ -54,6 +54,7 @@ async function checkStateOK() {
   return true;
 }
 
+// 代理下载请求
 function proxyDownloadRequest(event: FetchEvent, url: URL) {
   const filePath = url.searchParams.get('path');
   const fileName = url.searchParams.get('name')!;
@@ -81,6 +82,52 @@ function proxyDownloadRequest(event: FetchEvent, url: URL) {
     writable: ts.writable,
   }, [ts.writable]);
   return new Response(ts.readable, {
+    headers: responseHeader,
+  });
+}
+
+function getRange(range: string, fileSize: number, chunkSize: number) {
+  const [startStr, endStr] = range.split('-')
+  const start = parseInt(startStr);
+  const end = endStr ? parseInt(endStr) : Math.min(fileSize - 1, start + chunkSize - 1);
+  return [start, end];
+}
+
+/**
+ * 代理播放请求
+ * 这类请求比较特殊，支持 206 分块请求
+ * 
+ * @param event 
+ * @param url 
+ */
+function proxyPlayRequest(event: FetchEvent, url: URL) {
+  const request = event.request;
+  const filePath = url.searchParams.get('path');
+  const fileSize = url.searchParams.get('size')!;
+  const chunkSize = url.searchParams.get('chunkSize')!;
+  const type = url.searchParams.get('type')!;
+  const range = request.headers.get('Range')?.split('=')[1];
+  if (!range) {
+    return new Response(null, { status: 400 });
+  }
+  const [start, end] = getRange(range, parseInt(fileSize), parseInt(chunkSize));
+  const responseHeader = new Headers({
+    'Accept-Ranges': 'bytes',
+    'Content-Length': `${end - start + 1}`,
+    'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+    'Content-Type': type,
+  });
+  const ts = new TransformStream();
+  holder.port!.postMessage({
+    type: 'TRANSFER_START',
+    path: filePath,
+    start,
+    end: end + 1,
+    writable: ts.writable,
+  }, [ts.writable]);
+  return new Response(ts.readable, {
+    status: 206,
+    statusText: 'Partial Content',
     headers: responseHeader,
   });
 }
@@ -133,6 +180,9 @@ self.addEventListener('fetch', (event) => {
     // 下载文件
     if (url.hash === '#download') {
       return proxyDownloadRequest(event, url);
+    }
+    if (url.hash === '#play') {
+      return proxyPlayRequest(event, url);
     }
     // 其他请求
     return await fetch(event.request);

@@ -22,6 +22,9 @@ export interface PendingFileTransferRequest {
   path: string;
   stream?: WritableStream<Uint8Array>;
   receiveChunkAt: number;
+  // 分块请求范围
+  start?: number;
+  end?: number;
 }
 
 export interface PendingFileChunkRequest {
@@ -192,7 +195,7 @@ export class ClientRequestManager {
   }
 
   // 请求文件数据
-  async requestFileData(filePath: string, options?: { stream?: WritableStream<Uint8Array> }): Promise<Blob> {
+  async requestFileData(filePath: string, options?: { stream?: WritableStream<Uint8Array>, start?: number, end?: number }): Promise<Blob> {
     if (!this.connection) {
       throw new Error('未连接');
     }
@@ -206,6 +209,8 @@ export class ClientRequestManager {
         reject,
         path: filePath,
         stream: options?.stream,
+        start: options?.start,
+        end: options?.end,
         receiveChunkAt: 0
       };
       this.pendingFileTransferRequests.set(requestId, pendingRequest);
@@ -218,7 +223,7 @@ export class ClientRequestManager {
     // 发送请求
     const message = {
       type: MessageType.FILE_TRANSFER_REQUEST,
-      payload: { path: filePath },
+      payload: { path: filePath, start: options?.start, end: options?.end },
       requestId
     };
     
@@ -295,10 +300,10 @@ export class ClientRequestManager {
   }
 
   // 处理 worker 消息
-  async workerMessageHandler(path: string, writable: WritableStream<Uint8Array>) {
+  async workerMessageHandler(path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) {
     try {
       // 使用流式方式请求文件
-      await this.requestFileData(path, { stream: writable });
+      await this.requestFileData(path, { stream: writable, start, end });
     } catch (error) {
       console.error('Error in worker message handler:', error);
       writable.close();
@@ -349,7 +354,9 @@ export class ClientRequestManager {
       totalChunks: transferResponse.totalChunks,
       chunkSize: transferResponse.chunkSize,
       type: transferResponse.type,
-      path: transferResponse.path
+      path: transferResponse.path,
+      start: transferResponse.start,
+      end: transferResponse.end
     };
     
     // 创建处理器
@@ -373,7 +380,6 @@ export class ClientRequestManager {
         return processor;
       } catch (error) {
         console.error('Failed to create stream processor, falling back to buffered:', error);
-        
       }
     }
     // 如果创建流处理器失败，或者不是使用流式处理器，则使用缓冲处理器
@@ -392,7 +398,7 @@ export class ClientRequestManager {
   }
 
   // 请求文件块
-  private requestFileChunk(fileId: string, chunkIndex: number, filePath: string) {
+  private requestFileChunk(fileId: string, chunkIndex: number, filePath: string, start: number, end: number) {
     if (!this.connection) return;
 
     const requestId = v4();
@@ -418,6 +424,8 @@ export class ClientRequestManager {
       type: MessageType.FILE_CHUNK_REQUEST,
       payload: {
         fileId,
+        start,
+        end,
         chunkIndex,
         filePath
       },
@@ -432,7 +440,7 @@ export class ClientRequestManager {
   }
 
   // 处理文件块消息
-  private handleFileChunk(chunk: FileChunk, requestId: string) {
+  private async handleFileChunk(chunk: FileChunk, requestId: string) {
     const fileId = chunk.fileId;
     
     // 获取处理器
@@ -443,13 +451,13 @@ export class ClientRequestManager {
     }
     
     // 处理块
-    processor.processChunk(chunk);
+    await processor.processChunk(chunk);
 
     this.updateReceiveChunkAt(requestId);
     
     // 如果应该完成传输，调用完成方法
     if (processor.shouldComplete(chunk)) {
-      this.completeTransfer(fileId, requestId);
+      await this.completeTransfer(fileId, requestId);
     }
   }
 

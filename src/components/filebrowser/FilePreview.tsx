@@ -23,8 +23,6 @@ export function FilePreview<T extends FileViewEntry>() {
     setVideoDialogOpen
   } = useFileBrowserStore();
   
-  console.log('preview', selectedFile);
-
   // 如果没有选中文件，不显示任何内容
   if (!selectedFile) {
     return (
@@ -52,7 +50,6 @@ export function FilePreview<T extends FileViewEntry>() {
     iframe.style.display = "none";
     iframe.src = `/receive?path=${selectedFile.path}&name=${selectedFile.name}&size=${selectedFile.size}#download`;
     iframe.onload = function() {
-      console.log("iframe loaded");
       document.body.removeChild(iframe);
     };
     document.body.appendChild(iframe);
@@ -62,7 +59,7 @@ export function FilePreview<T extends FileViewEntry>() {
   const handlePlayVideo = async () => {
     if (isVideoFile(selectedFile) && onFileData) {
       try {
-        const chunkSize = 1024 * 1024;
+        const chunkSize = 512 * 1024;
         // 创建URL用于视频播放
         setVideoUrl(`/receive?path=${selectedFile.path}&size=${selectedFile.size}&chunkSize=${chunkSize}&type=${selectedFile.type}#play`);
         setVideoDialogOpen(true);

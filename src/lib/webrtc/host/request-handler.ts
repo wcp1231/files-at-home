@@ -7,9 +7,10 @@ import {
   handleToSharedFileInfo,
   FileChunk,
 } from '@/lib/webrtc';
+import { v4 } from 'uuid';
 
 // 常量配置
-const MAX_CHUNK_SIZE = 64 * 1024 * 8; // 512KB 块大小
+const MAX_CHUNK_SIZE = 512 * 1024; // 512KB 块大小
 
 export class HostRequestHandler {
   private getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
@@ -62,31 +63,37 @@ export class HostRequestHandler {
   // 处理文件信息请求并开始传输
   async handleFileTransferRequest(
     conn: DataConnection,
-    filePath: string, 
+    payload: { path: string, start?: number, end?: number }, 
     requestId?: string
   ) {
     try {
-      const file = await this.getFile(filePath);
+      const { path } = payload;
+      const file = await this.getFile(path);
       if (!file) {
         throw new Error('文件不存在');
       }
 
       // 计算分块信息
-    const totalSize = file.size!;
-    const chunkSize = MAX_CHUNK_SIZE;
-    const totalChunks = Math.ceil(totalSize / chunkSize);
+      const start = payload.start ?? 0;
+      const end = payload.end ?? file.size!;
+      const totalSize = end - start;
+      const chunkSize = MAX_CHUNK_SIZE;
+      const totalChunks = Math.ceil(totalSize / chunkSize);
+      const fileId = v4();
       
       // 发送文件信息响应
       const message = {
         type: MessageType.FILE_TRANSFER_RESPONSE,
         payload: {
-          fileId: file.path,
-          path: filePath,
+          fileId,
+          path: path,
           name: file.name,
           type: file.type,
           size: file.size,
           totalChunks,
           chunkSize,
+          start,
+          end
         },
         requestId
       };
@@ -95,9 +102,9 @@ export class HostRequestHandler {
       
       // 获取文件对象并开始传输
       const fileObj = await file.getFile();
-      await this.handleFileTransfer(conn, file, fileObj, requestId);
+      await this.handleFileTransfer(conn, file, fileId, fileObj, start, end, requestId);
     } catch (err: any) {
-      this.sendErrorResponse(conn, filePath, err.message || '文件获取错误', requestId);
+      this.sendErrorResponse(conn, payload.path, err.message || '文件获取错误', requestId);
     }
   }
   
@@ -105,23 +112,27 @@ export class HostRequestHandler {
   private async handleFileTransfer(
     conn: DataConnection,
     file: FSFile,
+    fileId: string,
     fileObj: File,
+    start: number,
+    end: number,
     requestId?: string
   ) {
     // 计算分块信息
-    const totalSize = file.size!;
+    const totalSize = end - start;
     const chunkSize = MAX_CHUNK_SIZE;
     const totalChunks = Math.ceil(totalSize / chunkSize);
     
     // 如果是小文件(只有一个块)，自动发送这个块
     if (totalChunks === 1) {
-      const buffer = await fileObj.arrayBuffer();
+      const firstChunkBuffer = fileObj.slice(start, start + totalSize);
+      const buffer = await firstChunkBuffer.arrayBuffer();
       const base64Data = Buffer.from(buffer).toString('base64');
       
       // 发送唯一的数据块 - 同时包含开始和结束的信息
       const chunk: FileChunk = {
         // 以文件路径作为文件ID
-        fileId: file.path,
+        fileId,
         chunkIndex: 0,
         data: base64Data,
         chunkSize: buffer.byteLength,
@@ -146,13 +157,13 @@ export class HostRequestHandler {
       // 对于大文件，我们只发送第一个块，其余的等待客户端请求
       // 首先准备第一个块
       const firstChunkSize = Math.min(chunkSize, totalSize);
-      const firstChunkBuffer = fileObj.slice(0, firstChunkSize);
+      const firstChunkBuffer = fileObj.slice(start, start + firstChunkSize);
       const base64Data = Buffer.from(await firstChunkBuffer.arrayBuffer()).toString('base64');
       
       // 发送第一个块，包含文件信息
       const chunk: FileChunk = {
         // 以文件路径作为文件ID
-        fileId: file.path,
+        fileId,
         chunkIndex: 0,
         data: base64Data,
         chunkSize: firstChunkSize,
@@ -179,19 +190,21 @@ export class HostRequestHandler {
   // 处理文件块请求
   async handleFileChunkRequest(
     conn: DataConnection,
-    payload: { fileId: string, chunkIndex: number, filePath: string },
+    payload: { fileId: string, chunkIndex: number, filePath: string, start: number, end: number },
     requestId?: string
   ) {
     try {
       const { fileId, chunkIndex, filePath } = payload;
-      const file = await this.getFile(filePath);
-      
+      const offsetStart = payload.start;
+      const offsetEnd = payload.end;
+
+      const file = await this.getFile(filePath);      
       if (!file) {
         throw new Error('文件不存在');
       }
       
       const fileObj = await file.getFile();
-      const totalSize = file.size!;
+      const totalSize = offsetEnd - offsetStart;
       const chunkSize = MAX_CHUNK_SIZE;
       const totalChunks = Math.ceil(totalSize / chunkSize);
       
@@ -201,8 +214,8 @@ export class HostRequestHandler {
       }
       
       // 计算分块范围
-      const start = chunkIndex * chunkSize;
-      const end = Math.min(start + chunkSize, totalSize);
+      const start = offsetStart + chunkIndex * chunkSize;
+      const end = Math.min(start + chunkSize, offsetEnd);
       
       // 从缓存的buffer中slice需要的部分
       const chunkBuffer = await fileObj.slice(start, end).arrayBuffer();

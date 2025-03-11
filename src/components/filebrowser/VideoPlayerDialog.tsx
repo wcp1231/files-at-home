@@ -26,13 +26,19 @@ export default function VideoPlayerDialog() {
     setVideoUrl(null);
   }
 
+  const onOpenChange = (open: boolean) => {
+    setVideoDialogOpen(open);
+    if (!open) {
+      handleClose();
+    }
+  }
+
   if (!selectedFile) return null;
   if (!videoUrl) return null;
-  console.log('VideoPlayerDialog', videoUrl);
 
   return (
-    <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
-      <DialogContent className="sm:max-w-[80vw] max-h-[90vh] overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={videoDialogOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[80vw] max-h-[90vh] overflow-scroll" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{selectedFile.name}</DialogTitle>
           <DialogDescription>
@@ -40,7 +46,7 @@ export default function VideoPlayerDialog() {
           </DialogDescription>
         </DialogHeader>
         
-        <div className="mt-4 relative w-full" style={{ paddingTop: '56.25%' }}>
+        <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
           {videoUrl && (
             <ReactPlayer 
               className="absolute top-0 left-0"
@@ -52,16 +58,9 @@ export default function VideoPlayerDialog() {
                 console.error('Video playback error', e);
                 handleClose();
               }}
+              config={{file:{attributes:{preload:'none'}}}}
             />
           )}
-        </div>
-        
-        <div className="flex justify-end mt-4">
-          <DialogClose asChild>
-            <Button variant="outline" onClick={handleClose}>
-              关闭
-            </Button>
-          </DialogClose>
         </div>
       </DialogContent>
     </Dialog>

@@ -49,7 +49,7 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
   protected transferInfo: FileTransferInfo;
   protected transfer: FileTransfer;
   protected startTime: number;
-  protected requestChunkCallback: (fileId: string, chunkIndex: number, filePath: string) => void;
+  protected requestChunkCallback: (fileId: string, chunkIndex: number, filePath: string, start: number, end: number) => void;
   protected onProgressCallback?: (fileId: string, progress: number, speed: number) => void;
   protected onTransferStatusChangeCallback?: (transfer: FileTransfer) => void;
   protected onErrorCallback?: (error: Error) => void;
@@ -60,7 +60,7 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
     parentRequestId: string,
     fileId: string,
     transferInfo: FileTransferInfo,
-    requestChunkCallback: (fileId: string, chunkIndex: number, filePath: string) => void,
+    requestChunkCallback: (fileId: string, chunkIndex: number, filePath: string, start: number, end: number) => void,
     resolver: (data: Blob) => void,
     rejecter: (error: Error) => void,
     onProgressCallback?: (fileId: string, progress: number, speed: number) => void,
@@ -172,7 +172,7 @@ export class BufferedChunkProcessor extends BaseChunkProcessor {
     for (let i = 0; i < this.transferInfo.totalChunks; i++) {
       if (!receivedChunks.includes(i)) {
         // 请求缺失的块，但只请求下一个
-        this.requestChunkCallback(this.fileId, i, this.transferInfo.path);
+        this.requestChunkCallback(this.fileId, i, this.transferInfo.path, this.transferInfo.start, this.transferInfo.end);
         break;
       }
     }
@@ -187,7 +187,7 @@ export class BufferedChunkProcessor extends BaseChunkProcessor {
     }
     
     for (const chunkIndex of missingChunks) {
-      this.requestChunkCallback(this.fileId, chunkIndex, this.transferInfo.path);
+      this.requestChunkCallback(this.fileId, chunkIndex, this.transferInfo.path, this.transferInfo.start, this.transferInfo.end);
     }
   }
   
@@ -269,7 +269,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     fileId: string,
     transferInfo: FileTransferInfo,
     stream: WritableStream<Uint8Array>,
-    requestChunkCallback: (fileId: string, chunkIndex: number, filePath: string) => void,
+    requestChunkCallback: (fileId: string, chunkIndex: number, filePath: string, start: number, end: number) => void,
     resolver: (data: Blob) => void,
     rejecter: (error: Error) => void,
     onProgressCallback?: (fileId: string, progress: number, speed: number) => void,
@@ -319,6 +319,16 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     this.notifyProgress(progress.progress, progress.speed);
     this.notifyTransferStatusChange();
 
+
+
+    // 如果已经处理了所有块，则直接返回
+    if (this.shouldComplete(chunk) || this.processedChunks.size >= this.transferInfo.totalChunks) {
+      return
+    }
+
+    // 请求下一个块前，检查流写入器是否正常
+    // 如果流写入器不正常，则抛出错误
+    // 用于处理取消下载的情况
     const isStreamWriterReady = await this.checkStreamWriterReady();
     if (!isStreamWriterReady) {
       if (this.onErrorCallback) {
@@ -327,10 +337,8 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
       return;
     }
     
-    // 如果收到的不是最后一个且还有未接收的块，请求下一个块
-    if (!this.shouldComplete(chunk) && this.processedChunks.size < this.transferInfo.totalChunks) {
-      this.requestNextChunk();
-    }
+    // 请求下一个块
+    this.requestNextChunk();
   }
   
   private async processChunksInOrder(currentChunkIndex: number): Promise<void> {
@@ -379,7 +387,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
   requestNextChunk(): void {
     for (let i = 0; i < this.transferInfo.totalChunks; i++) {
       if (!this.processedChunks.has(i)) {
-        this.requestChunkCallback(this.fileId, i, this.transferInfo.path);
+        this.requestChunkCallback(this.fileId, i, this.transferInfo.path, this.transferInfo.start, this.transferInfo.end);
         break;
       }
     }
@@ -394,7 +402,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     }
     
     for (const chunkIndex of missingChunks) {
-      this.requestChunkCallback(this.fileId, chunkIndex, this.transferInfo.path);
+      this.requestChunkCallback(this.fileId, chunkIndex, this.transferInfo.path, this.transferInfo.start, this.transferInfo.end);
     }
   }
   
