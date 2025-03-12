@@ -1,0 +1,11 @@
+---
+description: 对于 jsx 组件的约定
+globs: *.tsx
+alwaysApply: false
+---
+
+# Your rule content
+
+- 这个项目使用 bun 进行开发和依赖管理，需要安装和删除依赖时请使用 bun。
+- 所有的前端组件使用 tsx 格式
+- 每个组件代码行数不要太多，如果超过 200 行那么就考虑拆分子组件到其他文件里

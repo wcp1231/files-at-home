@@ -1,13 +1,13 @@
-import { Download, Play } from "lucide-react";
+import { Download, Play, FileText } from "lucide-react";
 import { Button } from "../ui/button";
 import { TableCell } from "../ui/table";
-import { formatModifiedTime, isVideoFile } from "@/utils/browserUtil";
+import { formatModifiedTime, isVideoFile, isPdfFile } from "@/utils/browserUtil";
 import { formatFileSize } from "@/lib/filesystem/util";
 import { FileViewEntry } from "./FileBrowser";
 import { getFileIcon } from './FileIcons';
 import { useFileBrowserStore } from "@/store/fileBrowserStore";
 export function getFileOperation(file: FileViewEntry): React.ReactNode {
-  const { handleFileDownload, handlePlayVideo } = useFileBrowserStore();
+  const { handleFileDownload, handlePlayVideo, handleViewPdf } = useFileBrowserStore();
   if (file.isDirectory) {
     return null;
   }
@@ -19,6 +19,18 @@ export function getFileOperation(file: FileViewEntry): React.ReactNode {
         </Button>
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handlePlayVideo(file)}>
           <Play className="h-4 w-4" />
+        </Button>
+      </>
+    );
+  }
+  if (isPdfFile(file)) {
+    return (
+      <>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFileDownload(file)}>
+          <Download className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleViewPdf(file)}>
+          <FileText className="h-4 w-4" />
         </Button>
       </>
     );

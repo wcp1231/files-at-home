@@ -1,9 +1,12 @@
+import dynamic from 'next/dynamic';
 import { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { HeaderTitle } from './HeaderTitle';
 import { FileList } from './FileList';
 import HeaderToolbar from './HeaderToolbar';
 import VideoPlayerDialog from './VideoPlayerDialog';
+
+const PdfViewerDialog = dynamic(() => import('./PdfViewerDialog'), { ssr: false });
 
 // Generic file interface that can work with both local and remote files
 export interface FileViewEntry {
@@ -42,6 +45,8 @@ export default function FileBrowser<T extends FileViewEntry>({
         </div>
         {/* 使用抽取出来的视频播放对话框组件 */}
         <VideoPlayerDialog />
+        {/* 使用PDF查看对话框组件 */}
+        <PdfViewerDialog />
       </CardContent>
     </Card>
   );

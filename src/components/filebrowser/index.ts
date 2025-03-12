@@ -1,6 +1,5 @@
 export { HeaderTitle } from './HeaderTitle';
 export { FileList } from './FileList';
-export { FilePreview } from './FilePreview';
 export { getFileIcon } from './FileIcons'; 
 export { default as HeaderToolbar } from './HeaderToolbar';
 

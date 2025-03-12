@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { FileTransfer } from '@/lib/webrtc/types';
-import { isVideoFile } from '@/utils/browserUtil';
+import { isVideoFile, isPdfFile } from '@/utils/browserUtil';
 
 // 定义 store 的状态和操作
 interface FileBrowserState<T extends FileViewEntry> {
@@ -15,6 +15,8 @@ interface FileBrowserState<T extends FileViewEntry> {
   loading: boolean;
   videoUrl: string | null;
   videoDialogOpen: boolean;
+  pdfUrl: string | null;
+  pdfDialogOpen: boolean;
 
   // 回调函数
   onFileSelect?: (path: string) => Promise<T | null>;
@@ -22,6 +24,8 @@ interface FileBrowserState<T extends FileViewEntry> {
   onDirectorySelect?: (path: string) => Promise<T[]>;
   setVideoUrl: (url: string | null) => void;
   setVideoDialogOpen: (open: boolean) => void;
+  setPdfUrl: (url: string | null) => void;
+  setPdfDialogOpen: (open: boolean) => void;
   
   // 设置回调函数
   setCallbacks: (callbacks: {
@@ -47,6 +51,7 @@ interface FileBrowserState<T extends FileViewEntry> {
   handleItemClick: (file: T) => Promise<void>;
   handleFileDownload: (file: T) => void;
   handlePlayVideo: (file: T) => void;
+  handleViewPdf: (file: T) => void;
   refreshCurrentDirectory: () => Promise<void>;
   
   // 初始化
@@ -67,6 +72,9 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
       selectedFileTransfer: null,
       loading: false,
       videoDialogOpen: false,
+      videoUrl: null,
+      pdfDialogOpen: false,
+      pdfUrl: null,
       
       // 回调函数
       onFileSelect: undefined,
@@ -104,6 +112,12 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
       }),
       setVideoDialogOpen: (open) => set((state) => {
         state.videoDialogOpen = open;
+      }),
+      setPdfUrl: (url) => set((state) => {
+        state.pdfUrl = url;
+      }),
+      setPdfDialogOpen: (open) => set((state) => {
+        state.pdfDialogOpen = open;
       }),
 
       // 获取文件列表
@@ -239,6 +253,20 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         }
       },
 
+      handleViewPdf: async (file) => {
+        const { setPdfUrl, setPdfDialogOpen } = get();
+        if (isPdfFile(file)) {
+          try {
+            const chunkSize = 512 * 1024;
+            // 创建URL用于PDF查看
+            setPdfUrl(`/receive?path=${file.path}&size=${file.size}&chunkSize=${chunkSize}&type=${file.type}#download`);
+            setPdfDialogOpen(true);
+          } catch (error) {
+            console.error('Error viewing PDF:', error);
+          }
+        }
+      },
+
       // 刷新当前目录
       refreshCurrentDirectory: async () => {
         const { currentPath, fetchFiles } = get();
@@ -259,6 +287,10 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
           state.selectedFile = null;
           state.selectedFileTransfer = null;
           state.loading = false;
+          state.videoUrl = null;
+          state.videoDialogOpen = false;
+          state.pdfUrl = null;
+          state.pdfDialogOpen = false;
           state.onFileSelect = undefined;
           state.onFileData = undefined;
           state.onDirectorySelect = undefined;

@@ -9,6 +9,12 @@ export const isVideoFile = (file: FileViewEntry) => {
   );
 };
 
+// 检查文件是否是PDF文件
+export const isPdfFile = (file: FileViewEntry) => {
+  return file.name.toLowerCase().endsWith('.pdf') || 
+         (file.type && file.type === 'application/pdf');
+};
+
 // 格式化修改时间
 // 忽略秒
 export const formatModifiedTime = (modifiedAt: string | Date | undefined) => {
