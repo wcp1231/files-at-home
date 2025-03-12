@@ -15,7 +15,7 @@ export default function ReceivePage() {
   const initialConnectionId = searchParams.get('id') || undefined;
   
   return (
-    <div className="container max-w-8xl mx-auto py-4 px-4">
+    <div className="max-w-8xl mx-auto py-4 px-4">
       <div className="space-y-6">
         <FileBrowserWrapper initialConnectionId={initialConnectionId}/>
       </div>

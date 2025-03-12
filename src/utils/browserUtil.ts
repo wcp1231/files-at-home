@@ -8,3 +8,18 @@ export const isVideoFile = (file: FileViewEntry) => {
     (file.type && file.type.startsWith('video/'))
   );
 };
+
+// 格式化修改时间
+// 忽略秒
+export const formatModifiedTime = (modifiedAt: string | Date | undefined) => {
+  if (!modifiedAt) return '';
+  const date = new Date(modifiedAt);
+  return date.toLocaleString('local', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};

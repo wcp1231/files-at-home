@@ -1,16 +1,14 @@
-import React, { HTMLAttributes, useCallback, useMemo } from 'react';
+import React, { HTMLAttributes, useCallback } from 'react';
 import { FileViewEntry } from './FileBrowser';
 import { 
   Table, 
-  TableCell, 
   TableHead, 
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
 import { TableVirtuoso } from 'react-virtuoso'
-import { formatFileSize } from '@/lib/filesystem/util';
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
-import { getFileIcon } from './FileIcons';
+import { FileListItem } from './FileListItem';
 
 const TableRowComponent = (selectedFilePath: string | null, rows: FileViewEntry[], handleFileClick: (file: FileViewEntry) => Promise<void>) =>
   function getTableRow(props: HTMLAttributes<HTMLTableRowElement>) {
@@ -35,48 +33,13 @@ const TableRowComponent = (selectedFilePath: string | null, rows: FileViewEntry[
     );
   };
 
-function RowComponent({ file, getFileIcon }: { file: FileViewEntry; getFileIcon: (file: FileViewEntry) => React.ReactNode; }) {
-  return (
-    <>
-      <TableCell className="py-2">
-        <div className="flex items-center">
-          <div className="mr-2">
-            {getFileIcon(file)}
-          </div>
-          <span>{file.name}</span>
-        </div>
-      </TableCell>
-      <TableCell className="text-right">
-        {file.size !== undefined && !file.isDirectory ? formatFileSize(file.size) : ''}
-      </TableCell>
-      <TableCell className="text-right">
-        {file.modifiedAt ? new Date(file.modifiedAt).toLocaleString() : ''}
-      </TableCell>
-    </>
-  );
-}
-
 export function FileList() {
   const { 
     currentFiles, 
     loading, 
     selectedFile,
     handleItemClick,
-    renderFileIcon
   } = useFileBrowserStore();
-
-  // 获取文件图标
-  const getCustomFileIcon = useMemo(() => {
-    return (file: FileViewEntry) => {
-      // 如果提供了自定义图标渲染器，使用它
-      if (renderFileIcon) {
-        return renderFileIcon(file);
-      }
-      
-      // 使用默认图标
-      return getFileIcon(file);
-    };
-  }, [renderFileIcon]);
 
   // 只传递选中文件的路径，而不是整个文件对象，减少不必要的渲染
   const selectedFilePath = selectedFile ? selectedFile.path : null;
@@ -105,16 +68,17 @@ export function FileList() {
         }}
         fixedHeaderContent={() => (
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead className="text-right">Size</TableHead>
-            <TableHead className="text-right">Modified</TableHead>
+            <TableHead className="px-2">Name</TableHead>
+            <TableHead className="px-2">Type</TableHead>
+            <TableHead className="px-2 text-right">Size</TableHead>
+            <TableHead className="px-2 text-right">Modified</TableHead>
+            <TableHead className="px-2">Operation</TableHead>
           </TableRow>
         )}
         itemContent={(index) => (
-          <RowComponent
+          <FileListItem
             key={currentFiles[index].path}
             file={currentFiles[index]}
-            getFileIcon={getCustomFileIcon}
           />
         )}
       />

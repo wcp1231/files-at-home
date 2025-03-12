@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { HeaderTitle } from './HeaderTitle';
 import { FileList } from './FileList';
-import { FilePreview } from './FilePreview';
 import HeaderToolbar from './HeaderToolbar';
 import VideoPlayerDialog from './VideoPlayerDialog';
 
@@ -37,12 +36,8 @@ export default function FileBrowser<T extends FileViewEntry>({
       
       <CardContent className="p-0 h-[calc(100%-85px)]">
         <div className="flex flex-col md:flex-row h-full">
-          <div className="w-full md:w-2/3 border-r overflow-y-scroll">
+          <div className="w-full overflow-y-scroll">
             <FileList />
-          </div>
-          
-          <div className="w-full md:w-1/3 overflow-y-scroll">
-            <FilePreview />
           </div>
         </div>
         {/* 使用抽取出来的视频播放对话框组件 */}

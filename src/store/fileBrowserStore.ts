@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
-import React from 'react';
 import { FileTransfer } from '@/lib/webrtc/types';
+import { isVideoFile } from '@/utils/browserUtil';
 
 // 定义 store 的状态和操作
 interface FileBrowserState<T extends FileViewEntry> {
@@ -20,7 +20,6 @@ interface FileBrowserState<T extends FileViewEntry> {
   onFileSelect?: (path: string) => Promise<T | null>;
   onFileData?: (path: string) => Promise<Blob | null>;
   onDirectorySelect?: (path: string) => Promise<T[]>;
-  renderFileIcon?: (file: T) => React.ReactNode;
   setVideoUrl: (url: string | null) => void;
   setVideoDialogOpen: (open: boolean) => void;
   
@@ -29,7 +28,6 @@ interface FileBrowserState<T extends FileViewEntry> {
     onFileSelect?: (path: string) => Promise<T | null>;
     onFileData?: (path: string) => Promise<Blob | null>;
     onDirectorySelect?: (path: string) => Promise<T[]>;
-    renderFileIcon?: (file: T) => React.ReactNode;
   }) => void;
 
   // Actions
@@ -47,8 +45,8 @@ interface FileBrowserState<T extends FileViewEntry> {
   navigateUp: () => Promise<void>;
   handleFileSelect: (file: T) => Promise<void>;
   handleItemClick: (file: T) => Promise<void>;
-  handleFileDownload: (file: T) => Promise<void>;
-  downloadFileFromBlob: (blob: Blob, fileName: string) => void;
+  handleFileDownload: (file: T) => void;
+  handlePlayVideo: (file: T) => void;
   refreshCurrentDirectory: () => Promise<void>;
   
   // 初始化
@@ -74,14 +72,12 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
       onFileSelect: undefined,
       onFileData: undefined,
       onDirectorySelect: undefined,
-      renderFileIcon: undefined,
       
       // 设置回调函数
       setCallbacks: (callbacks) => set((state) => {
         state.onFileSelect = callbacks.onFileSelect;
         state.onFileData = callbacks.onFileData;
         state.onDirectorySelect = callbacks.onDirectorySelect;
-        state.renderFileIcon = callbacks.renderFileIcon;
       }),
 
       // 基础状态设置函数
@@ -217,52 +213,29 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
       },
 
       // 请求下载文件
-      handleFileDownload: async (file) => {
-        const { downloadFileFromBlob, onFileData } = get();
-        
-        try {
-          set((state) => {
-            state.loading = true;
-          });
-          
-          // 重新请求文件以获取完整数据
-          if (onFileData) {
-            const blob = await onFileData(file.path);
-            if (blob) {
-              downloadFileFromBlob(blob, file.name);
-            } else {
-              console.error('Failed to get file data');
-            }
-          }
-        } catch (error) {
-          console.error('Error downloading file:', error);
-        } finally {
-          set((state) => {
-            state.loading = false;
-          });
-        }
+      handleFileDownload: (file) => {
+        let iframe = document.createElement('iframe');
+        iframe.setAttribute('id', file.path);
+        iframe.hidden = true
+        iframe.style.display = "none";
+        iframe.src = `/receive?path=${file.path}&name=${file.name}&size=${file.size}#download`;
+        iframe.onload = function() {
+          document.body.removeChild(iframe);
+        };
+        document.body.appendChild(iframe);
       },
 
-      // 从Blob创建并下载文件
-      downloadFileFromBlob: (blob, fileName) => {
-        try {
-          // 创建下载链接
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = fileName;
-          
-          // 添加到文档并触发点击
-          document.body.appendChild(a);
-          a.click();
-          
-          // 清理
-          setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          }, 100);
-        } catch (error) {
-          console.error('Error creating download:', error);
+      handlePlayVideo: async (file) => {
+        const { setVideoUrl, setVideoDialogOpen } = get();
+        if (isVideoFile(file)) {
+          try {
+            const chunkSize = 512 * 1024;
+            // 创建URL用于视频播放
+            setVideoUrl(`/receive?path=${file.path}&size=${file.size}&chunkSize=${chunkSize}&type=${file.type}#play`);
+            setVideoDialogOpen(true);
+          } catch (error) {
+            console.error('Error playing video:', error);
+          }
         }
       },
 
@@ -289,7 +262,6 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
           state.onFileSelect = undefined;
           state.onFileData = undefined;
           state.onDirectorySelect = undefined;
-          state.renderFileIcon = undefined;
         }),
     }))
   );

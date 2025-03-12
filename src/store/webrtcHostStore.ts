@@ -90,7 +90,6 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       useFileBrowserStore.getState().setCallbacks({
         onFileSelect: _getFileEntry,
         onDirectorySelect: _getListFilesEntry,
-        renderFileIcon: undefined
       });
     },
     

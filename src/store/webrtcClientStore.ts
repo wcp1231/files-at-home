@@ -93,7 +93,6 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
               onFileSelect: requestFile,
               onFileData: requestFileData,
               onDirectorySelect: requestDirectory,
-              renderFileIcon: undefined
             });
             initialize('/');
           } else if (state === ConnectionState.DISCONNECTED) {
@@ -105,7 +104,6 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
               onFileSelect: undefined,
               onFileData: undefined,
               onDirectorySelect: undefined,
-              renderFileIcon: undefined
             });
             cleanup();
           }

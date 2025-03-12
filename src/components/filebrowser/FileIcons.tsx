@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileViewEntry } from '../FileBrowser';
+import { FileViewEntry } from './FileBrowser';
 import { 
   File, 
   Folder, 

@@ -1,14 +1,12 @@
 import React from 'react';
 import { formatFileSize } from '@/lib/filesystem/util';
 import ReactPlayer from 'react-player';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
 
