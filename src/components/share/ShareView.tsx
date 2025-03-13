@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic';
 import { useCallback } from 'react';
 import { useFileSystem } from '@/hooks/useFileSystem';
-import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 
 // Import components from the barrel export
 import DirectorySelector from '@/components/share/DirectorySelector';
@@ -12,8 +11,6 @@ import DirectorySelector from '@/components/share/DirectorySelector';
 const FileExplorer = dynamic(() => import('@/components/share/FileExplorer'), { ssr: false });
 
 export default function ShareView({ id }: { id: string }) {
-  useWebRTCHostStore.getState().setPeerId(id);
-
   const {
     rootDirHandle,
     openDirectory,
@@ -42,6 +39,7 @@ export default function ShareView({ id }: { id: string }) {
     // 一旦有了目录，就显示文件浏览器和连接信息
     return (
       <FileExplorer 
+        id={id}
         rootDirHandle={rootDirHandle}
         getDirectory={getDirectory}
         getFile={getFile} 
@@ -51,7 +49,7 @@ export default function ShareView({ id }: { id: string }) {
   };
   
   return (
-    <div className="container max-w-8xl mx-auto py-4 px-4">
+    <div className="max-w-8xl mx-auto py-4 px-4">
       <div className="space-y-6">
         {renderContent()}
       </div>

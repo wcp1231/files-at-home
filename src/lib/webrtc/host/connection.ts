@@ -66,6 +66,7 @@ export class HostConnectionManager {
       
       peer.on('connection', (conn) => {
         console.log('Host received connection');
+        this.onStateChange(ConnectionState.HANDSHAKING);
         this.setupConnection(conn);
       });
       
@@ -91,7 +92,7 @@ export class HostConnectionManager {
     
     conn.on('close', () => {
       console.log('Host connection closed');
-      this.onStateChange(ConnectionState.DISCONNECTED);
+      this.onStateChange(ConnectionState.WAITING_FOR_CONNECTION);
       this.connection = null;
     });
     
@@ -111,7 +112,7 @@ export class HostConnectionManager {
     
     peer.on('disconnected', () => {
       console.log('Host peer disconnected');
-      this.onStateChange(ConnectionState.DISCONNECTED);
+      this.onStateChange(ConnectionState.INITIALIZING);
       // 尝试重新连接
       peer.reconnect();
     });

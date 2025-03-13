@@ -197,7 +197,6 @@ const DisconnectedPopoverContent = ({}: DisconnectedPopoverContentProps) => {
 
   useEffect(() => {
     setButtonProps(getConnectionButtonProps(connectionState));
-    console.log('buttonProps', connectionState, buttonProps);
   }, [connectionState]);
   
   return (

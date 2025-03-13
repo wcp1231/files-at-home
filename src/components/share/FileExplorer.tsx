@@ -7,15 +7,18 @@ import FlatConnectionPanel from './FlatConnectionPanel';
 import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 
 interface FileExplorerProps {
+  id: string;
   rootDirHandle: FileSystemDirectoryHandle | null;
   getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
   getFile: (path: string) => Promise<FSFile | null>;
   listFiles: (path: string) => Promise<FSEntry[] | null>;
 }
 
-export default function FileExplorer({ rootDirHandle, getDirectory, getFile, listFiles }: FileExplorerProps) {
-  const { error, setFilesystemHandlers, getFile: getFileFromStore } = useWebRTCHostStore();
+export default function FileExplorer({ id, rootDirHandle, getDirectory, getFile, listFiles }: FileExplorerProps) {
+  const { setPeerId, error, setFilesystemHandlers, getFile: getFileFromStore } = useWebRTCHostStore();
   const { initialize } = useFileBrowserStore();
+
+  setPeerId(id);
 
   useEffect(() => {
     setFilesystemHandlers(getDirectory, getFile, listFiles);
