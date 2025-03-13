@@ -1,11 +1,10 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { FileBrowserWrapper } from '@/components/receive';
 import { WorkerManager } from '@/lib/webrtc/client/worker';
 
+const FileBrowserWrapper = dynamic(() => import('@/components/receive/FileBrowserWrapper'), { ssr: false });
 if (typeof window !== 'undefined') {
   WorkerManager.register();
 }

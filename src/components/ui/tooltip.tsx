@@ -1,142 +1,32 @@
-import React, { useState, useRef, useEffect, ReactNode } from 'react';
+"use client"
 
-interface TooltipProviderProps {
-  children: ReactNode;
-  delayDuration?: number;
-}
+import * as React from "react"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
-const TooltipProvider: React.FC<TooltipProviderProps> = ({ 
-  children,
-  delayDuration = 700
-}) => {
-  return (
-    <TooltipContext.Provider value={{ delayDuration }}>
-      {children}
-    </TooltipContext.Provider>
-  );
-};
+import { cn } from "@/lib/utils"
 
-interface TooltipContextType {
-  delayDuration: number;
-}
+const TooltipProvider = TooltipPrimitive.Provider
 
-const TooltipContext = React.createContext<TooltipContextType>({ delayDuration: 700 });
+const Tooltip = TooltipPrimitive.Root
 
-function useTooltipContext() {
-  return React.useContext(TooltipContext);
-}
+const TooltipTrigger = TooltipPrimitive.Trigger
 
-interface TooltipProps {
-  children: ReactNode;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        "z-50 overflow-hidden rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        className
+      )}
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
+))
+TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-const Tooltip: React.FC<TooltipProps> = ({ 
-  children, 
-  open: controlledOpen, 
-  onOpenChange 
-}) => {
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
-  const isControlled = controlledOpen !== undefined;
-  const open = isControlled ? controlledOpen : uncontrolledOpen;
-  
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!isControlled) {
-      setUncontrolledOpen(newOpen);
-    }
-    if (onOpenChange) {
-      onOpenChange(newOpen);
-    }
-  };
-
-  return (
-    <TooltipRootContext.Provider value={{ open, onOpenChange: handleOpenChange }}>
-      {children}
-    </TooltipRootContext.Provider>
-  );
-};
-
-interface TooltipRootContextType {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-const TooltipRootContext = React.createContext<TooltipRootContextType | undefined>(undefined);
-
-function useTooltipRootContext() {
-  const context = React.useContext(TooltipRootContext);
-  if (!context) {
-    throw new Error('Tooltip compound components must be used within a Tooltip component');
-  }
-  return context;
-}
-
-interface TooltipTriggerProps {
-  children: ReactNode;
-  asChild?: boolean;
-}
-
-const TooltipTrigger: React.FC<TooltipTriggerProps> = ({ 
-  children, 
-  asChild = false 
-}) => {
-  const { open, onOpenChange } = useTooltipRootContext();
-  const { delayDuration } = useTooltipContext();
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onOpenChange(true);
-    }, delayDuration);
-  };
-  
-  const handleMouseLeave = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      onOpenChange(false);
-    }, 100);
-  };
-
-  if (asChild && React.isValidElement(children)) {
-    return React.cloneElement(children as any, {
-      onMouseEnter: handleMouseEnter,
-      onMouseLeave: handleMouseLeave,
-    });
-  }
-  
-  return (
-    <span 
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {children}
-    </span>
-  );
-};
-
-interface TooltipContentProps extends React.HTMLAttributes<HTMLDivElement> {
-  className?: string;
-  sideOffset?: number;
-}
-
-const TooltipContent = React.forwardRef<HTMLDivElement, TooltipContentProps>(
-  ({ className = '', sideOffset = 4, ...props }, ref) => {
-    const { open } = useTooltipRootContext();
-    
-    if (!open) return null;
-    
-    return (
-      <div
-        ref={ref}
-        className={`absolute z-50 overflow-hidden rounded-md border bg-white px-3 py-1.5 text-sm shadow-md ${className}`}
-        {...props}
-      />
-    );
-  }
-);
-
-TooltipContent.displayName = 'TooltipContent';
-
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }; 
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

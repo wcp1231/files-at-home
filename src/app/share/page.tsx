@@ -1,15 +1,13 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback } from 'react';
-import Link from 'next/link';
 import { useFileSystem } from '@/hooks/useFileSystem';
-import { Button } from '@/components/ui/button';
 
 // Import components from the barrel export
-import {
-  DirectorySelector,
-  FileExplorer,
-} from '@/components/share';
+import DirectorySelector from '@/components/share/DirectorySelector';
+
+const FileExplorer = dynamic(() => import('@/components/share/FileExplorer'), { ssr: false });
 
 export default function SharePage() {
   const {
