@@ -28,6 +28,7 @@ function mapFSEntryToFileEntry (entry: FSEntry | null): FileViewEntry | null {
 // WebRTC 主机状态接口
 interface WebRTCHostState {
   // 状态
+  peerId: string;
   isConnectionInitialized: boolean;
   connectionState: ConnectionState;
   error: string | null;
@@ -37,6 +38,8 @@ interface WebRTCHostState {
   connectionId: string | null;
   isInitialized: boolean;
   encryptionKey: string | null;
+
+  setPeerId: (peerId: string) => void;
   
   // 访问处理函数
   setFilesystemHandlers: (getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>, getFile: (filePath: string) => Promise<FSFile | null>, listFiles: (path: string) => Promise<FSEntry[] | null>) => void;
@@ -69,6 +72,7 @@ interface WebRTCHostState {
 export const useWebRTCHostStore = create<WebRTCHostState>()(
   immer((set, get) => ({
     // 初始状态
+    peerId: '',
     isConnectionInitialized: false,
     connectionState: ConnectionState.DISCONNECTED,
     error: null,
@@ -94,6 +98,10 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         onDirectorySelect: _getListFilesEntry,
       });
     },
+
+    setPeerId: (peerId: string) => set((state) => {
+      state.peerId = peerId;
+    }),
     
     // 初始化方法
     initialize: () => {
@@ -210,6 +218,11 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         state._setError('必须先设置 getDirectory 和 getFile 处理函数');
         return null;
       }
+
+      if (!state.peerId) {
+        state._setError('必须先设置 peerId');
+        return null;
+      }
       
       // 确保 store 已初始化
       if (!state.isInitialized) {
@@ -224,7 +237,7 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       
       if (get()._connectionManager) {
         // 如果提供了密码，使用带密码的初始化方法
-        await get()._connectionManager!.initializeHost(passphrase).catch((err) => {
+        await get()._connectionManager!.initializeHost(state.peerId, passphrase).catch((err) => {
           console.error('Failed to initialize host with passphrase:', err);
           set((draft) => {
             draft.connectionId = null;

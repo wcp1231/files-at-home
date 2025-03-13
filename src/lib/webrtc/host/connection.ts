@@ -41,7 +41,7 @@ export class HostConnectionManager {
    * 设置加密密码短语并初始化主机
    * @param passphrase 用户输入的密码短语
    */
-  async initializeHost(passphrase: string) {
+  async initializeHost(peerId: string, passphrase: string) {
     try {
       this.onStateChange(ConnectionState.INITIALIZING);
 
@@ -53,7 +53,7 @@ export class HostConnectionManager {
       }
       
       // 创建一个随机 ID 的 Peer
-      const peer = createPeer();
+      const peer = createPeer(peerId);
       this.peer = peer;
       
       // 设置事件监听器
