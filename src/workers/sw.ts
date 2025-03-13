@@ -1,21 +1,18 @@
 /// <reference lib="webworker" />
+const sw = self as unknown as ServiceWorkerGlobalScope; // we still need to override the "self" variable
 
-export type {};
-declare let self: ServiceWorkerGlobalScope;
 const holder = {} as {
   port: MessagePort | null;
   state: string | null;
+  heartbeat: number;
 };
 
-function findReceiveClient(clients: readonly Client[]) {
-  for (const client of clients) {
-    const url = new URL(client.url);
-    // 返回没有 hash 的 receive 页面
-    if (url.pathname === '/receive' && url.hash === '') {
-      return client;
-    }
+function checkHeartbeat() {
+  if (Date.now() - holder.heartbeat > 2000) {
+    console.log('heartbeat timeout', holder.heartbeat, Date.now());
+    return false;
   }
-  return null;
+  return true;
 }
 
 function handleInitChannel(event: ExtendableMessageEvent) {
@@ -34,6 +31,7 @@ function handlePing(event: ExtendableMessageEvent) {
   if (!holder.port) {
     console.log('port missing');
   }
+  holder.heartbeat = Date.now();
 }
 
 /**
@@ -41,12 +39,8 @@ function handlePing(event: ExtendableMessageEvent) {
  * 也就是是否有 receive 页面，并且 WebRTC 连接是否正常
  * @returns 
  */
-async function checkStateOK() {
-  const allClients = await self.clients.matchAll({
-    includeUncontrolled: true,
-  });
-  const client = findReceiveClient(allClients);
-  if (!client) {
+function checkStateOK() {
+  if (!checkHeartbeat()) {
     return false;
   }
   if (holder.state !== 'connected') {
@@ -134,22 +128,22 @@ function proxyPlayRequest(event: FetchEvent, url: URL) {
 }
 
 // Install event - cache initial resources
-self.addEventListener('install', (event) => {
+sw.addEventListener('install', (event) => {
   console.log('[Service Worker] Install', event);
   // 跳过等待 直接激活
   // 新的 Service Worker 安装完成后会进入等待阶段
   // 直到旧的 Service Worker 被完全卸载后 再进行激活
-  self.skipWaiting();
+  sw.skipWaiting();
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
+sw.addEventListener('activate', (event) => {
   console.log('[Service Worker] Activate', event);
   // 激活后立即接管所有的客户端页面 无需等待页面刷新
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(sw.clients.claim());
 });
 
-self.addEventListener('message', (event) => {
+sw.addEventListener('message', (event) => {
   const type = event.data.type;
   if (type === 'INIT_CHANNEL') {
     handleInitChannel(event);
@@ -166,26 +160,25 @@ self.addEventListener('message', (event) => {
 });
 
 // Fetch event - intercept requests
-self.addEventListener('fetch', (event) => {
+sw.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   if (url.pathname !== '/receive') {
     event.respondWith(fetch(event.request));
     return;
   }
-  event.respondWith((async () => {
-    const receivePageOk = await checkStateOK();
-    if (!receivePageOk) {
-      return await fetch(event.request);
-    }
-    console.log('receivePageOk', receivePageOk, holder.state);
-    // 下载文件
-    if (url.hash === '#download') {
-      return proxyDownloadRequest(event, url);
-    }
-    if (url.hash === '#play') {
-      return proxyPlayRequest(event, url);
-    }
-    // 其他请求
-    return await fetch(event.request);
-  })());
+  const receivePageOk = checkStateOK();
+  if (!receivePageOk) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  // 下载文件
+  if (url.hash === '#download') {
+    event.respondWith(proxyDownloadRequest(event, url));
+    return;
+  }
+  if (url.hash === '#play') {
+    event.respondWith(proxyPlayRequest(event, url));
+    return;
+  }
+  event.respondWith(fetch(event.request));
 }); 

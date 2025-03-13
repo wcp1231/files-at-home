@@ -34,6 +34,12 @@ export class WorkerManager {
   }
 
   private static async initChannel() {
+    if (!WorkerManager.worker || !WorkerManager.worker.active) {
+      setTimeout(() => {
+        WorkerManager.initChannel();
+      }, 1000);
+      return;
+    }
     if (!WorkerManager.channel) {
       WorkerManager.channel = new MessageChannel();
       WorkerManager.channel.port1.onmessage = WorkerManager.onMessage;
@@ -45,10 +51,10 @@ export class WorkerManager {
   }
 
   public static heartbeat() {
-    WorkerManager.worker?.active?.postMessage({ type: MESSAGE_TYPE.INIT_CHANNEL });
+    WorkerManager.worker?.active?.postMessage({ type: MESSAGE_TYPE.PING });
     setTimeout(() => {
       WorkerManager.heartbeat();
-    }, 5000);
+    }, 1000);
   }
 
   public static setMessageHandler(handler: (path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) => Promise<void>) {
