@@ -93,16 +93,16 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         state.currentPath = path;
       }),
       setCurrentFiles: (files) => set((state) => {
-        state.currentFiles = files as any;  // 使用 any 类型绕过 immer 的类型检查
+        state.currentFiles = files as T[];
       }),
       setBreadcrumbs: (breadcrumbs) => set((state) => {
         state.breadcrumbs = breadcrumbs;
       }),
       setSelectedFile: (file) => set((state) => {
-        state.selectedFile = file as any;  // 使用 any 类型绕过 immer 的类型检查
+        state.selectedFile = file as T | null;
       }),
       setSelectedFileTransfer: (fileTransfer) => set((state) => {
-        state.selectedFileTransfer = fileTransfer as any;  // 使用 any 类型绕过 immer 的类型检查
+        state.selectedFileTransfer = fileTransfer as FileTransfer | null;
       }),
       setLoading: (loading) => set((state) => {
         state.loading = loading;
@@ -132,7 +132,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         try {
           const files = await onDirectorySelect(path);
           set((state) => {
-            state.currentFiles = files as any;  // 使用 any 类型绕过 immer 的类型检查
+            state.currentFiles = files as T[];
           });
         } catch (error) {
           console.error('Error loading files:', error);
@@ -203,7 +203,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         try {
           const result = await onFileSelect(file.path);
           set((state) => {
-            state.selectedFile = result as any;  // 使用 any 类型绕过 immer 的类型检查
+            state.selectedFile = result as T | null;
           });
         } catch (error) {
           console.error('Error selecting file:', error);
@@ -228,7 +228,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
 
       // 请求下载文件
       handleFileDownload: (file) => {
-        let iframe = document.createElement('iframe');
+        const iframe = document.createElement('iframe');
         iframe.setAttribute('id', file.path);
         iframe.hidden = true
         iframe.style.display = "none";

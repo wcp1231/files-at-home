@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { FileBrowser, useFileBrowserStore } from '@/components/filebrowser';
 import { FSEntry, FSFile, FSDirectory } from '@/lib/filesystem';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { DynamicIcon } from 'lucide-react/dynamic'
 import FlatConnectionPanel from './FlatConnectionPanel';
 import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 
@@ -34,7 +34,7 @@ export default function FileExplorer({ id, rootDirHandle, getDirectory, getFile,
       <div className="h-[calc(100dvh-2rem)]">
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
+            <DynamicIcon name="alert-circle" className="h-4 w-4" />
             <AlertDescription>
               {error}
             </AlertDescription>

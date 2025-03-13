@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link2, Copy, Check, Loader2, AlertCircle } from "lucide-react";
+import { DynamicIcon } from 'lucide-react/dynamic'
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConnectionState } from '@/lib/webrtc';
@@ -16,8 +16,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 
-interface FlatConnectionPanelProps {}
-
 // 错误提示组件
 interface ErrorTooltipProps {
   error: string | null;
@@ -30,7 +28,7 @@ const ErrorTooltip = ({ error }: ErrorTooltipProps) => {
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="text-destructive cursor-pointer">
-            <AlertCircle className="h-4 w-4" />
+            <DynamicIcon name="alert-circle" className="h-4 w-4" />
           </div>
         </TooltipTrigger>
         <TooltipContent>
@@ -46,13 +44,13 @@ const getConnectionButtonProps = (connectionState: ConnectionState) => {
   switch (connectionState) {
     case ConnectionState.INITIALIZING:
       return {
-        icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+        icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
         label: '初始化中...',
         disabled: true
       };
     default:
       return {
-        icon: <Link2 className="h-3.5 w-3.5" />,
+        icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
         label: '初始化连接',
         disabled: false
       };
@@ -64,28 +62,28 @@ const getStatusButtonProps = (connectionState: ConnectionState) => {
   switch (connectionState) {
     case ConnectionState.INITIALIZING:
       return {
-        icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+        icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
         label: '初始化中...',
         variant: 'outline',
         disabled: true
       };
     case ConnectionState.CONNECTING:
       return {
-        icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+        icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
         label: '连接中...',
         variant: 'outline',
         disabled: true
       };
     case ConnectionState.WAITING_FOR_CONNECTION:
       return {
-        icon: <Link2 className="h-3.5 w-3.5" />,
+        icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
         label: '等待连接',
         variant: 'secondary',
         disabled: false
       };
     case ConnectionState.CONNECTED:
       return {
-        icon: <Link2 className="h-3.5 w-3.5" />,
+        icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
         label: '已连接',
         variant: 'default',
         disabled: false
@@ -93,7 +91,7 @@ const getStatusButtonProps = (connectionState: ConnectionState) => {
     case ConnectionState.DISCONNECTED:
     default:
       return {
-        icon: <Link2 className="h-3.5 w-3.5" />,
+        icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
         label: '分享',
         variant: 'outline',
         disabled: false
@@ -101,10 +99,7 @@ const getStatusButtonProps = (connectionState: ConnectionState) => {
   }
 };
 
-// 已连接状态的 Popover 内容组件
-interface ConnectedPopoverContentProps {}
-
-const ConnectedPopoverContent = ({}: ConnectedPopoverContentProps) => {
+const ConnectedPopoverContent = () => {
   const {
     connectionId,
     encryptionKey,
@@ -149,8 +144,8 @@ const ConnectedPopoverContent = ({}: ConnectedPopoverContentProps) => {
               onClick={handleCopyLink}
             >
               {copied ? 
-                <Check className="h-3.5 w-3.5 text-green-500" /> : 
-                <Copy className="h-3.5 w-3.5" />}
+                <DynamicIcon name="check" className="h-3.5 w-3.5 text-green-500" /> : 
+                <DynamicIcon name="copy" className="h-3.5 w-3.5" />}
             </Button>
           </div>
         )}
@@ -182,10 +177,7 @@ const ConnectedPopoverContent = ({}: ConnectedPopoverContentProps) => {
   );
 };
 
-// 未连接状态的 Popover 内容组件
-interface DisconnectedPopoverContentProps {}
-
-const DisconnectedPopoverContent = ({}: DisconnectedPopoverContentProps) => {
+const DisconnectedPopoverContent = () => {
   const { connectionState, initializeHost } = useWebRTCHostStore();
   const [passphrase, setPassphrase] = useState('');
   const [buttonProps, setButtonProps] = useState(getConnectionButtonProps(connectionState));
@@ -224,7 +216,7 @@ const DisconnectedPopoverContent = ({}: DisconnectedPopoverContentProps) => {
   );
 };
 
-export default function FlatConnectionPanel({}: FlatConnectionPanelProps) {
+export default function FlatConnectionPanel() {
   // 使用 useWebRTCHost hook 管理 WebRTC 连接
   const {
     connectionState,
@@ -243,7 +235,7 @@ export default function FlatConnectionPanel({}: FlatConnectionPanelProps) {
         <PopoverTrigger asChild>
         <Button
           size="sm"
-          variant={buttonProps.variant as any}
+          variant={buttonProps.variant as 'default' | 'outline'}
           className="h-7 px-2 text-xs"
           disabled={buttonProps.disabled}
         >

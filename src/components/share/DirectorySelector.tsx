@@ -1,5 +1,5 @@
 import React from 'react';
-import { Folder } from "lucide-react";
+import { DynamicIcon } from 'lucide-react/dynamic'
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -13,7 +13,7 @@ export default function DirectorySelector({ onSelectDirectory }: DirectorySelect
       <CardHeader className="text-center md:text-left">
         <div className="flex flex-col md:flex-row items-center gap-4">
           <div className="bg-primary/10 p-4 rounded-full">
-            <Folder className="h-8 w-8 text-primary" />
+            <DynamicIcon name="folder" className="h-8 w-8 text-primary" />
           </div>
           <div>
             <CardTitle className="text-xl">选择要分享的目录</CardTitle>

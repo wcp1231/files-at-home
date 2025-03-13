@@ -71,7 +71,7 @@ export class HostRequestHandler {
     let decrypted = ''
     try {
       decrypted = await hostCrypto.decryptString(encrypted, iv);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('解密失败', err);
       // TODO 解密失败 5 次才关闭连接
       this.messageHandler!.sendMetaResponse(conn, {
@@ -135,8 +135,8 @@ export class HostRequestHandler {
       };
       
       this.messageHandler!.sendResponse(conn, message);
-    } catch (err: any) {
-      this.sendErrorResponse(conn, filePath, err.message || '文件获取错误', requestId);
+    } catch (err: unknown) {
+      this.sendErrorResponse(conn, filePath, err instanceof Error ? err.message : String(err), requestId);
     }
   }
 
@@ -184,8 +184,8 @@ export class HostRequestHandler {
       // 获取文件对象并开始传输
       const fileObj = await file.getFile();
       await this.handleFileTransfer(conn, file, fileId, fileObj, start, end, requestId);
-    } catch (err: any) {
-      this.sendErrorResponse(conn, payload.path, err.message || '文件获取错误', requestId);
+    } catch (err: unknown) {
+      this.sendErrorResponse(conn, payload.path, err instanceof Error ? err.message : String(err), requestId);
     }
   }
   
@@ -324,8 +324,8 @@ export class HostRequestHandler {
       };
       
       this.messageHandler!.sendResponse(conn, message);
-    } catch (err: any) {
-      this.sendErrorResponse(conn, payload.filePath, err.message || '获取文件块错误', requestId);
+    } catch (err: unknown) {
+      this.sendErrorResponse(conn, payload.filePath, err instanceof Error ? err.message : String(err), requestId);
     }
   }
 
@@ -362,8 +362,8 @@ export class HostRequestHandler {
       };
       
       this.messageHandler!.sendResponse(conn, message);
-    } catch (err: any) {
-      this.sendErrorResponse(conn, path, err.message || '目录处理错误', requestId);
+    } catch (err: unknown) {
+      this.sendErrorResponse(conn, path, err instanceof Error ? err.message : String(err), requestId);
     }
   }
 

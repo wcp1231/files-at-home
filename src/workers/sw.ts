@@ -29,6 +29,7 @@ function handleWebrtcStateChange(event: ExtendableMessageEvent) {
   holder.state = state;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handlePing(event: ExtendableMessageEvent) {
   if (!holder.port) {
     console.log('port missing');

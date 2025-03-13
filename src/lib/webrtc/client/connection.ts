@@ -56,8 +56,8 @@ export class ClientConnectionManager {
       });
       
       this.setupPeerEvents(peer);
-    } catch (err: any) {
-      this.onError(`初始化错误: ${err.message}`);
+    } catch (err: unknown) {
+      this.onError(`初始化错误: ${err instanceof Error ? err.message : String(err)}`);
       this.onStateChange(ConnectionState.ERROR);
     }
   }

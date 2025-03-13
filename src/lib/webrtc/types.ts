@@ -58,7 +58,7 @@ export enum MessageType {
 // 定义消息接口
 export interface WebRTCMessage {
   type: MessageType;
-  payload: any;
+  payload: unknown;
   requestId?: string;
 }
 

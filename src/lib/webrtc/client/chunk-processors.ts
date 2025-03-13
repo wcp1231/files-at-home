@@ -229,11 +229,11 @@ export class BufferedChunkProcessor extends BaseChunkProcessor {
           throw new Error('传输未完成，缺少部分块');
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.updateTransferStatus(FileTransferStatus.ERROR);
       this.transfer = {
         ...this.transfer,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       }
       throw error;
     }
@@ -427,12 +427,12 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
       const emptyBlob = new Blob([], { type: this.transferInfo.type });
       this.updateTransferStatus(FileTransferStatus.COMPLETED);
       return emptyBlob;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 处理错误
       this.updateTransferStatus(FileTransferStatus.ERROR);
       this.transfer = {
         ...this.transfer,
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       }
       
       try {

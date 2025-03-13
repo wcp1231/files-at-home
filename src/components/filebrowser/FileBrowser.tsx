@@ -20,13 +20,13 @@ export interface FileViewEntry {
 }
 
 // Props interface
-interface FileBrowserProps<T extends FileViewEntry> {
+interface FileBrowserProps {
   titlePanel?: ReactNode;
 }
 
-export default function FileBrowser<T extends FileViewEntry>({
+export default function FileBrowser({
   titlePanel,
-}: FileBrowserProps<T>) {
+}: FileBrowserProps) {
   return (
     <Card className="h-full overflow-hidden">
       <div className="bg-card border-b">

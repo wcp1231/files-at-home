@@ -185,8 +185,8 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
       try {
         const file =  await state._connectionManager.getRequestManager().requestFile(filePath);
         return mapFSEntryToFileEntry(file);
-      } catch (err: any) {
-        set((draft) => { draft.error = err.message; });
+      } catch (err: unknown) {
+        set((draft) => { draft.error = err instanceof Error ? err.message : String(err); });
         return null;
       }
     },
@@ -201,8 +201,8 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
       
       try {
         return await state._connectionManager.getRequestManager().requestFileData(filePath);
-      } catch (err: any) {
-        set((draft) => { draft.error = err.message; });
+      } catch (err: unknown) {
+        set((draft) => { draft.error = err instanceof Error ? err.message : String(err); });
         return null;
       }
     },
@@ -218,8 +218,8 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
       try {
         const files =  await state._connectionManager.getRequestManager().requestDirectory(path);
         return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
-      } catch (err: any) {
-        set((draft) => { draft.error = err.message; });
+      } catch (err: unknown) {
+        set((draft) => { draft.error = err instanceof Error ? err.message : String(err); });
         return [];
       }
     },
@@ -234,7 +234,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     
     // 清除已完成的传输记录
     clearCompletedTransfers: () => set((draft) => {
-      draft.fileTransfers = new Map(Array.from(draft.fileTransfers.entries()).filter(([_, transfer]) => 
+      draft.fileTransfers = new Map(Array.from(draft.fileTransfers.entries()).filter(([, transfer]) => 
         transfer.status !== 'completed' && 
         transfer.status !== 'error' && 
         transfer.status !== 'cancelled'

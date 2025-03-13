@@ -118,7 +118,9 @@ export class WorkerManager {
 
   public static close(fileId: string) {
     const iframe = document.getElementById(fileId);
-    iframe && iframe.remove();
+    if (iframe) {
+      iframe.remove();
+    }
     WorkerManager.channel?.port1.postMessage(<MessageType>{
       key: MESSAGE_TYPE.TRANSFER_CLOSE,
       id: fileId,

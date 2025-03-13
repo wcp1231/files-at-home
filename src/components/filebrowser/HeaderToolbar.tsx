@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronRight, Home, RefreshCw } from 'lucide-react';
+import { DynamicIcon } from 'lucide-react/dynamic'
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
 
 export default function HeaderToolbar() {
@@ -27,7 +27,7 @@ export default function HeaderToolbar() {
           onClick={() => handleBreadcrumbClick(0)}
           title="Home"
         >
-          <Home className="h-4 w-4" />
+          <DynamicIcon name="home" className="h-4 w-4" />
         </Button>
         <Button
           variant="ghost"
@@ -35,13 +35,13 @@ export default function HeaderToolbar() {
           onClick={handleRefresh}
           title="Refresh"
         >
-          <RefreshCw className="h-4 w-4" />
+          <DynamicIcon name="refresh-cw" className="h-4 w-4" />
         </Button>
       </div>
       <div className="flex items-center pl-2 overflow-x-auto">
         {breadcrumbs.map((crumb: string, index: number) => (
           <div key={index} className="flex items-center">
-            {index > 0 && <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground" />}
+            {index > 0 && <DynamicIcon name="chevron-right" className="h-4 w-4 mx-1 text-muted-foreground" />}
             <Button
               variant="ghost"
               size="sm"

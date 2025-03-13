@@ -1,4 +1,4 @@
-import { Download, Play, FileText } from "lucide-react";
+import { DynamicIcon } from 'lucide-react/dynamic'
 import { Button } from "../ui/button";
 import { TableCell } from "../ui/table";
 import { formatModifiedTime, isVideoFile, isPdfFile } from "@/utils/browserUtil";
@@ -6,7 +6,8 @@ import { formatFileSize } from "@/lib/filesystem/util";
 import { FileViewEntry } from "./FileBrowser";
 import { getFileIcon } from './FileIcons';
 import { useFileBrowserStore } from "@/store/fileBrowserStore";
-export function getFileOperation(file: FileViewEntry): React.ReactNode {
+
+function FileOperations({ file }: { file: FileViewEntry }) {
   const { handleFileDownload, handlePlayVideo, handleViewPdf } = useFileBrowserStore();
   if (file.isDirectory) {
     return null;
@@ -15,10 +16,10 @@ export function getFileOperation(file: FileViewEntry): React.ReactNode {
     return (
       <>
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFileDownload(file)}>
-          <Download className="h-4 w-4" />
+          <DynamicIcon name="download" className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handlePlayVideo(file)}>
-          <Play className="h-4 w-4" />
+          <DynamicIcon name="play" className="h-4 w-4" />
         </Button>
       </>
     );
@@ -27,10 +28,10 @@ export function getFileOperation(file: FileViewEntry): React.ReactNode {
     return (
       <>
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFileDownload(file)}>
-          <Download className="h-4 w-4" />
+          <DynamicIcon name="download" className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleViewPdf(file)}>
-          <FileText className="h-4 w-4" />
+          <DynamicIcon name="file-text" className="h-4 w-4" />
         </Button>
       </>
     );
@@ -38,7 +39,7 @@ export function getFileOperation(file: FileViewEntry): React.ReactNode {
   return (
     <>
       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFileDownload(file)}>
-        <Download className="h-4 w-4" />
+        <DynamicIcon name="download" className="h-4 w-4" />
       </Button>
     </>
   );
@@ -66,7 +67,7 @@ export function FileListItem({ file }: { file: FileViewEntry; }) {
       </TableCell>
       <TableCell className="p-2">
         <div className="flex items-center gap-2">
-          {getFileOperation(file)}
+          <FileOperations file={file} />
         </div>
       </TableCell>
     </>
