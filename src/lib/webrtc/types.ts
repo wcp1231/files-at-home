@@ -17,6 +17,8 @@ export enum ConnectionState {
   WAITING_FOR_CONNECTION = 'waiting_for_connection',
   // 连接中
   CONNECTING = 'connecting',
+  // 握手中
+  HANDSHAKING = 'handshaking',
   // 已连接
   CONNECTED = 'connected',
   // 连接错误
@@ -31,6 +33,12 @@ export enum PeerRole {
 
 // 定义消息类型
 export enum MessageType {
+  // 元数据请求，获取 host 的元数据
+  // 比如：是否设置加密，是否支持文件写操作，是否支持打包下载等
+  META_REQUEST = 'META_REQUEST',
+  META_RESPONSE = 'META_RESPONSE',
+
+  // 文件相关请求
   DIRECTORY_REQUEST = 'DIRECTORY_REQUEST',
   DIRECTORY_RESPONSE = 'DIRECTORY_RESPONSE',
   FILE_INFO_REQUEST = 'FILE_INFO_REQUEST',
@@ -42,6 +50,9 @@ export enum MessageType {
   FILE_CHUNK = 'FILE_CHUNK',
   FILE_CHUNK_REQUEST = 'FILE_CHUNK_REQUEST',
   FILE_TRANSFER_CANCEL = 'FILE_TRANSFER_CANCEL',
+  // 加密请求
+  ENCRYPTED_REQUEST = 'ENCRYPTED_REQUEST',
+  ENCRYPTED_RESPONSE = 'ENCRYPTED_RESPONSE',
 }
 
 // 定义消息接口
@@ -49,6 +60,18 @@ export interface WebRTCMessage {
   type: MessageType;
   payload: any;
   requestId?: string;
+}
+
+export interface MetaRequest {
+  message: string;
+}
+
+export interface MetaResponse {
+  features: {
+    writeable: boolean;
+    packable: boolean;
+  };
+  message: string;
 }
 
 // 定义文件信息接口

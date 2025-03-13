@@ -319,8 +319,6 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     this.notifyProgress(progress.progress, progress.speed);
     this.notifyTransferStatusChange();
 
-
-
     // 如果已经处理了所有块，则直接返回
     if (this.shouldComplete(chunk) || this.processedChunks.size >= this.transferInfo.totalChunks) {
       return

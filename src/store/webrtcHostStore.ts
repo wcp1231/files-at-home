@@ -36,6 +36,7 @@ interface WebRTCHostState {
   connection: DataConnection | null;
   connectionId: string | null;
   isInitialized: boolean;
+  encryptionKey: string | null;
   
   // 访问处理函数
   setFilesystemHandlers: (getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>, getFile: (filePath: string) => Promise<FSFile | null>, listFiles: (path: string) => Promise<FSEntry[] | null>) => void;
@@ -49,7 +50,7 @@ interface WebRTCHostState {
   initialize: () => void;
   
   // 动作
-  initializeHost: () => Promise<string | null>;
+  initializeHost: (passphrase: string) => Promise<string | null>;
   disconnect: () => void;
   
   // 内部使用的帮助方法
@@ -61,6 +62,7 @@ interface WebRTCHostState {
   _setConnectionId: (id: string | null) => void;
   _getFileEntry: (path: string) => Promise<FileViewEntry | null>;
   _getListFilesEntry: (path: string) => Promise<FileViewEntry[]>;
+  _setEncryptionKey: (key: string | null) => void;
 }
 
 // 创建 WebRTC 主机 store
@@ -79,7 +81,7 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
     getFile: null,
     listFiles: null,
     _connectionManager: null,
-
+    encryptionKey: null,
     setFilesystemHandlers: (getDirectory, getFile, listFiles) => { 
       set((state) => {
         state.getDirectory = getDirectory;
@@ -125,7 +127,8 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
           }
         },
         (errorMsg) => get()._setError(errorMsg),
-        (id) => get()._setConnectionId(id)
+        (id) => get()._setConnectionId(id),
+        (key) => get()._setEncryptionKey(key)
       );
       
       set(state => {
@@ -193,9 +196,13 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         return [];
       }
     },
+
+    _setEncryptionKey: (key) => set((draft) => {
+      draft.encryptionKey = key;
+    }),
     
     // 初始化主机
-    initializeHost: async () => {
+    initializeHost: async (passphrase: string) => {
       const state = get();
       
       // 确保已设置文件系统处理函数
@@ -215,15 +222,16 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         draft.isConnectionInitialized = true;
       });
       
-      if (state._connectionManager) {
-        await state._connectionManager.initializeHost().catch((err) => {
-          console.error('Failed to initialize host:', err);
+      if (get()._connectionManager) {
+        // 如果提供了密码，使用带密码的初始化方法
+        await get()._connectionManager!.initializeHost(passphrase).catch((err) => {
+          console.error('Failed to initialize host with passphrase:', err);
           set((draft) => {
             draft.connectionId = null;
             draft.error = err.message;
           });
         });
-        return state.connectionId;
+        return get().connectionId;
       }
       
       return null;

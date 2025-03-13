@@ -2,6 +2,7 @@ import React from 'react';
 import { FileBrowser } from '@/components/filebrowser';
 import FlatConnectionPanel from './FlatConnectionPanel';
 import NetworkSpeedDisplay from './NetworkSpeedDisplay';
+import { PassphraseDialog } from '../PassphraseDialog';
 
 interface FileBrowserWrapperProps {
   initialConnectionId?: string;
@@ -20,6 +21,7 @@ export default function FileBrowserWrapper({initialConnectionId}: FileBrowserWra
           </div>
         }
       />
+      <PassphraseDialog />
     </div>
   );
 } 

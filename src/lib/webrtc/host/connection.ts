@@ -1,8 +1,9 @@
 import { Peer, DataConnection } from 'peerjs';
-import { ConnectionState, PeerRole, createPeer } from '@/lib/webrtc';
+import { ConnectionState, createPeer } from '@/lib/webrtc';
 import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { HostMessageHandler } from './message-handler';
 import { HostRequestHandler } from './request-handler';
+import { hostCrypto } from '@/lib/webrtc/crypto';
 
 export class HostConnectionManager {
   private peer: Peer | null = null;
@@ -14,6 +15,9 @@ export class HostConnectionManager {
   private onStateChange: (state: ConnectionState) => void;
   private onError: (error: string) => void;
   private onConnectionIdGenerated: (id: string) => void;
+  private onEncryptionKeyGenerated: (key: string) => void;
+  
+  private encryptionPassphrase: string | null = null;
   
   constructor(
     getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>,
@@ -21,22 +25,35 @@ export class HostConnectionManager {
     getFile: (filePath: string) => Promise<FSFile | null>,
     onStateChange: (state: ConnectionState) => void,
     onError: (error: string) => void,
-    onConnectionIdGenerated: (id: string) => void
+    onConnectionIdGenerated: (id: string) => void,
+    onEncryptionKeyGenerated: (key: string) => void,
   ) {
     this.onStateChange = onStateChange;
     this.onError = onError;
     this.onConnectionIdGenerated = onConnectionIdGenerated;
+    this.onEncryptionKeyGenerated = onEncryptionKeyGenerated;
     
     this.requestHandler = new HostRequestHandler(getDirectory, listFiles, getFile);
     this.messageHandler = new HostMessageHandler(this.requestHandler, this.onError);
   }
-  
-  async initializeHost() {
+
+  /**
+   * 设置加密密码短语并初始化主机
+   * @param passphrase 用户输入的密码短语
+   */
+  async initializeHost(passphrase: string) {
     try {
       this.onStateChange(ConnectionState.INITIALIZING);
+
+      if (passphrase) {
+        // 初始化加密并从密码生成密钥
+        await hostCrypto.waitReady();
+        this.encryptionPassphrase = await hostCrypto.generateKeyFromPassphrase(passphrase);
+        this.onEncryptionKeyGenerated(this.encryptionPassphrase);
+      }
       
       // 创建一个随机 ID 的 Peer
-      const peer = createPeer('my-test-peer-host-id-1231');
+      const peer = createPeer();
       this.peer = peer;
       
       // 设置事件监听器
@@ -129,6 +146,11 @@ export class HostConnectionManager {
   // 获取当前 Peer
   getPeer() {
     return this.peer;
+  }
+  
+  // 获取加密密码短语的方法
+  getEncryptionPassphrase(): string | null {
+    return this.encryptionPassphrase;
   }
 }
 

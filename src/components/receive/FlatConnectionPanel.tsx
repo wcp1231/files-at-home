@@ -20,8 +20,68 @@ interface FlatConnectionPanelProps {
   initialConnectionId?: string;
 }
 
+// 错误提示组件
+interface ErrorTooltipProps {
+  error: string | null;
+}
+
+const ErrorTooltip = ({ error }: ErrorTooltipProps) => {
+  if (!error) return null;
+  console.log('error tooltip', error);
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="text-destructive cursor-pointer">
+            <AlertCircle className="h-4 w-4" />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="max-w-xs">{error}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
+
 // 使用模块级变量来跟踪连接状态，确保它在组件重新渲染或卸载时不会重置
 let isConnectionInitialized = false;
+
+// 获取按钮状态和标签
+const getButtonProps = (connectionState: ConnectionState) => {
+  switch (connectionState) {
+    case ConnectionState.INITIALIZING:
+      return {
+        icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+        label: '初始化中...',
+        variant: 'outline',
+        disabled: true
+      };
+    case ConnectionState.CONNECTING:
+    case ConnectionState.HANDSHAKING:
+      return {
+        icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+        label: '连接中...',
+        variant: 'outline',
+        disabled: true
+      };
+    case ConnectionState.CONNECTED:
+      return {
+        icon: <Link2 className="h-3.5 w-3.5" />,
+        label: '已连接',
+        variant: 'default',
+        disabled: false
+      };
+    case ConnectionState.DISCONNECTED:
+    default:
+      return {
+        icon: <Link2 className="h-3.5 w-3.5" />,
+        label: '连接',
+        variant: 'outline',
+        disabled: false
+      };
+  }
+};
 
 export default function FlatConnectionPanel({ initialConnectionId }: FlatConnectionPanelProps) {
   const {
@@ -74,60 +134,13 @@ export default function FlatConnectionPanel({ initialConnectionId }: FlatConnect
     }
   }, [initialConnectionId]);
   
-  // 获取按钮状态和标签
-  const getButtonProps = () => {
-    switch (connectionState) {
-      case ConnectionState.INITIALIZING:
-        return {
-          icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
-          label: '初始化中...',
-          variant: 'outline',
-          disabled: true
-        };
-      case ConnectionState.CONNECTING:
-        return {
-          icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
-          label: '连接中...',
-          variant: 'outline',
-          disabled: true
-        };
-      case ConnectionState.CONNECTED:
-        return {
-          icon: <Link2 className="h-3.5 w-3.5" />,
-          label: '已连接',
-          variant: 'default',
-          disabled: false
-        };
-      case ConnectionState.DISCONNECTED:
-      default:
-        return {
-          icon: <Link2 className="h-3.5 w-3.5" />,
-          label: '连接',
-          variant: 'outline',
-          disabled: false
-        };
-    }
-  };
 
-  const buttonProps = getButtonProps();
+  const buttonProps = getButtonProps(connectionState);
   const isConnected = connectionState === ConnectionState.CONNECTED;
 
   return (
     <div className="flex items-center space-x-2">
-      {error && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-destructive cursor-pointer">
-                <AlertCircle className="h-4 w-4" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-xs">{error}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
+      <ErrorTooltip error={error} />
 
       <Popover>
         <PopoverTrigger asChild>

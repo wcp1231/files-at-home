@@ -1,7 +1,14 @@
 import { DataConnection } from 'peerjs';
-import { MessageType, serializeMessage, SharedFileInfo, FileChunk, FileTransferInfo, FileTransfer, FileTransferResponse } from '@/lib/webrtc';
+import { MessageType, SharedFileInfo, FileChunk, FileTransferInfo, FileTransfer, FileTransferResponse, MetaResponse } from '@/lib/webrtc';
 import { v4 } from 'uuid';
 import { ChunkProcessor, BufferedChunkProcessor, StreamChunkProcessor } from './chunk-processors';
+import { ClientMessageHandler } from './message-handler';
+import { clientCrypto } from '../crypto';
+
+export interface PendingMetaRequest {
+  resolve: (data: MetaResponse) => void;
+  reject: (error: Error) => void;
+}
 
 // 请求类型
 export interface PendingFileRequest {
@@ -36,6 +43,8 @@ export interface PendingFileChunkRequest {
 export type RequestId = string;
 
 export class ClientRequestManager {
+  private messageHandler?: ClientMessageHandler;
+  private pendingMetaRequest: Map<RequestId, PendingMetaRequest> = new Map();
   private pendingFileRequests: Map<RequestId, PendingFileRequest> = new Map();
   private pendingDirectoryRequests: Map<RequestId, PendingDirectoryRequest> = new Map();
   private pendingFileChunkRequests: Map<RequestId, PendingFileChunkRequest> = new Map();
@@ -64,8 +73,20 @@ export class ClientRequestManager {
     this.onTransferStatusChange = onTransferStatusChange || null;
   }
 
+  setMessageHandler(messageHandler: ClientMessageHandler) {
+    this.messageHandler = messageHandler;
+  }
+
   setConnection(connection: DataConnection | null) {
     this.connection = connection;
+  }
+
+  handleMetaResponse(requestId: string, payload: MetaResponse) {
+    const request = this.pendingMetaRequest.get(requestId);
+    if (request) {
+      request.resolve(payload);
+      this.pendingMetaRequest.delete(requestId);
+    }
   }
 
   // 处理接收到的响应
@@ -148,7 +169,7 @@ export class ClientRequestManager {
       }
     };
     
-    this.connection.send(serializeMessage(message));
+    this.messageHandler!.sendRequest(this.connection!, message);
     
     // 取消处理
     processor.cancel(new Error('传输已取消'));
@@ -157,6 +178,46 @@ export class ClientRequestManager {
     setTimeout(() => {
       this.activeChunkProcessors.delete(fileId);
     }, 10000);
+  }
+
+  async requestMeta() {
+    if (!this.connection) {
+      throw new Error('未连接');
+    }
+
+    const requestId = v4();
+
+    const requestPromise = new Promise<MetaResponse>((resolve, reject) => {
+      const pendingRequest: PendingMetaRequest = {
+        resolve,
+        reject,
+      };
+
+      this.pendingMetaRequest.set(requestId, pendingRequest);
+      
+      // 设置超时处理
+      setTimeout(() => {
+        if (this.pendingMetaRequest.has(requestId)) {
+          this.pendingMetaRequest.delete(requestId);
+          reject(new Error('请求超时'));
+        }
+      }, this.timeoutDuration);
+    });
+
+    let message = 'hello';
+    if (clientCrypto.hasKey()) {
+      const encrypted = await clientCrypto.encryptString(message);
+      message = JSON.stringify(encrypted);
+    }
+
+    // 发送请求
+    this.messageHandler!.sendMetaRequest(this.connection!, {
+      type: MessageType.META_REQUEST,
+      payload: { message },
+      requestId
+    });
+    
+    return requestPromise;
   }
 
   // 发送请求方法
@@ -185,11 +246,11 @@ export class ClientRequestManager {
     });
     
     // 发送请求
-    this.connection.send(serializeMessage({
+    this.messageHandler!.sendRequest(this.connection!, {
       type: MessageType.FILE_INFO_REQUEST,
       payload: { path: filePath },
       requestId
-    }));
+    });
     
     return requestPromise;
   }
@@ -227,7 +288,7 @@ export class ClientRequestManager {
       requestId
     };
     
-    this.connection.send(serializeMessage(message));
+    this.messageHandler!.sendRequest(this.connection!, message);
     
     return requestPromise;
   }
@@ -257,11 +318,11 @@ export class ClientRequestManager {
     });
     
     // 发送请求
-    this.connection.send(serializeMessage({
+    this.messageHandler!.sendRequest(this.connection!, {
       type: MessageType.DIRECTORY_REQUEST,
       payload: { path },
       requestId
-    }));
+    });
     
     return requestPromise;
   }
@@ -432,7 +493,7 @@ export class ClientRequestManager {
       requestId
     };
 
-    this.connection.send(serializeMessage(message));
+    this.messageHandler!.sendRequest(this.connection!, message);
     
     requestPromise.then((chunk) => {
       this.handleFileChunk(chunk, requestId);

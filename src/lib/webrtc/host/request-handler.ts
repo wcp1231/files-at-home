@@ -2,17 +2,19 @@ import { DataConnection } from 'peerjs';
 import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { 
   MessageType, 
-  serializeMessage, 
   SharedFileInfo,
   handleToSharedFileInfo,
+  HostMessageHandler,
   FileChunk,
 } from '@/lib/webrtc';
 import { v4 } from 'uuid';
+import { hostCrypto } from '../crypto';
 
 // 常量配置
 const MAX_CHUNK_SIZE = 512 * 1024; // 512KB 块大小
 
 export class HostRequestHandler {
+  private messageHandler?: HostMessageHandler;
   private getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
   private listFiles: (path: string) => Promise<FSEntry[] | null>;
   private getFile: (filePath: string) => Promise<FSFile | null>;
@@ -25,6 +27,85 @@ export class HostRequestHandler {
     this.getDirectory = getDirectory;
     this.listFiles = listFiles;
     this.getFile = getFile;
+  }
+
+  setMessageHandler(messageHandler: HostMessageHandler) {
+    this.messageHandler = messageHandler;
+  }
+
+  // 处理元数据请求
+  async handleMetaRequest(
+    conn: DataConnection,
+    payload: { message: string },
+    requestId?: string
+  ) {
+    const { message } = payload;
+
+    // 如果不需要加密，则直接返回
+    if (message === 'hello' && !hostCrypto.hasKey()) {
+      this.messageHandler!.sendMetaResponse(conn, {
+        type: MessageType.META_RESPONSE,
+        payload: { 
+          message: 'hello',
+          features: {
+            writeable: false,
+            packable: false,
+          }
+        },
+        requestId
+      });
+      return
+    }
+
+    // 如果已经加密，则告知客户端
+    if (message === 'hello' && hostCrypto.hasKey()) {
+      this.messageHandler!.sendMetaResponse(conn, {
+        type: MessageType.META_RESPONSE,
+        payload: { message: 'encrypted' },
+        requestId
+      });
+      return
+    }
+
+    const { encrypted, iv } = JSON.parse(message);
+    let decrypted = ''
+    try {
+      decrypted = await hostCrypto.decryptString(encrypted, iv);
+    } catch (err: any) {
+      console.warn('解密失败', err);
+      // TODO 解密失败 5 次才关闭连接
+      this.messageHandler!.sendMetaResponse(conn, {
+        type: MessageType.META_RESPONSE,
+        payload: { message: 'error' },
+        requestId
+      });
+      return
+    }
+
+    // 如果解密成功，则返回
+    if (decrypted === 'hello') {
+      this.messageHandler!.sendMetaResponse(conn, {
+        type: MessageType.META_RESPONSE,
+        payload: { 
+          message: 'hello', 
+          features: {
+            writeable: false,
+            packable: false,
+          }
+        },
+        requestId
+      });
+      return;
+    }
+
+    // TODO 解密失败 5 次才关闭连接
+    // 如果解密失败，则返回错误
+    this.messageHandler!.sendMetaResponse(conn, {
+      type: MessageType.META_RESPONSE,
+      payload: { message: 'error' },
+      requestId
+    });
+    return
   }
 
   // 处理文件请求
@@ -53,7 +134,7 @@ export class HostRequestHandler {
         requestId
       };
       
-      conn.send(serializeMessage(message));
+      this.messageHandler!.sendResponse(conn, message);
     } catch (err: any) {
       this.sendErrorResponse(conn, filePath, err.message || '文件获取错误', requestId);
     }
@@ -98,7 +179,7 @@ export class HostRequestHandler {
         requestId
       };
       
-      conn.send(serializeMessage(message));
+      this.messageHandler!.sendResponse(conn, message);
       
       // 获取文件对象并开始传输
       const fileObj = await file.getFile();
@@ -152,39 +233,40 @@ export class HostRequestHandler {
         requestId
       };
       
-      conn.send(serializeMessage(chunkMessage));
-    } else {
-      // 对于大文件，我们只发送第一个块，其余的等待客户端请求
-      // 首先准备第一个块
-      const firstChunkSize = Math.min(chunkSize, totalSize);
-      const firstChunkBuffer = fileObj.slice(start, start + firstChunkSize);
-      const base64Data = Buffer.from(await firstChunkBuffer.arrayBuffer()).toString('base64');
-      
-      // 发送第一个块，包含文件信息
-      const chunk: FileChunk = {
-        // 以文件路径作为文件ID
-        fileId,
-        chunkIndex: 0,
-        data: base64Data,
-        chunkSize: firstChunkSize,
-        // 添加文件信息字段
-        fileName: file.name,
-        fileSize: totalSize,
-        fileType: file.type || '',
-        filePath: file.path,
-        // 标记为第一个块
-        isFirst: true,
-        isLast: false
-      };
-      
-      const chunkMessage = {
-        type: MessageType.FILE_CHUNK,
-        payload: chunk,
-        requestId
-      };
-      
-      conn.send(serializeMessage(chunkMessage));
+      this.messageHandler!.sendResponse(conn, chunkMessage);
+      return
     }
+
+    // 对于大文件，我们只发送第一个块，其余的等待客户端请求
+    // 首先准备第一个块
+    const firstChunkSize = Math.min(chunkSize, totalSize);
+    const firstChunkBuffer = fileObj.slice(start, start + firstChunkSize);
+    const base64Data = Buffer.from(await firstChunkBuffer.arrayBuffer()).toString('base64');
+    
+    // 发送第一个块，包含文件信息
+    const chunk: FileChunk = {
+      // 以文件路径作为文件ID
+      fileId,
+      chunkIndex: 0,
+      data: base64Data,
+      chunkSize: firstChunkSize,
+      // 添加文件信息字段
+      fileName: file.name,
+      fileSize: totalSize,
+      fileType: file.type || '',
+      filePath: file.path,
+      // 标记为第一个块
+      isFirst: true,
+      isLast: false
+    };
+    
+    const chunkMessage = {
+      type: MessageType.FILE_CHUNK,
+      payload: chunk,
+      requestId
+    };
+    
+    this.messageHandler!.sendResponse(conn, chunkMessage);
   }
 
   // 处理文件块请求
@@ -241,7 +323,7 @@ export class HostRequestHandler {
         requestId
       };
       
-      conn.send(serializeMessage(message));
+      this.messageHandler!.sendResponse(conn, message);
     } catch (err: any) {
       this.sendErrorResponse(conn, payload.filePath, err.message || '获取文件块错误', requestId);
     }
@@ -279,7 +361,7 @@ export class HostRequestHandler {
         requestId
       };
       
-      conn.send(serializeMessage(message));
+      this.messageHandler!.sendResponse(conn, message);
     } catch (err: any) {
       this.sendErrorResponse(conn, path, err.message || '目录处理错误', requestId);
     }
@@ -300,8 +382,7 @@ export class HostRequestHandler {
       },
       requestId
     };
-    
-    conn.send(serializeMessage(message));
+    this.messageHandler!.sendResponse(conn, message);
   }
 }
 
