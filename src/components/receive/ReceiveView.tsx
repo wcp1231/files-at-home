@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { WorkerManager } from '@/lib/webrtc/client/worker';
+import { Toaster } from "@/components/ui/toast/toaster"
 
 const FileBrowserWrapper = dynamic(() => import('@/components/receive/FileBrowserWrapper'), { ssr: false });
 if (typeof window !== 'undefined') {
@@ -14,6 +15,7 @@ export default function ReceiveView({ id }: { id?: string }) {
       <div className="space-y-6">
         <FileBrowserWrapper initialConnectionId={id}/>
       </div>
+      <Toaster />
     </div>
   );
 } 
