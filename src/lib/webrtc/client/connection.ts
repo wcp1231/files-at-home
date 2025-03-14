@@ -2,43 +2,68 @@ import { Peer, DataConnection } from 'peerjs';
 import { ConnectionState, createPeer, FileTransfer } from '@/lib/webrtc';
 import { ClientMessageHandler } from './message-handler';
 import { ClientRequestManager } from './request-manager';
+import { HandshakeManager } from './handshake-manager';
 import { WorkerManager } from './worker';
 import { clientCrypto } from '@/lib/webrtc/crypto';
-import { useDialogStore } from '@/store/dialogStore';
+
+// Define connection phases
+export enum ConnectionPhase {
+  DISCONNECTED,
+  HANDSHAKING,
+  ACTIVE
+}
 
 export class ClientConnectionManager {
   private peer: Peer | null = null;
   private connection: DataConnection | null = null;
   private requestManager: ClientRequestManager;
   private messageHandler: ClientMessageHandler;
+  private handshakeManager: HandshakeManager;
+  
+  // Connection phase tracking
+  private connectionPhase: ConnectionPhase = ConnectionPhase.DISCONNECTED;
   
   // 状态回调函数
   private onStateChangeHandler: (state: ConnectionState) => void;
-  private onError: (error: string) => void;
+  private onError: (error: string | null) => void;
   private onTransferStatusChange: (transfer: FileTransfer) => void;
   
   constructor(
     onStateChange: (state: ConnectionState) => void,
-    onError: (error: string) => void,
+    onError: (error: string | null) => void,
     onTransferStatusChange?: (transfer: FileTransfer) => void
   ) {
     this.onStateChangeHandler = onStateChange;
     this.onError = onError;
     this.onTransferStatusChange = onTransferStatusChange || (() => {});
     
+    // Initialize managers
     this.requestManager = new ClientRequestManager(
       null, 
       30000, 
       () => {}, // 进度回调会在请求管理器中直接设置
       this.onTransferStatusChange
     );
-    this.messageHandler = new ClientMessageHandler(this.requestManager, this.onError);
-    WorkerManager.setMessageHandler(this.workerMessageHandler.bind(this));
+    this.handshakeManager = new HandshakeManager(
+      this.setConnectionPhase.bind(this),
+      this.onStateChange.bind(this),
+      this.onError,
+      30000
+    );
+
+    this.messageHandler = new ClientMessageHandler(this.requestManager, this.handshakeManager, this.onError);
+    
+    // Set relationship between managers
+    this.messageHandler.setHandshakeManager(this.handshakeManager);
+    
+    // 初始化设置阶段
+    this.setConnectionPhase(this.connectionPhase);
   }
   
   initializeClient(connectionId: string) {
     try {
       this.onStateChange(ConnectionState.INITIALIZING);
+      this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       
       // 创建一个Peer（不指定ID）
       const peer = createPeer();
@@ -66,23 +91,28 @@ export class ClientConnectionManager {
     this.onStateChange(ConnectionState.CONNECTING);
     this.connection = conn;
     this.requestManager.setConnection(conn);
+    this.handshakeManager.setConnection(conn);
     
     // 设置连接事件
     conn.on('open', () => {
       console.log('Client connection opened');
       this.onStateChange(ConnectionState.HANDSHAKING);
-      this.handshake();
+      this.setConnectionPhase(ConnectionPhase.HANDSHAKING);
+      this.startHandshake();
     });
     
     conn.on('data', (data) => {
+      // Pass the connection phase to handle the message according to the current phase
       this.messageHandler.handleMessage(conn, data as string);
     });
     
     conn.on('close', () => {
       console.log('Client connection closed');
       this.onStateChange(ConnectionState.DISCONNECTED);
+      this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       this.connection = null;
       this.requestManager.setConnection(null);
+      this.handshakeManager.setConnection(null);
     });
     
     conn.on('error', (err) => {
@@ -102,6 +132,7 @@ export class ClientConnectionManager {
     peer.on('disconnected', () => {
       console.log('Client peer disconnected');
       this.onStateChange(ConnectionState.DISCONNECTED);
+      this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       // 尝试重新连接
       peer.reconnect();
     });
@@ -109,9 +140,11 @@ export class ClientConnectionManager {
     peer.on('close', () => {
       console.log('Client peer closed');
       this.onStateChange(ConnectionState.DISCONNECTED);
+      this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       this.peer = null;
       this.connection = null;
       this.requestManager.setConnection(null);
+      this.handshakeManager.setConnection(null);
     });
   }
 
@@ -126,8 +159,27 @@ export class ClientConnectionManager {
       this.peer = null;
     }
     
+    this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
     this.onStateChange(ConnectionState.DISCONNECTED);
     this.requestManager.setConnection(null);
+    this.handshakeManager.setConnection(null);
+  }
+  
+  // Helper method to change connection phase and update dependencies
+  private setConnectionPhase(phase: ConnectionPhase) {
+    if (this.connectionPhase === phase) return;
+    
+    console.log(`Connection phase changing from ${ConnectionPhase[this.connectionPhase]} to ${ConnectionPhase[phase]}`);
+    this.connectionPhase = phase;
+    
+    // Update related components
+    this.messageHandler.setPhase(phase);
+    this.requestManager.setPhase(phase);
+  }
+  
+  // 获取当前连接阶段
+  getCurrentPhase(): ConnectionPhase {
+    return this.connectionPhase;
   }
   
   // 暴露 RequestManager 的方法以供外部调用
@@ -146,77 +198,21 @@ export class ClientConnectionManager {
   }
 
   /**
-   * 发送握手请求
-   * 判断是否需要加密以及其他高级功能
+   * 启动握手过程
    */
-  async handshake() {
-    let meta = await this.requestManager.requestMeta();
-    let passphrase = '';
-    while (meta.message !== 'error') {
-      if (meta.message === 'hello') {
-        // 完成握手
-        this.onStateChange(ConnectionState.CONNECTED);
-        // TODO 根据 meta 中的 features 设置请求管理器
-        console.log('握手成功');
-        return
-      }
-      if (meta.message === 'encrypted') {
-        // 询问用户输入密码短语
-        passphrase = await this.askForPassphrase();
-        meta = await this.requestManager.requestMeta();
-      }
-      if (meta.message === 'mismatch') {
-        // 密码短语不匹配
-        this.onError('密码短语不匹配');
-        passphrase = await this.askForPassphrase();
-        meta = await this.requestManager.requestMeta();
-      }
-      if (passphrase === '') {
-        // 用户取消了输入
-        this.onError('未提供密码，无法建立安全连接');
-        this.onStateChange(ConnectionState.DISCONNECTED);
-        return;
-      }
-      await this.setEncryptionPassphrase(passphrase);
-      meta = await this.requestManager.requestMeta();
+  private async startHandshake() {
+    if (!this.connection) {
+      this.onError('未连接，无法进行握手');
+      return;
     }
-    // 握手失败
-    this.onError('握手失败');
-    this.onStateChange(ConnectionState.ERROR);
-    // 断开连接
-    this.disconnect();
+    
+    const success = await this.handshakeManager.startHandshake();
+    if (!success) {
+      // If handshake failed, disconnect
+      this.disconnect();
+    }
   }
 
-  /**
-   * 询问用户输入密码短语
-   * @returns 返回用户输入的密码，若用户取消则返回null
-   */
-  async askForPassphrase(): Promise<string> {
-    // 获取 store 中的方法（这里我们访问的是 store 的静态方法，不在组件内）
-    const askForPassphrase = useDialogStore.getState().askForPassphrase;
-    const passphrase = await askForPassphrase(
-      '输入连接密码', 
-      '请输入主机分享的密码以建立安全连接'
-    );
-    return passphrase;
-  }
-  
-  /**
-   * 设置加密密码短语
-   * @param passphrase 用户输入的密码短语
-   */
-  async setEncryptionPassphrase(passphrase: string): Promise<boolean> {
-    try {
-      await clientCrypto.waitReady();
-      await clientCrypto.setKeyFromPassphrase(passphrase);
-      return true;
-    } catch (error) {
-      console.error('设置加密密钥失败:', error);
-      this.onError(`无法设置加密密钥: ${error}`);
-      return false;
-    }
-  }
-  
   /**
    * 检查是否设置了加密密钥
    */
@@ -234,10 +230,6 @@ export class ClientConnectionManager {
   private onStateChange(state: ConnectionState) {
     this.onStateChangeHandler(state);
     WorkerManager.onWebRTCStateChange(state);
-  }
-
-  private async workerMessageHandler(path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) {
-    await this.requestManager.workerMessageHandler(path, writable, start, end);
   }
 }
 

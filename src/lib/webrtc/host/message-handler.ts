@@ -1,72 +1,120 @@
 import { DataConnection } from 'peerjs';
-import { MessageType, WebRTCMessage, deserializeMessage } from '@/lib/webrtc';
+import { deserializeMessage, MessageType, WebRTCMessage } from '@/lib/webrtc';
 import { HostRequestHandler } from './request-handler';
-import { hostCrypto } from '@/lib/webrtc/crypto';
+import { HostHandshakeHandler } from './handshake-handler';
+import { ConnectionPhase, HostConnectionManager } from './connection';
+import { hostCrypto } from '../crypto';
 
 export class HostMessageHandler {
+  private connectionManager: HostConnectionManager;
   private requestHandler: HostRequestHandler;
-  private onError: (error: string) => void;
+  private setPhaseCallback: (clientId: string, phase: ConnectionPhase) => void;
   
-  constructor(requestHandler: HostRequestHandler, onError: (error: string) => void) {
+  // Map of client IDs to handshake handlers
+  private handshakeHandlers: Map<string, HostHandshakeHandler> = new Map();
+  
+  constructor(
+    connectionManager: HostConnectionManager,
+    requestHandler: HostRequestHandler, 
+    setPhaseCallback: (clientId: string, phase: ConnectionPhase) => void
+  ) {
+    this.connectionManager = connectionManager;
     this.requestHandler = requestHandler;
+    this.setPhaseCallback = setPhaseCallback;
+    
+    // Set this messageHandler in the requestHandler
     this.requestHandler.setMessageHandler(this);
-    this.onError = onError;
   }
   
-  // TODO 可以分两个阶段，握手阶段结束后，再处理其他消息
-  async handleMessage(conn: DataConnection, data: string) {
-    try {
-      const message = await this.deserializeRequest(data);
-      const requestId = message.requestId;
+  /**
+   * Set the handshake handler for a specific client
+   */
+  setHandshakeHandler(clientId: string, handler: HostHandshakeHandler) {
+    this.handshakeHandlers.set(clientId, handler);
+    this.setPhaseCallback(clientId, ConnectionPhase.HANDSHAKING);
+  }
+  
+  /**
+   * Handle a message from a client
+   */
+  handleMessage(clientId: string, connection: DataConnection, data: any) {
+    // Check phase
+    const phase = this.connectionManager.getClientPhase(clientId);
+    
+    // Delegate to phase-specific handler
+    switch (phase) {
+      case ConnectionPhase.HANDSHAKING:
+        this.handleHandshakePhaseMessage(clientId, connection, data);
+        break;
       
-      switch (message.type) {
-        case MessageType.META_REQUEST:
-          // 处理元数据请求
-          this.requestHandler.handleMetaRequest(conn, message.payload, requestId);
-          break;
-        case MessageType.DIRECTORY_REQUEST:
-          // 处理目录请求
-          this.requestHandler.handleDirectoryRequest(conn, message.payload.path, requestId);
-          break;
-          
-        case MessageType.FILE_TRANSFER_REQUEST:
-          // 处理文件信息请求并开始传输
-          this.requestHandler.handleFileTransferRequest(conn, message.payload, requestId);
-          break;
-        case MessageType.FILE_INFO_REQUEST:
-          // 处理文件信息请求并开始传输
-          this.requestHandler.handleFileRequest(conn, message.payload.path, requestId);
-          break;
-        case MessageType.FILE_CHUNK_REQUEST:
-          // 处理文件块请求
-          this.requestHandler.handleFileChunkRequest(conn, message.payload, requestId);
-          break;
-          
-        case MessageType.FILE_TRANSFER_CANCEL:
-          // 处理取消传输
-          // TODO: 实现取消逻辑
-          break;
-          
-        case MessageType.ERROR:
-          // 处理客户端发来的错误消息
-          console.error('Client error:', message.payload);
-          this.onError(message.payload);
-          break;
-          
-        default:
-          console.log('主机端收到未处理的消息类型:', message.type);
-      }
-    } catch (error) {
-      console.error('解析消息失败:', error);
+      case ConnectionPhase.ACTIVE:
+        this.handleActivePhaseMessage(clientId, connection, data);
+        break;
+        
+      case ConnectionPhase.DISCONNECTED:
+        console.warn(`Received message from DISCONNECTED client ${clientId}`);
+        break;
+        
+      default:
+        console.warn(`Unknown connection phase for client ${clientId}: ${phase}`);
     }
   }
 
-  sendMetaResponse(conn: DataConnection, message: WebRTCMessage) {
-    conn.send(JSON.stringify(message));
-  }
-
-  async sendResponse(conn: DataConnection, message: WebRTCMessage) {
+  /**
+   * Send a response message
+   * Used by the request handler
+   */
+  async sendResponse(conn: DataConnection, message: any) {
     conn.send(await this.serializeResponse(message));
+  }
+  
+  /**
+   * Handle messages during handshake phase
+   */
+  private async handleHandshakePhaseMessage(clientId: string, connection: DataConnection, data: any) {
+    const { type, payload, requestId } = await this.deserializeRequest(data);
+    
+    if (type === MessageType.META_REQUEST) {
+      const handler = this.handshakeHandlers.get(clientId);
+      if (handler) {
+        await handler.handleMetaRequest(requestId!, payload);
+      } else {
+        console.warn(`No handshake handler for client ${clientId}`);
+        this.sendError(connection, requestId, 'Server error: Handshake handler not available');
+      }
+    } else {
+      console.warn(`Unexpected message type during handshake phase: ${type}`);
+      this.sendError(connection, requestId, 'Handshake required before other requests');
+    }
+  }
+  
+  /**
+   * Handle messages during active phase
+   */
+  private async handleActivePhaseMessage(clientId: string, connection: DataConnection, data: any) {
+    const { type, payload, requestId } = await this.deserializeRequest(data);
+    
+    switch (type) {
+      case MessageType.DIRECTORY_REQUEST:
+        this.requestHandler.handleDirectoryRequest(connection, payload.path, requestId);
+        break;
+      
+      case MessageType.FILE_INFO_REQUEST:
+        this.requestHandler.handleFileRequest(connection, payload.path, requestId);
+        break;
+      
+      case MessageType.FILE_TRANSFER_REQUEST:
+        this.requestHandler.handleFileTransferRequest(connection, payload, requestId);
+        break;
+      
+      case MessageType.FILE_CHUNK_REQUEST:
+        this.requestHandler.handleFileChunkRequest(connection, payload, requestId);
+        break;
+        
+      default:
+        console.warn(`Unexpected message type: ${type}`);
+        this.sendError(connection, requestId, `Unsupported request type: ${type}`);
+    }
   }
 
   private async serializeResponse(message: WebRTCMessage) {
@@ -98,6 +146,19 @@ export class HostMessageHandler {
 
     return message;
   }
-}
-
-export default HostMessageHandler; 
+  
+  /**
+   * Send error response
+   */
+  private sendError(connection: DataConnection, requestId: string | undefined, error: string) {
+    if (!requestId) return;
+    
+    const message = {
+      type: MessageType.ERROR,
+      payload: { error },
+      requestId
+    };
+    
+    connection.send(JSON.stringify(message));
+  }
+} 

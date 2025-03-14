@@ -11,6 +11,7 @@ import { ClientConnectionManager } from '@/lib/webrtc/client';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { useFileBrowserStore } from '@/components/filebrowser';
 import { enableMapSet } from 'immer';
+import { toast } from '@/hooks/use-toast';
 
 enableMapSet();
 
@@ -51,11 +52,11 @@ interface WebRTCClientState {
   requestDirectory: (path: string) => Promise<FileViewEntry[]>;
   cancelFileTransfer: (fileId: string) => void;
   clearCompletedTransfers: () => void;
+  onError: (error: string | null) => void;
   
   // 内部使用的帮助方法
   _createConnectionManager: () => void;
   _setConnectionState: (state: ConnectionState) => void;
-  _setError: (error: string | null) => void;
   _setPeer: (peer: Peer | null) => void;
   _setConnection: (connection: DataConnection | null) => void;
   _setConnectionId: (id: string | null) => void;
@@ -76,7 +77,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     _connectionManager: null,
 
     _createConnectionManager: () => {
-      const { _setConnectionState, _setError, _updateFileTransfer, _connectionManager, requestFile, requestFileData, requestDirectory } = get();
+      const { _setConnectionState, onError, _updateFileTransfer, _connectionManager, requestFile, requestFileData, requestDirectory } = get();
       const { setCallbacks, initialize, cleanup } = useFileBrowserStore.getState();
       const manager = new ClientConnectionManager(
         (state) => {
@@ -108,7 +109,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
             cleanup();
           }
         },
-        (errorMsg) => _setError(errorMsg),
+        (errorMsg) => onError(errorMsg),
         (transfer) => {
           _updateFileTransfer(transfer);
         }
@@ -121,10 +122,6 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     // 状态更新方法
     _setConnectionState: (state) => set((draft) => {
       draft.connectionState = state;
-    }),
-    
-    _setError: (error) => set((draft) => {
-      draft.error = error;
     }),
     
     _setPeer: (peer) => set((draft) => {
@@ -143,6 +140,18 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     _updateFileTransfer: (transfer) => set((draft) => {
       draft.fileTransfers.set(transfer.fileId, transfer);
     }),
+
+    onError: (error) => {
+      if (error) {
+        toast({
+          title: 'Error',
+          description: error,
+        });
+      }
+      set((draft) => {
+        draft.error = error;
+      });
+    },
     
     // 初始化客户端
     initializeClient: (id) => {
@@ -178,7 +187,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     requestFile: async (filePath) => {
       const state = get();
       if (!state._connectionManager) {
-        set((draft) => { draft.error = '管理器未初始化'; });
+        state.onError('管理器未初始化');
         return null;
       }
       
@@ -186,7 +195,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
         const file =  await state._connectionManager.getRequestManager().requestFile(filePath);
         return mapFSEntryToFileEntry(file);
       } catch (err: unknown) {
-        set((draft) => { draft.error = err instanceof Error ? err.message : String(err); });
+        state.onError(err instanceof Error ? err.message : String(err));
         return null;
       }
     },
@@ -195,14 +204,14 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     requestFileData: async (filePath) => {
       const state = get();
       if (!state._connectionManager) {
-        set((draft) => { draft.error = '管理器未初始化'; });
+        state.onError('管理器未初始化');
         return null;
       }
       
       try {
         return await state._connectionManager.getRequestManager().requestFileData(filePath);
       } catch (err: unknown) {
-        set((draft) => { draft.error = err instanceof Error ? err.message : String(err); });
+        state.onError(err instanceof Error ? err.message : String(err));
         return null;
       }
     },
@@ -211,7 +220,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     requestDirectory: async (path) => {
       const state = get();
       if (!state._connectionManager) {
-        set((draft) => { draft.error = '管理器未初始化'; });
+        state.onError('管理器未初始化');
         return [];
       }
       
@@ -219,7 +228,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
         const files =  await state._connectionManager.getRequestManager().requestDirectory(path);
         return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
       } catch (err: unknown) {
-        set((draft) => { draft.error = err instanceof Error ? err.message : String(err); });
+        state.onError(err instanceof Error ? err.message : String(err));
         return [];
       }
     },

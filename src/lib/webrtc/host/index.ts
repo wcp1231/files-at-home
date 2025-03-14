@@ -1,3 +1,10 @@
-export { default as HostConnectionManager } from './connection';
-export { default as HostRequestHandler } from './request-handler';
-export { default as HostMessageHandler } from './message-handler'; 
+// Export connection components
+export { default as HostConnectionManager, ConnectionPhase } from './connection';
+
+// Export message handling components
+export { HostMessageHandler } from './message-handler';
+export { HostRequestHandler } from './request-handler';
+export { HostHandshakeHandler } from './handshake-handler';
+
+// Export API implementation
+export { HostInfo } from './host-info'; 

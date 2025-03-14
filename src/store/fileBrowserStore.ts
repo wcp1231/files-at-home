@@ -257,9 +257,8 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         const { setPdfUrl, setPdfDialogOpen } = get();
         if (isPdfFile(file)) {
           try {
-            const chunkSize = 512 * 1024;
             // 创建URL用于PDF查看
-            setPdfUrl(`/receive?path=${file.path}&size=${file.size}&chunkSize=${chunkSize}&type=${file.type}#download`);
+            setPdfUrl(`/receive?path=${file.path}&size=${file.size}&type=${file.type}#download`);
             setPdfDialogOpen(true);
           } catch (error) {
             console.error('Error viewing PDF:', error);
@@ -301,8 +300,3 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
 
 // 创建一个全局的 store 实例
 export const useFileBrowserStore = createFileBrowserStore<FileViewEntry>();
-
-// // 导出一个使用全局 store 的 hook
-// export function useFileBrowserStore<T extends FileViewEntry>() {
-//   return (globalFileBrowserStore as unknown as FileBrowserState<T>).getState();
-// } 

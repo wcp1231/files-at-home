@@ -45,28 +45,38 @@ export enum MessageType {
   FILE_INFO_RESPONSE = 'FILE_INFO_RESPONSE',
   FILE_TRANSFER_REQUEST = 'FILE_TRANSFER_REQUEST',
   FILE_TRANSFER_RESPONSE = 'FILE_TRANSFER_RESPONSE',
-  ERROR = 'ERROR',
+
   // 简化为单一消息类型
   FILE_CHUNK = 'FILE_CHUNK',
   FILE_CHUNK_REQUEST = 'FILE_CHUNK_REQUEST',
   FILE_TRANSFER_CANCEL = 'FILE_TRANSFER_CANCEL',
+
   // 加密请求
   ENCRYPTED_REQUEST = 'ENCRYPTED_REQUEST',
   ENCRYPTED_RESPONSE = 'ENCRYPTED_RESPONSE',
+
+  ERROR = 'ERROR',
 }
 
 // 定义消息接口
 export interface WebRTCMessage {
   type: MessageType;
-  payload: unknown;
+  payload: any;
   requestId?: string;
 }
 
+// 更新 Meta 请求/响应接口
 export interface MetaRequest {
+  platform: string;
+  version: string;
+  apiVersion: string;
   message: string;
 }
 
 export interface MetaResponse {
+  platform: string;
+  version: string;
+  apiVersion: string;
   features: {
     writeable: boolean;
     packable: boolean;
@@ -151,4 +161,8 @@ export interface FileTransfer {
   error?: string;
   startTime: number;
   endTime?: number;
+}
+
+export interface ErrorResponse {
+  error: string;
 }

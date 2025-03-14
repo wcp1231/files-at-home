@@ -1,157 +1,213 @@
 import { Peer, DataConnection } from 'peerjs';
 import { ConnectionState, createPeer } from '@/lib/webrtc';
-import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
-import { HostMessageHandler } from './message-handler';
 import { HostRequestHandler } from './request-handler';
-import { hostCrypto } from '@/lib/webrtc/crypto';
+import { HostMessageHandler } from './message-handler';
+import { HostHandshakeHandler } from './handshake-handler';
+import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
+import { hostCrypto } from '../crypto';
+
+// Define connection phases for host-side
+export enum ConnectionPhase {
+  DISCONNECTED = 0,
+  HANDSHAKING = 1,
+  ACTIVE = 2
+}
+
+export interface HostConnectionCallbacks {
+  onClientConnected?: (clientId: string) => void;
+  onClientDisconnected?: (clientId: string) => void;
+  onStateChanged?: (state: ConnectionState) => void;
+  onEncryptionPassphraseGenerated?: (passphrase: string) => void;
+  onError?: (error: string | null) => void;
+}
 
 export class HostConnectionManager {
   private peer: Peer | null = null;
-  private connection: DataConnection | null = null;
+  private peerId: string = '';
+  private connections: Map<string, DataConnection> = new Map();
   private requestHandler: HostRequestHandler;
   private messageHandler: HostMessageHandler;
-  
-  // 状态回调函数
-  private onStateChange: (state: ConnectionState) => void;
-  private onError: (error: string) => void;
-  private onConnectionIdGenerated: (id: string) => void;
-  private onEncryptionKeyGenerated: (key: string) => void;
-  
+  private callbacks: HostConnectionCallbacks;
   private encryptionPassphrase: string | null = null;
+  // Track connection phase per client
+  private clientPhases: Map<string, ConnectionPhase> = new Map();
   
   constructor(
     getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>,
     listFiles: (path: string) => Promise<FSEntry[] | null>,
     getFile: (filePath: string) => Promise<FSFile | null>,
-    onStateChange: (state: ConnectionState) => void,
-    onError: (error: string) => void,
-    onConnectionIdGenerated: (id: string) => void,
-    onEncryptionKeyGenerated: (key: string) => void,
+    callbacks: HostConnectionCallbacks = {}
   ) {
-    this.onStateChange = onStateChange;
-    this.onError = onError;
-    this.onConnectionIdGenerated = onConnectionIdGenerated;
-    this.onEncryptionKeyGenerated = onEncryptionKeyGenerated;
-    
     this.requestHandler = new HostRequestHandler(getDirectory, listFiles, getFile);
-    this.messageHandler = new HostMessageHandler(this.requestHandler, this.onError);
+    this.messageHandler = new HostMessageHandler(
+      this,
+      this.requestHandler,
+      (clientId: string, phase: ConnectionPhase) => this.setClientPhase(clientId, phase)
+    );
+    this.callbacks = callbacks;
   }
 
-  /**
-   * 设置加密密码短语并初始化主机
-   * @param passphrase 用户输入的密码短语
-   */
-  async initializeHost(peerId: string, passphrase: string) {
-    try {
-      this.onStateChange(ConnectionState.INITIALIZING);
+  // 获取当前连接的客户端 ID 列表
+  getConnectedClients(): string[] {
+    return Array.from(this.connections.keys());
+  }
 
+  // 获取客户端的连接阶段
+  getClientPhase(clientId: string): ConnectionPhase {
+    return this.clientPhases.get(clientId) || ConnectionPhase.DISCONNECTED;
+  }
+
+  // 设置客户端的连接阶段
+  private setClientPhase(clientId: string, phase: ConnectionPhase) {
+    console.log(`Setting client ${clientId} phase to ${ConnectionPhase[phase]}`);
+    this.clientPhases.set(clientId, phase);
+  }
+
+  // 作为服务器启动
+  async initializeHost(peerId: string, passphrase: string): Promise<string> {
+    try {
       if (passphrase) {
-        // 初始化加密并从密码生成密钥
         await hostCrypto.waitReady();
         this.encryptionPassphrase = await hostCrypto.generateKeyFromPassphrase(passphrase);
-        this.onEncryptionKeyGenerated(this.encryptionPassphrase);
+        this.callbacks.onEncryptionPassphraseGenerated!(this.encryptionPassphrase);
       }
-      
-      // 创建一个随机 ID 的 Peer
-      const peer = createPeer(peerId);
-      this.peer = peer;
-      
-      // 设置事件监听器
-      peer.on('open', (id) => {
-        console.log('Host peer ID:', id, peer.id);
-        this.onStateChange(ConnectionState.WAITING_FOR_CONNECTION);
-        // 使用 peer ID 作为连接 ID
-        this.onConnectionIdGenerated(id);
-      });
-      
-      peer.on('connection', (conn) => {
-        console.log('Host received connection');
-        this.onStateChange(ConnectionState.HANDSHAKING);
-        this.setupConnection(conn);
-      });
 
-      this.setupPeerEvents(peer);
-    } catch (err: unknown) {
-      this.onError(`初始化错误: ${err instanceof Error ? err.message : String(err)}`);
-      this.onStateChange(ConnectionState.ERROR);
+      this.peer = await createPeer(peerId);
+      this.setupPeerEvents();
+      this.peerId = this.peer.id;
+      return this.peerId;
+    } catch (error) {
+      console.error('Error starting peer server:', error);
+      if (this.callbacks.onError) {
+        this.callbacks.onError(`启动服务器失败: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      throw error;
     }
   }
-  
-  private setupConnection(conn: DataConnection) {
-    this.connection = conn;
-    
-    // 设置连接事件
-    conn.on('open', () => {
-      console.log('Host connection opened');
-      this.onStateChange(ConnectionState.CONNECTED);
-    });
-    
-    conn.on('data', (data) => {
-      this.messageHandler.handleMessage(conn, data as string);
-    });
-    
-    conn.on('close', () => {
-      console.log('Host connection closed');
-      this.onStateChange(ConnectionState.WAITING_FOR_CONNECTION);
-      this.connection = null;
-    });
-    
-    conn.on('error', (err) => {
-      console.error('Connection error:', err);
-      this.onError(`连接错误: ${err}`);
-      this.onStateChange(ConnectionState.ERROR);
-    });
-  }
-  
-  private setupPeerEvents(peer: Peer) {
-    peer.on('error', (err) => {
-      console.error('Peer error:', err);
-      this.onError(`连接错误: ${err}`);
-      this.onStateChange(ConnectionState.ERROR);
-    });
-    
-    peer.on('disconnected', () => {
-      console.log('Host peer disconnected');
-      this.onStateChange(ConnectionState.INITIALIZING);
-      // 尝试重新连接
-      peer.reconnect();
-    });
-    
-    peer.on('close', () => {
-      console.log('Host peer closed');
-      this.onStateChange(ConnectionState.DISCONNECTED);
-      this.peer = null;
-      this.connection = null;
-    });
-  }
-  
+
+  // 断开所有连接
   disconnect() {
-    if (this.connection) {
-      this.connection.close();
-      this.connection = null;
+    // 关闭所有连接
+    for (const connection of this.connections.values()) {
+      connection.close();
     }
+    this.connections.clear();
+    this.clientPhases.clear();
     
+    // 关闭 Peer
     if (this.peer) {
       this.peer.destroy();
       this.peer = null;
     }
+    this.callbacks.onStateChanged!(ConnectionState.DISCONNECTED);
+  }
+
+  // 断开指定客户端连接
+  disconnectClient(clientId: string) {
+    const connection = this.connections.get(clientId);
+    if (connection) {
+      connection.close();
+      this.connections.delete(clientId);
+      this.clientPhases.delete(clientId);
+      
+      if (this.callbacks.onClientDisconnected) {
+        this.callbacks.onClientDisconnected(clientId);
+      }
+    }
+  }
+
+  // 设置 Peer 事件
+  private setupPeerEvents() {
+    if (!this.peer) return;
+
+    this.peer.on('open', (id) => {
+      console.log('Host peer opened with ID:', id);
+      this.peerId = id;
+      this.callbacks.onStateChanged!(ConnectionState.WAITING_FOR_CONNECTION);
+    });
+
+    this.peer.on('connection', (connection) => {
+      this.handleNewConnection(connection);
+    });
+
+    this.peer.on('error', (error) => {
+      console.error('Host peer error:', error);
+      if (this.callbacks.onError) {
+        this.callbacks.onError(`Peer 错误: ${error.message}`);
+      }
+    });
+  }
+
+  // 处理新的连接
+  private handleNewConnection(connection: DataConnection) {
+    const clientId = connection.peer;
+    console.log('New client connected:', clientId);
     
-    this.onStateChange(ConnectionState.DISCONNECTED);
+    // 设置初始阶段为握手阶段
+    this.callbacks.onStateChanged!(ConnectionState.HANDSHAKING);
+    this.setClientPhase(clientId, ConnectionPhase.HANDSHAKING);
+    
+    // 保存连接
+    this.connections.set(clientId, connection);
+    
+    // 创建握手处理器
+    const handshakeHandler = new HostHandshakeHandler(
+      connection,
+      () => this.onHandshakeComplete(clientId),
+      (error) => this.onHandshakeFailed(clientId, error)
+    );
+    
+    // 设置握手处理器
+    this.messageHandler.setHandshakeHandler(clientId, handshakeHandler);
+    
+    // 设置连接事件
+    this.setupConnectionEvents(connection);
+    
+    // 通知客户端连接
+    if (this.callbacks.onClientConnected) {
+      this.callbacks.onClientConnected(clientId);
+    }
   }
-  
-  // 获取当前连接
-  getConnection() {
-    return this.connection;
+
+  // 处理握手成功
+  private onHandshakeComplete(clientId: string) {
+    console.log(`Handshake completed for client ${clientId}`);
+    this.setClientPhase(clientId, ConnectionPhase.ACTIVE);
+    this.callbacks.onStateChanged!(ConnectionState.CONNECTED);
   }
-  
-  // 获取当前 Peer
-  getPeer() {
-    return this.peer;
+
+  // 处理握手失败
+  private onHandshakeFailed(clientId: string, error: string) {
+    console.error(`Handshake failed for client ${clientId}: ${error}`);
+    this.disconnectClient(clientId);
+    this.callbacks.onStateChanged!(ConnectionState.WAITING_FOR_CONNECTION);
   }
-  
-  // 获取加密密码短语的方法
-  getEncryptionPassphrase(): string | null {
-    return this.encryptionPassphrase;
+
+  // 设置连接事件
+  private setupConnectionEvents(connection: DataConnection) {
+    const clientId = connection.peer;
+
+    connection.on('data', (data) => {
+      this.messageHandler.handleMessage(clientId, connection, data);
+    });
+
+    connection.on('close', () => {
+      console.log('Client disconnected:', clientId);
+      this.connections.delete(clientId);
+      this.clientPhases.delete(clientId);
+
+      this.callbacks.onStateChanged!(ConnectionState.WAITING_FOR_CONNECTION);
+      if (this.callbacks.onClientDisconnected) {
+        this.callbacks.onClientDisconnected(clientId);
+      }
+    });
+
+    connection.on('error', (error) => {
+      console.error('Connection error:', error);
+      if (this.callbacks.onError) {
+        this.callbacks.onError(`连接错误: ${error.message}`);
+      }
+    });
   }
 }
 

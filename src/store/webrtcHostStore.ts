@@ -1,9 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { Peer, DataConnection } from 'peerjs';
 import { 
   ConnectionState,
-  PeerRole,
   HostConnectionManager
 } from '@/lib/webrtc';
 import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
@@ -32,12 +30,9 @@ interface WebRTCHostState {
   isConnectionInitialized: boolean;
   connectionState: ConnectionState;
   error: string | null;
-  role: PeerRole;
-  peer: Peer | null;
-  connection: DataConnection | null;
   connectionId: string | null;
   isInitialized: boolean;
-  encryptionKey: string | null;
+  encryptionPassphrase: string | null;
 
   setPeerId: (peerId: string) => void;
   
@@ -50,22 +45,15 @@ interface WebRTCHostState {
   // 内部引用
   _connectionManager: HostConnectionManager | null;
   
-  initialize: () => void;
-  
   // 动作
-  initializeHost: (passphrase: string) => Promise<string | null>;
+  initializeHost: (passphrase: string) => Promise<boolean>;
   disconnect: () => void;
   
   // 内部使用的帮助方法
-  _setConnectionManager: (manager: HostConnectionManager) => void;
-  _setConnectionState: (state: ConnectionState) => void;
+  _initialize: () => void;
   _setError: (error: string | null) => void;
-  _setPeer: (peer: Peer | null) => void;
-  _setConnection: (connection: DataConnection | null) => void;
-  _setConnectionId: (id: string | null) => void;
   _getFileEntry: (path: string) => Promise<FileViewEntry | null>;
   _getListFilesEntry: (path: string) => Promise<FileViewEntry[]>;
-  _setEncryptionKey: (key: string | null) => void;
 }
 
 // 创建 WebRTC 主机 store
@@ -76,16 +64,14 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
     isConnectionInitialized: false,
     connectionState: ConnectionState.DISCONNECTED,
     error: null,
-    role: PeerRole.HOST,
-    peer: null,
-    connection: null,
     connectionId: null,
     isInitialized: false,
     getDirectory: null,
     getFile: null,
     listFiles: null,
+    encryptionPassphrase: null,
     _connectionManager: null,
-    encryptionKey: null,
+
     setFilesystemHandlers: (getDirectory, getFile, listFiles) => { 
       set((state) => {
         state.getDirectory = getDirectory;
@@ -104,7 +90,7 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
     }),
     
     // 初始化方法
-    initialize: () => {
+    _initialize: () => {
       // 如果已经初始化过，直接返回
       if (get().isInitialized) return;
       
@@ -119,24 +105,35 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         getDirectory,
         listFiles,
         getFile,
-        (connectionState) => {
-          const store = get();
-          store._setConnectionState(connectionState);
-          
-          // 更新连接状态相关状态
-          if (connectionState === ConnectionState.CONNECTED) {
-            if (manager) {
-              store._setPeer(manager.getPeer());
-              store._setConnection(manager.getConnection());
-            }
-          } else if (connectionState === ConnectionState.DISCONNECTED) {
-            store._setPeer(null);
-            store._setConnection(null);
+        {
+          onClientConnected: (clientId) => {
+            console.log('Client connected:', clientId);
+            set((draft) => {
+              draft.connectionId = clientId;
+              draft.connectionState = ConnectionState.CONNECTED;
+            })
+          },
+          onClientDisconnected: (clientId) => {
+            console.log('Client disconnected:', clientId);
+            set((draft) => {
+              draft.connectionId = null;
+              draft.connectionState = ConnectionState.WAITING_FOR_CONNECTION;
+            })
+          },
+          onStateChanged: (state) => {
+            set((draft) => {
+              draft.connectionState = state;
+            })
+          },
+          onEncryptionPassphraseGenerated: (passphrase) => {
+            set((draft) => {
+              draft.encryptionPassphrase = passphrase;
+            })
+          },
+          onError: (error) => {
+            get()._setError(error)
           }
-        },
-        (errorMsg) => get()._setError(errorMsg),
-        (id) => get()._setConnectionId(id),
-        (key) => get()._setEncryptionKey(key)
+        }
       );
       
       set(state => {
@@ -145,30 +142,8 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       });
     },
     
-    // 设置连接管理器
-    _setConnectionManager: (manager) => set((state) => {
-      state._connectionManager = manager;
-    }),
-    
-    // 状态更新方法
-    _setConnectionState: (state) => set((draft) => {
-      draft.connectionState = state;
-    }),
-    
     _setError: (error) => set((draft) => {
       draft.error = error;
-    }),
-    
-    _setPeer: (peer) => set((draft) => {
-      draft.peer = peer;
-    }),
-    
-    _setConnection: (connection) => set((draft) => {
-      draft.connection = connection;
-    }),
-    
-    _setConnectionId: (id) => set((draft) => {
-      draft.connectionId = id;
     }),
 
     _getFileEntry: async (path: string) => {
@@ -204,10 +179,6 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         return [];
       }
     },
-
-    _setEncryptionKey: (key) => set((draft) => {
-      draft.encryptionKey = key;
-    }),
     
     // 初始化主机
     initializeHost: async (passphrase: string) => {
@@ -216,38 +187,35 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       // 确保已设置文件系统处理函数
       if (!state.getDirectory || !state.getFile) {
         state._setError('必须先设置 getDirectory 和 getFile 处理函数');
-        return null;
+        return false;
       }
 
       if (!state.peerId) {
         state._setError('必须先设置 peerId');
-        return null;
+        return false;
       }
+
+      set((draft) => {
+        draft.connectionState = ConnectionState.INITIALIZING;
+      })
       
       // 确保 store 已初始化
       if (!state.isInitialized) {
-        state.initialize();
+        state._initialize();
       }
       
       set((draft) => {
-        draft.role = PeerRole.HOST;
         draft.error = null;
         draft.isConnectionInitialized = true;
       });
       
       if (get()._connectionManager) {
         // 如果提供了密码，使用带密码的初始化方法
-        await get()._connectionManager!.initializeHost(state.peerId, passphrase).catch((err) => {
-          console.error('Failed to initialize host with passphrase:', err);
-          set((draft) => {
-            draft.connectionId = null;
-            draft.error = err.message;
-          });
-        });
-        return get().connectionId;
+        await get()._connectionManager!.initializeHost(state.peerId, passphrase)
+        return true;
       }
       
-      return null;
+      return false;
     },
     
     // 断开连接
@@ -261,6 +229,7 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         draft.connectionId = null;
         draft.error = null;
         draft.isConnectionInitialized = false;
+        draft.connectionState = ConnectionState.DISCONNECTED;
       });
     }
   }))

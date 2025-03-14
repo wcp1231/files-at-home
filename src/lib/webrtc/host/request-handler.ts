@@ -4,11 +4,10 @@ import {
   MessageType, 
   SharedFileInfo,
   handleToSharedFileInfo,
-  HostMessageHandler,
   FileChunk,
 } from '@/lib/webrtc';
 import { v4 } from 'uuid';
-import { hostCrypto } from '../crypto';
+import { HostMessageHandler } from './message-handler';
 
 // 常量配置
 const MAX_CHUNK_SIZE = 512 * 1024; // 512KB 块大小
@@ -31,81 +30,6 @@ export class HostRequestHandler {
 
   setMessageHandler(messageHandler: HostMessageHandler) {
     this.messageHandler = messageHandler;
-  }
-
-  // 处理元数据请求
-  async handleMetaRequest(
-    conn: DataConnection,
-    payload: { message: string },
-    requestId?: string
-  ) {
-    const { message } = payload;
-
-    // 如果不需要加密，则直接返回
-    if (message === 'hello' && !hostCrypto.hasKey()) {
-      this.messageHandler!.sendMetaResponse(conn, {
-        type: MessageType.META_RESPONSE,
-        payload: { 
-          message: 'hello',
-          features: {
-            writeable: false,
-            packable: false,
-          }
-        },
-        requestId
-      });
-      return
-    }
-
-    // 如果已经加密，则告知客户端
-    if (message === 'hello' && hostCrypto.hasKey()) {
-      this.messageHandler!.sendMetaResponse(conn, {
-        type: MessageType.META_RESPONSE,
-        payload: { message: 'encrypted' },
-        requestId
-      });
-      return
-    }
-
-    const { encrypted, iv } = JSON.parse(message);
-    let decrypted = ''
-    try {
-      decrypted = await hostCrypto.decryptString(encrypted, iv);
-    } catch (err: unknown) {
-      console.warn('解密失败', err);
-      // TODO 解密失败 5 次才关闭连接
-      this.messageHandler!.sendMetaResponse(conn, {
-        type: MessageType.META_RESPONSE,
-        payload: { message: 'error' },
-        requestId
-      });
-      return
-    }
-
-    // 如果解密成功，则返回
-    if (decrypted === 'hello') {
-      this.messageHandler!.sendMetaResponse(conn, {
-        type: MessageType.META_RESPONSE,
-        payload: { 
-          message: 'hello', 
-          features: {
-            writeable: false,
-            packable: false,
-          }
-        },
-        requestId
-      });
-      return;
-    }
-
-    // TODO 解密失败 5 次才关闭连接
-    // 如果解密失败，则返回错误
-    this.messageHandler!.sendMetaResponse(conn, {
-      type: MessageType.META_RESPONSE,
-      payload: { message: 'error' },
-      requestId
-    });
-    return
   }
 
   // 处理文件请求
@@ -377,8 +301,7 @@ export class HostRequestHandler {
     const message = {
       type: MessageType.ERROR,
       payload: {
-        message: errorMessage,
-        path
+        error: errorMessage,
       },
       requestId
     };

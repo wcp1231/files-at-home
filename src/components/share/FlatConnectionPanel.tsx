@@ -101,8 +101,8 @@ const getStatusButtonProps = (connectionState: ConnectionState) => {
 
 const ConnectedPopoverContent = () => {
   const {
-    connectionId,
-    encryptionKey,
+    peerId,
+    encryptionPassphrase,
     disconnect
   } = useWebRTCHostStore();
   const [copied, setCopied] = useState(false);
@@ -110,13 +110,13 @@ const ConnectedPopoverContent = () => {
 
   // 当连接 ID 变化时更新分享 URL
   useEffect(() => {
-    if (connectionId) {
-      const url = `${window.location.origin}/receive/${connectionId}`;
+    if (peerId) {
+      const url = `${window.location.origin}/receive/${peerId}`;
       setShareUrl(url);
     } else {
       setShareUrl('');
     }
-  }, [connectionId]);
+  }, [peerId]);
 
   // 复制链接
   const handleCopyLink = () => {
@@ -130,7 +130,7 @@ const ConnectedPopoverContent = () => {
     <div className="space-y-3">
       <div className="flex flex-col">
         <p className="text-sm font-medium mb-1">分享链接</p>
-        {connectionId && (
+        {peerId && (
           <div className="flex items-center space-x-1">
             <Input 
               value={shareUrl} 
@@ -149,12 +149,12 @@ const ConnectedPopoverContent = () => {
             </Button>
           </div>
         )}
-        {encryptionKey && (
+        {encryptionPassphrase && (
           <>
             <p className="text-sm font-medium mb-1">连接密码</p>
             <div className="flex items-center space-x-1">
               <Input 
-                value={encryptionKey || ''} 
+                value={encryptionPassphrase || ''} 
                 readOnly 
                 className="h-7 text-xs" 
               />
@@ -162,7 +162,7 @@ const ConnectedPopoverContent = () => {
           </>
         )}
         <p className="text-xs text-muted-foreground mt-1">
-          ID: <span className="font-mono bg-muted px-1 py-0.5 rounded text-xs">{connectionId}</span>
+          ID: <span className="font-mono bg-muted px-1 py-0.5 rounded text-xs">{peerId}</span>
         </p>
       </div>
       <Button 
@@ -225,6 +225,7 @@ export default function FlatConnectionPanel() {
 
   const isConnected = connectionState === ConnectionState.CONNECTED || 
                        connectionState === ConnectionState.WAITING_FOR_CONNECTION;
+  console.log('connectionState', connectionState, isConnected);
 
   const buttonProps = getStatusButtonProps(connectionState);
   return (
