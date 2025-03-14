@@ -4,7 +4,12 @@ import {
   MessageType, 
   SharedFileInfo,
   handleToSharedFileInfo,
-  FileChunk,
+  DirectoryRequest,
+  FileInfoRequest,
+  FileTransferRequest,
+  FileChunkRequest,
+  FileChunkResponse,
+  WebRTCMessage,
 } from '@/lib/webrtc';
 import { v4 } from 'uuid';
 import { HostMessageHandler } from './message-handler';
@@ -35,32 +40,34 @@ export class HostRequestHandler {
   // 处理文件请求
   async handleFileRequest(
     conn: DataConnection,
-    filePath: string, 
+    payload: FileInfoRequest, 
     requestId?: string
   ) {
     try {
-      const file = await this.getFile(filePath);
+      const { path } = payload;
+      const file = await this.getFile(path);
       if (!file) {
         throw new Error('文件不存在');
       }
       
+      const fileInfo: SharedFileInfo = {
+        path: path,
+        name: file.name,
+        type: file.type!,
+        size: file.size!,
+        isDirectory: false,
+        modifiedAt: file.modifiedAt?.toISOString(),
+      }
       // 发送文件数据
-      const message = {
+      const message: WebRTCMessage = {
         type: MessageType.FILE_INFO_RESPONSE,
-        payload: {
-          path: filePath,
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          modifiedAt: file.modifiedAt?.toISOString(),
-          isDirectory: false,
-        },
+        payload: { file: fileInfo },
         requestId
       };
       
       this.messageHandler!.sendResponse(conn, message);
     } catch (err: unknown) {
-      this.sendErrorResponse(conn, filePath, err instanceof Error ? err.message : String(err), requestId);
+      this.sendErrorResponse(conn, payload.path, err instanceof Error ? err.message : String(err), requestId);
     }
   }
 
@@ -68,7 +75,7 @@ export class HostRequestHandler {
   // 处理文件信息请求并开始传输
   async handleFileTransferRequest(
     conn: DataConnection,
-    payload: { path: string, start?: number, end?: number }, 
+    payload: FileTransferRequest, 
     requestId?: string
   ) {
     try {
@@ -87,14 +94,14 @@ export class HostRequestHandler {
       const fileId = v4();
       
       // 发送文件信息响应
-      const message = {
+      const message: WebRTCMessage = {
         type: MessageType.FILE_TRANSFER_RESPONSE,
         payload: {
           fileId,
           path: path,
-          name: file.name,
-          type: file.type,
-          size: file.size,
+          name: file.name!,
+          type: file.type!,
+          size: file.size!,
           totalChunks,
           chunkSize,
           start,
@@ -135,7 +142,7 @@ export class HostRequestHandler {
       const base64Data = Buffer.from(buffer).toString('base64');
       
       // 发送唯一的数据块 - 同时包含开始和结束的信息
-      const chunk: FileChunk = {
+      const chunk: FileChunkResponse = {
         // 以文件路径作为文件ID
         fileId,
         chunkIndex: 0,
@@ -151,8 +158,8 @@ export class HostRequestHandler {
         isLast: true
       };
       
-      const chunkMessage = {
-        type: MessageType.FILE_CHUNK,
+      const chunkMessage: WebRTCMessage = {
+        type: MessageType.FILE_CHUNK_RESPONSE,
         payload: chunk,
         requestId
       };
@@ -168,7 +175,7 @@ export class HostRequestHandler {
     const base64Data = Buffer.from(await firstChunkBuffer.arrayBuffer()).toString('base64');
     
     // 发送第一个块，包含文件信息
-    const chunk: FileChunk = {
+    const chunk: FileChunkResponse = {
       // 以文件路径作为文件ID
       fileId,
       chunkIndex: 0,
@@ -184,8 +191,8 @@ export class HostRequestHandler {
       isLast: false
     };
     
-    const chunkMessage = {
-      type: MessageType.FILE_CHUNK,
+    const chunkMessage: WebRTCMessage = {
+      type: MessageType.FILE_CHUNK_RESPONSE,
       payload: chunk,
       requestId
     };
@@ -196,7 +203,7 @@ export class HostRequestHandler {
   // 处理文件块请求
   async handleFileChunkRequest(
     conn: DataConnection,
-    payload: { fileId: string, chunkIndex: number, filePath: string, start: number, end: number },
+    payload: FileChunkRequest,
     requestId?: string
   ) {
     try {
@@ -231,7 +238,7 @@ export class HostRequestHandler {
       const isLast = chunkIndex === totalChunks - 1;
       
       // 创建分块消息
-      const chunk: FileChunk = {
+      const chunk: FileChunkResponse = {
         fileId,
         chunkIndex,
         data: base64Data,
@@ -241,8 +248,8 @@ export class HostRequestHandler {
       };
       
       // 发送分块
-      const message = {
-        type: MessageType.FILE_CHUNK,
+      const message: WebRTCMessage = {
+        type: MessageType.FILE_CHUNK_RESPONSE,
         payload: chunk,
         requestId
       };
@@ -256,10 +263,11 @@ export class HostRequestHandler {
   // 处理目录请求
   async handleDirectoryRequest(
     conn: DataConnection,
-    path: string,
+    payload: DirectoryRequest,
     requestId?: string
   ) {
     try {
+      const { path } = payload;
       const directory = await this.getDirectory(path, true);
       
       if (!directory) {
@@ -279,15 +287,15 @@ export class HostRequestHandler {
       }
       
       // 发送目录信息
-      const message = {
+      const message: WebRTCMessage = {
         type: MessageType.DIRECTORY_RESPONSE,
-        payload: fileList,
+        payload: { files: fileList },
         requestId
       };
       
       this.messageHandler!.sendResponse(conn, message);
     } catch (err: unknown) {
-      this.sendErrorResponse(conn, path, err instanceof Error ? err.message : String(err), requestId);
+      this.sendErrorResponse(conn, payload.path, err instanceof Error ? err.message : String(err), requestId);
     }
   }
 
@@ -298,7 +306,7 @@ export class HostRequestHandler {
     errorMessage: string, 
     requestId?: string
   ) {
-    const message = {
+    const message: WebRTCMessage = {
       type: MessageType.ERROR,
       payload: {
         error: errorMessage,

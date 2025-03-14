@@ -47,8 +47,8 @@ export enum MessageType {
   FILE_TRANSFER_RESPONSE = 'FILE_TRANSFER_RESPONSE',
 
   // 简化为单一消息类型
-  FILE_CHUNK = 'FILE_CHUNK',
   FILE_CHUNK_REQUEST = 'FILE_CHUNK_REQUEST',
+  FILE_CHUNK_RESPONSE = 'FILE_CHUNK_RESPONSE',
   FILE_TRANSFER_CANCEL = 'FILE_TRANSFER_CANCEL',
 
   // 加密请求
@@ -56,13 +56,6 @@ export enum MessageType {
   ENCRYPTED_RESPONSE = 'ENCRYPTED_RESPONSE',
 
   ERROR = 'ERROR',
-}
-
-// 定义消息接口
-export interface WebRTCMessage {
-  type: MessageType;
-  payload: any;
-  requestId?: string;
 }
 
 // 更新 Meta 请求/响应接口
@@ -88,26 +81,56 @@ export interface MetaResponse {
 export interface SharedFileInfo {
   name: string;
   path: string;
+  type?: string;
   size?: number;
   isDirectory: boolean;
   modifiedAt?: string;
-  type?: string;
+}
+
+export interface DirectoryRequest {
+  path: string;
+}
+
+export interface DirectoryResponse {
+  files: SharedFileInfo[];
+}
+
+export interface FileInfoRequest {
+  path: string;
+}
+
+export interface FileInfoResponse {
+  file: SharedFileInfo;
+}
+
+export interface FileTransferRequest {
+  path: string;
+  start?: number;
+  end?: number;
 }
 
 export interface FileTransferResponse {
   fileId: string;
   path: string;
   name: string;
-  size: number;
   type: string;
+  size: number;
   totalChunks: number;
   chunkSize: number;
   start: number;
   end: number;
 }
 
+export interface FileChunkRequest {
+  fileId: string;
+  chunkIndex: number;
+  filePath: string;
+  start: number;
+  end: number;
+}
+
 // 分块数据结构 - 扩展版
-export interface FileChunk {
+export interface FileChunkResponse {
   fileId: string;        // 文件唯一标识
   chunkIndex: number;    // 当前块索引
   data: string;          // base64编码的块数据
@@ -138,6 +161,15 @@ export interface FileTransferInfo {
   end: number;         // 结束位置
 }
 
+export interface EncryptedMessage {
+  encrypted: string;
+  iv: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+}
+
 // 文件传输状态枚举
 export enum FileTransferStatus {
   INITIALIZING = 'initializing',
@@ -163,6 +195,23 @@ export interface FileTransfer {
   endTime?: number;
 }
 
-export interface ErrorResponse {
-  error: string;
-}
+// 使用映射类型和条件类型优化 WebRTCMessage 接口
+// 定义消息接口 - 使用判别联合类型（Discriminated Union）
+export type WebRTCMessage = 
+  | { type: MessageType.META_REQUEST; payload: MetaRequest; requestId?: string }
+  | { type: MessageType.META_RESPONSE; payload: MetaResponse; requestId?: string }
+  | { type: MessageType.DIRECTORY_REQUEST; payload: DirectoryRequest; requestId?: string }
+  | { type: MessageType.DIRECTORY_RESPONSE; payload: DirectoryResponse; requestId?: string }
+  | { type: MessageType.FILE_INFO_REQUEST; payload: FileInfoRequest; requestId?: string }
+  | { type: MessageType.FILE_INFO_RESPONSE; payload: FileInfoResponse; requestId?: string }
+  | { type: MessageType.FILE_TRANSFER_REQUEST; payload: FileTransferRequest; requestId?: string }
+  | { type: MessageType.FILE_TRANSFER_RESPONSE; payload: FileTransferResponse; requestId?: string }
+  | { type: MessageType.FILE_CHUNK_REQUEST; payload: FileChunkRequest; requestId?: string }
+  | { type: MessageType.FILE_CHUNK_RESPONSE; payload: FileChunkResponse; requestId?: string }
+  | { type: MessageType.FILE_TRANSFER_CANCEL; payload: { fileId: string }; requestId?: string }
+  | { type: MessageType.ENCRYPTED_REQUEST; payload: EncryptedMessage; requestId?: string }
+  | { type: MessageType.ENCRYPTED_RESPONSE; payload: EncryptedMessage; requestId?: string }
+  | { type: MessageType.ERROR; payload: ErrorResponse; requestId?: string };
+
+// 辅助类型 - 根据消息类型获取对应的载荷类型
+export type PayloadType<T extends MessageType> = Extract<WebRTCMessage, { type: T }>['payload'];

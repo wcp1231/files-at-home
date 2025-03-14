@@ -1,5 +1,5 @@
 import { DataConnection } from 'peerjs';
-import { MessageType, MetaResponse, ConnectionState } from '@/lib/webrtc';
+import { MessageType, MetaResponse, ConnectionState, ErrorResponse } from '@/lib/webrtc';
 import { v4 } from 'uuid';
 import { clientCrypto } from '../crypto';
 import { useDialogStore } from '@/store/dialogStore';
@@ -57,13 +57,13 @@ export class HandshakeManager {
   /**
    * Handle error response during handshake
    */
-  handleErrorResponse(requestId: string, errorMessage: string) {
+  handleErrorResponse(requestId: string, payload: ErrorResponse) {
     const request = this.pendingMetaRequest.get(requestId);
     if (request) {
-      request.reject(new Error(errorMessage));
+      request.reject(new Error(payload.error));
       this.pendingMetaRequest.delete(requestId);
     }
-    this.onError(errorMessage);
+    this.onError(payload.error);
   }
   
   /**

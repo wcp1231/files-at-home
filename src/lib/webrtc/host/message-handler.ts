@@ -96,11 +96,11 @@ export class HostMessageHandler {
     
     switch (type) {
       case MessageType.DIRECTORY_REQUEST:
-        this.requestHandler.handleDirectoryRequest(connection, payload.path, requestId);
+        this.requestHandler.handleDirectoryRequest(connection, payload, requestId);
         break;
       
       case MessageType.FILE_INFO_REQUEST:
-        this.requestHandler.handleFileRequest(connection, payload.path, requestId);
+        this.requestHandler.handleFileRequest(connection, payload, requestId);
         break;
       
       case MessageType.FILE_TRANSFER_REQUEST:

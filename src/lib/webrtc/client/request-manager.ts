@@ -1,5 +1,5 @@
 import { DataConnection } from 'peerjs';
-import { MessageType, SharedFileInfo, FileChunk, FileTransferInfo, FileTransfer, FileTransferResponse, MetaResponse } from '@/lib/webrtc';
+import { MessageType, SharedFileInfo, FileTransferInfo, FileTransfer, FileTransferResponse, DirectoryResponse, FileInfoResponse, FileChunkResponse, ErrorResponse, FileChunkRequest, WebRTCMessage } from '@/lib/webrtc';
 import { v4 } from 'uuid';
 import { ChunkProcessor, BufferedChunkProcessor, StreamChunkProcessor } from './chunk-processors';
 import { ClientMessageHandler } from './message-handler';
@@ -31,7 +31,7 @@ export interface PendingFileTransferRequest {
 }
 
 export interface PendingFileChunkRequest {
-  resolve: (data: FileChunk) => void;
+  resolve: (data: FileChunkResponse) => void;
   reject: (error: Error) => void;
   path: string;
 }
@@ -92,16 +92,11 @@ export class ClientRequestManager {
     }
   }
 
-  // This is kept for backwards compatibility, actual handling is done in HandshakeManager
-  handleMetaResponse(requestId: string, payload: MetaResponse) {
-    console.warn('RequestManager.handleMetaResponse called, but meta handling should be in HandshakeManager');
-  }
-
   // 处理接收到的响应
-  handleFileInfoResponse(requestId: string, payload: SharedFileInfo | null) {
+  handleFileInfoResponse(requestId: string, payload: FileInfoResponse) {
     if (this.pendingFileRequests.has(requestId)) {
       const request = this.pendingFileRequests.get(requestId)!;
-      request.resolve(payload);
+      request.resolve(payload.file);
       this.pendingFileRequests.delete(requestId);
     }
   }
@@ -121,7 +116,7 @@ export class ClientRequestManager {
     this.startTransfer(requestId, payload, request);
   }
 
-  handleFileChunkResponse(requestId: string, payload: FileChunk) {
+  handleFileChunkResponse(requestId: string, payload: FileChunkResponse) {
     // Only process in active phase
     if (this.currentPhase !== ConnectionPhase.ACTIVE) {
       console.warn('Received file chunk response while not in ACTIVE phase');
@@ -135,7 +130,7 @@ export class ClientRequestManager {
     }
   }
 
-  handleDirectoryResponse(requestId: string, payload: SharedFileInfo[]) {
+  handleDirectoryResponse(requestId: string, payload: DirectoryResponse) {
     // Only process in active phase
     if (this.currentPhase !== ConnectionPhase.ACTIVE) {
       console.warn('Received directory response while not in ACTIVE phase');
@@ -144,27 +139,27 @@ export class ClientRequestManager {
     
     if (this.pendingDirectoryRequests.has(requestId)) {
       const request = this.pendingDirectoryRequests.get(requestId)!;
-      request.resolve(payload);
+      request.resolve(payload.files);
       this.pendingDirectoryRequests.delete(requestId);
     }
   }
 
-  handleErrorResponse(requestId: string, errorMessage: string) {
+  handleErrorResponse(requestId: string, payload: ErrorResponse) {
     if (this.pendingFileRequests.has(requestId)) {
       const request = this.pendingFileRequests.get(requestId)!;
-      request.reject(new Error(errorMessage));
+      request.reject(new Error(payload.error));
       this.pendingFileRequests.delete(requestId);
     } else if (this.pendingDirectoryRequests.has(requestId)) {
       const request = this.pendingDirectoryRequests.get(requestId)!;
-      request.reject(new Error(errorMessage));
+      request.reject(new Error(payload.error));
       this.pendingDirectoryRequests.delete(requestId);
     } else if (this.pendingFileChunkRequests.has(requestId)) {
       const request = this.pendingFileChunkRequests.get(requestId)!;
-      request.reject(new Error(errorMessage));
+      request.reject(new Error(payload.error));
       this.pendingFileChunkRequests.delete(requestId);
     } else if (this.pendingFileTransferRequests.has(requestId)) {
       const request = this.pendingFileTransferRequests.get(requestId)!;
-      request.reject(new Error(errorMessage));
+      request.reject(new Error(payload.error));
       this.pendingFileTransferRequests.delete(requestId);
     }
   }
@@ -188,7 +183,7 @@ export class ClientRequestManager {
     const processor = this.activeChunkProcessors.get(fileId)!;
     
     // 发送取消消息
-    const message = {
+    const message: WebRTCMessage = {
       type: MessageType.FILE_TRANSFER_CANCEL,
       payload: {
         fileId
@@ -274,7 +269,7 @@ export class ClientRequestManager {
     });
     
     // 发送请求
-    const message = {
+    const message: WebRTCMessage = {
       type: MessageType.FILE_TRANSFER_REQUEST,
       payload: { path: filePath, start: options?.start, end: options?.end },
       requestId
@@ -395,7 +390,7 @@ export class ClientRequestManager {
     // 保存处理器
     this.activeChunkProcessors.set(fileId, processor);
 
-    const chunkRequestPromise = new Promise<FileChunk>((resolve, reject) => {
+    const chunkRequestPromise = new Promise<FileChunkResponse>((resolve, reject) => {
       const pendingRequest: PendingFileChunkRequest = {
         resolve,
         reject,
@@ -470,7 +465,7 @@ export class ClientRequestManager {
     if (!this.connection) return;
 
     const requestId = v4();
-    const requestPromise = new Promise<FileChunk>((resolve, reject) => {
+    const requestPromise = new Promise<FileChunkResponse>((resolve, reject) => {
       const pendingRequest: PendingFileChunkRequest = {
         resolve,
         reject,
@@ -488,19 +483,19 @@ export class ClientRequestManager {
       }, this.timeoutDuration);
     });
 
-    const message = {
+    const request: WebRTCMessage = {
       type: MessageType.FILE_CHUNK_REQUEST,
       payload: {
         fileId,
+        chunkIndex,
+        filePath,
         start,
         end,
-        chunkIndex,
-        filePath
       },
-      requestId
-    };
+      requestId,
+    }
 
-    this.messageHandler!.sendRequest(this.connection!, message);
+    this.messageHandler!.sendRequest(this.connection!, request);
     
     requestPromise.then((chunk) => {
       this.handleFileChunk(chunk, requestId);
@@ -508,7 +503,7 @@ export class ClientRequestManager {
   }
 
   // 处理文件块消息
-  private async handleFileChunk(chunk: FileChunk, requestId: string) {
+  private async handleFileChunk(chunk: FileChunkResponse, requestId: string) {
     const fileId = chunk.fileId;
     
     // 获取处理器

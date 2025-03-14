@@ -55,7 +55,7 @@ export class ClientMessageHandler {
         break;
         
       case MessageType.ERROR:
-        this.handshakeManager.handleErrorResponse(message.requestId!, message.payload.error);
+        this.handshakeManager.handleErrorResponse(message.requestId!, message.payload);
         break;
         
       default:
@@ -67,11 +67,6 @@ export class ClientMessageHandler {
   private async handleActivePhaseMessage(conn: DataConnection, data: string) {
     const message = await this.deserializeResponse(data);
     switch (message.type) {
-      case MessageType.META_RESPONSE:
-        // META responses can happen in active phase too
-        this.requestManager.handleMetaResponse(message.requestId!, message.payload);
-        break;
-
       case MessageType.FILE_INFO_RESPONSE:
         this.requestManager.handleFileInfoResponse(message.requestId!, message.payload);
         break;
@@ -84,7 +79,7 @@ export class ClientMessageHandler {
         this.requestManager.handleFileTransferResponse(message.requestId!, message.payload);
         break;
           
-      case MessageType.FILE_CHUNK:
+      case MessageType.FILE_CHUNK_RESPONSE:
         this.requestManager.handleFileChunkResponse(message.requestId!, message.payload);
         break;
           
@@ -95,7 +90,7 @@ export class ClientMessageHandler {
         break;
 
       case MessageType.ERROR:
-        this.requestManager.handleErrorResponse(message.requestId!, message.payload.error);
+        this.requestManager.handleErrorResponse(message.requestId!, message.payload);
         this.onError(message.payload.error);
         break;
         
