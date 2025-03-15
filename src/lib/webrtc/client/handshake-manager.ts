@@ -4,6 +4,7 @@ import { v4 } from 'uuid';
 import { clientCrypto } from '../crypto';
 import { useDialogStore } from '@/store/dialogStore';
 import { ConnectionPhase } from './connection';
+import { useFileBrowserStore } from '@/store/fileBrowserStore';
 
 export type RequestId = string;
 
@@ -110,7 +111,13 @@ export class HandshakeManager {
     }
 
     // Send the request
-    this.sendMetaRequest(requestId, message);
+    const wrtcMessage = {
+      type: MessageType.META_REQUEST,
+      payload: { message },
+      requestId
+    };
+
+    this.connection!.send(JSON.stringify(wrtcMessage));
     return requestPromise;
   }
   
@@ -130,12 +137,7 @@ export class HandshakeManager {
       
       while (meta.message !== 'error') {
         if (meta.message === 'hello') {
-          // Handshake completed successfully
-          this.onPhaseChange(ConnectionPhase.ACTIVE);
-          this.onStateChange(ConnectionState.CONNECTED);
-          this.onError(null);
-          console.log('Handshake completed, now in ACTIVE phase');
-          // TODO: Configure features based on meta response
+          this.onHandshakeCompleted(meta);
           return true;
         }
         
@@ -175,14 +177,19 @@ export class HandshakeManager {
     }
   }
 
-  private sendMetaRequest(requestId: string, message: string) {
-    const wrtcMessage = {
-      type: MessageType.META_REQUEST,
-      payload: { message },
-      requestId
-    };
+  private onHandshakeCompleted(meta: MetaResponse) {
+    const features = meta.features;
+    // 临时在这里设置 features
+    useFileBrowserStore.getState().setFeatures({
+      showOperations: true,
+      packable: features.packable,
+      writeable: features.writeable,
+    });
 
-    this.connection!.send(JSON.stringify(wrtcMessage));
+    this.onPhaseChange(ConnectionPhase.ACTIVE);
+    this.onStateChange(ConnectionState.CONNECTED);
+    this.onError(null);
+    console.log('Handshake completed, now in ACTIVE phase');
   }
   
   /**

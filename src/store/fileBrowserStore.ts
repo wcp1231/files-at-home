@@ -7,6 +7,10 @@ import { isVideoFile, isPdfFile } from '@/utils/browserUtil';
 // 定义 store 的状态和操作
 interface FileBrowserState<T extends FileViewEntry> {
   // State
+  showOperations: boolean;
+  packable: boolean;
+  writeable: boolean;
+
   currentPath: string;
   currentFiles: T[];
   breadcrumbs: string[];
@@ -17,6 +21,13 @@ interface FileBrowserState<T extends FileViewEntry> {
   videoDialogOpen: boolean;
   pdfUrl: string | null;
   pdfDialogOpen: boolean;
+
+  // 设置功能
+  setFeatures: (features: {
+    showOperations: boolean;
+    packable: boolean;
+    writeable: boolean;
+  }) => void;
 
   // 回调函数
   onFileSelect?: (path: string) => Promise<T | null>;
@@ -65,6 +76,8 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
   return create<FileBrowserState<T>>()(
     immer((set, get) => ({
       // 初始状态
+      showOperations: false,
+
       currentPath: '/',
       currentFiles: [] as T[],
       breadcrumbs: ['/'],
@@ -86,6 +99,12 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         state.onFileSelect = callbacks.onFileSelect;
         state.onFileData = callbacks.onFileData;
         state.onDirectorySelect = callbacks.onDirectorySelect;
+      }),
+
+      setFeatures: (features) => set((state) => {
+        state.showOperations = features.showOperations;
+        state.packable = features.packable;
+        state.writeable = features.writeable;
       }),
 
       // 基础状态设置函数

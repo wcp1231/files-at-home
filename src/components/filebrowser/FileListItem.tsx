@@ -46,9 +46,10 @@ function FileOperations({ file }: { file: FileViewEntry }) {
 }
 
 export function FileListItem({ file }: { file: FileViewEntry; }) {
+  const { showOperations } = useFileBrowserStore();
   return (
     <>
-      <TableCell className="p-2">
+      <TableCell className="px-4 py-2">
         <div className="flex items-center">
           <div className="mr-2">
             {getFileIcon(file)}
@@ -56,20 +57,22 @@ export function FileListItem({ file }: { file: FileViewEntry; }) {
           <span>{file.name}</span>
         </div>
       </TableCell>
-      <TableCell className="p-2">
+      <TableCell className="px-4 py-2">
         {file.type}
       </TableCell>
-      <TableCell className="p-2 text-right">
+      <TableCell className="px-4 py-2 text-right">
         {file.size !== undefined && !file.isDirectory ? formatFileSize(file.size) : ''}
       </TableCell>
-      <TableCell className="p-2 text-right">
+      <TableCell className="px-4 py-2">
         {formatModifiedTime(file.modifiedAt)}
       </TableCell>
-      <TableCell className="p-2">
-        <div className="flex items-center gap-2">
-          <FileOperations file={file} />
-        </div>
-      </TableCell>
+      {showOperations && (
+        <TableCell className="px-4 py-2">
+          <div className="flex items-center gap-2">
+            <FileOperations file={file} />
+          </div>
+        </TableCell>
+      )}
     </>
   );
 }
