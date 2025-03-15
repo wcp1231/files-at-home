@@ -26,7 +26,7 @@ const TableRowComponent = (selectedFilePath: string | null, rows: FileViewEntry[
       <TableRow
         key={row.path}
         onClick={() => handleClick(row)}
-        className={`py-2 cursor-pointer hover:bg-muted/50 ${selectedFilePath === row.path ? 'bg-muted' : ''}`}
+        className={`py-2 text-xs md:text-sm cursor-pointer hover:bg-muted/50 ${selectedFilePath === row.path ? 'bg-muted' : ''}`}
         {...props}
       >
       </TableRow>
@@ -68,11 +68,11 @@ export function FileList() {
           TableRow: TableRowComponent(selectedFilePath, currentFiles, handleFileClick),
         }}
         fixedHeaderContent={() => (
-          <TableRow>
+          <TableRow className='text-xs md:text-sm'>
             <TableHead className="px-4">Name</TableHead>
-            <TableHead className="px-4 w-32">Type</TableHead>
+            <TableHead className="px-4 w-32 hidden md:table-cell">Type</TableHead>
             <TableHead className="px-4 w-28 text-right">Size</TableHead>
-            <TableHead className="px-4 w-48">Modified</TableHead>
+            <TableHead className="px-4 w-48 hidden md:table-cell">Modified</TableHead>
             {showOperations && <TableHead className="px-4 w-32">Operation</TableHead>}
           </TableRow>
         )}

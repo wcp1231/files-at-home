@@ -38,7 +38,7 @@ export default function FileBrowser({
       </div>
       
       <CardContent className="p-0 h-[calc(100%-85px)]">
-        <div className="flex flex-col md:flex-row h-full">
+        <div className="flex flex-row h-full">
           <div className="w-full overflow-y-scroll">
             <FileList />
           </div>
