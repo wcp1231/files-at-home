@@ -18,7 +18,12 @@ export function useFileSystem() {
     rootDirHandleRef.current = rootDirHandle;
   }, [rootDirHandle]);
 
-    // Open dir
+  // Check if the File System Access API is supported
+  const isFileSystemAccessSupported = () => {
+    return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+  };
+
+  // Open dir
   async function openDirectory() {
     try {
       const dirHandle = await window.showDirectoryPicker(/*{ mode: "readwrite" }*/);
@@ -105,6 +110,7 @@ export function useFileSystem() {
     getFile,
     listFiles,
     getDirectory,
+    isFileSystemAccessSupported,
   }
 }
 
