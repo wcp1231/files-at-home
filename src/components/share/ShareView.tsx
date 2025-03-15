@@ -50,8 +50,8 @@ export default function ShareView({ id }: { id: string }) {
   };
   
   return (
-    <div className="max-w-8xl mx-auto py-4 px-4">
-      <div className="space-y-6">
+    <div className="max-w-8xl mx-auto pt-4 px-4">
+      <div className="space-y-6 h-[calc(100dvh-4rem)]">
         {renderContent()}
       </div>
       <Toaster />

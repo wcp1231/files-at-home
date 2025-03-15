@@ -29,7 +29,7 @@ export default function FileExplorer({ id, rootDirHandle, getDirectory, getFile,
 
   return (
     <>
-      <div className="h-[calc(100dvh-2rem)]">
+      <div className="h-full">
         <FileBrowser
           titlePanel={
             <FlatConnectionPanel />
