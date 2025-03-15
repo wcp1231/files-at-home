@@ -122,16 +122,13 @@ export default function PdfViewerDialog() {
 
   return (
     <Dialog open={pdfDialogOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[80vw] max-h-[90vh] overflow-scroll" onInteractOutside={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle>{selectedFile.name}</DialogTitle>
-          <DialogDescription>
-            {selectedFile.size !== undefined ? formatFileSize(selectedFile.size) : ''}
-            {numPages && ` • ${pageNumber} / ${numPages} 页`}
-          </DialogDescription>
+      <DialogContent className="sm:max-w-[90vw] max-h-[100vh] p-0 py-6 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader className='px-6'>
+          <DialogTitle className=''>
+            {selectedFile.name}
+          </DialogTitle>
         </DialogHeader>
-        
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center max-h-[80vh] overflow-scroll">
           <div className="relative w-full" ref={wrapperDiv}>
             {pdfUrl && (
               <Document
@@ -155,29 +152,42 @@ export default function PdfViewerDialog() {
               </Document>
             )}
           </div>
-          
-          {numPages && numPages > 1 && (
-            <div className="flex justify-center gap-4 mt-4">
+        </div>
+        {/* 固定在视口中间的导航按钮 */}
+        {numPages && numPages > 1 && (
+          <>
+            <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50">
               <button
                 onClick={previousPage}
                 disabled={pageNumber <= 1}
-                className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
+                className="p-3 rounded-full bg-secondary/80 hover:bg-secondary disabled:opacity-50 disabled:hover:bg-secondary/80 transition-all shadow-lg hover:shadow-xl"
+                aria-label="上一页"
               >
-                上一页
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m15 18-6-6 6-6"/>
+                </svg>
               </button>
-              <span className="flex items-center">
-                {pageNumber} / {numPages}
-              </span>
+            </div>
+
+            <div className="fixed right-4 top-1/2 -translate-y-1/2 z-50">
               <button
                 onClick={nextPage}
                 disabled={pageNumber >= numPages}
-                className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
+                className="p-3 rounded-full bg-secondary/80 hover:bg-secondary disabled:opacity-50 disabled:hover:bg-secondary/80 transition-all shadow-lg hover:shadow-xl"
+                aria-label="下一页"
               >
-                下一页
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
               </button>
             </div>
-          )}
-        </div>
+
+            {/* 页码显示 */}
+            <div className="fixed bottom-0 left-1/2 -translate-x-1/2 px-4 py-2 bg-secondary/40 rounded-full text-sm z-50">
+              {pageNumber} / {numPages}
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
