@@ -77,7 +77,6 @@ export class HostConnectionManager {
       this.peerId = this.peer.id;
       return this.peerId;
     } catch (error) {
-      console.error('Error starting peer server:', error);
       if (this.callbacks.onError) {
         this.callbacks.onError(`启动服务器失败: ${error instanceof Error ? error.message : String(error)}`);
       }
@@ -121,7 +120,6 @@ export class HostConnectionManager {
     if (!this.peer) return;
 
     this.peer.on('open', (id) => {
-      console.log('Host peer opened with ID:', id);
       this.peerId = id;
       this.callbacks.onStateChanged!(ConnectionState.WAITING_FOR_CONNECTION);
     });
@@ -131,7 +129,6 @@ export class HostConnectionManager {
     });
 
     this.peer.on('error', (error) => {
-      console.error('Host peer error:', error);
       if (this.callbacks.onError) {
         this.callbacks.onError(`Peer 错误: ${error.message}`);
       }
@@ -141,7 +138,6 @@ export class HostConnectionManager {
   // 处理新的连接
   private handleNewConnection(connection: DataConnection) {
     const clientId = connection.peer;
-    console.log('New client connected:', clientId);
     
     // 设置初始阶段为握手阶段
     this.callbacks.onStateChanged!(ConnectionState.HANDSHAKING);
@@ -192,7 +188,6 @@ export class HostConnectionManager {
     });
 
     connection.on('close', () => {
-      console.log('Client disconnected:', clientId);
       this.connections.delete(clientId);
       this.clientPhases.delete(clientId);
 
@@ -203,7 +198,6 @@ export class HostConnectionManager {
     });
 
     connection.on('error', (error) => {
-      console.error('Connection error:', error);
       if (this.callbacks.onError) {
         this.callbacks.onError(`连接错误: ${error.message}`);
       }

@@ -71,8 +71,6 @@ export class ClientConnectionManager {
       
       // 监听 open 事件
       peer.on('open', () => {
-        console.log('Client peer opened');
-        
         // 连接到主机
         const conn = peer.connect(connectionId, {
           reliable: true
@@ -95,7 +93,6 @@ export class ClientConnectionManager {
     
     // 设置连接事件
     conn.on('open', () => {
-      console.log('Client connection opened');
       this.onStateChange(ConnectionState.HANDSHAKING);
       this.setConnectionPhase(ConnectionPhase.HANDSHAKING);
       this.startHandshake();
@@ -107,7 +104,6 @@ export class ClientConnectionManager {
     });
     
     conn.on('close', () => {
-      console.log('Client connection closed');
       this.onStateChange(ConnectionState.DISCONNECTED);
       this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       this.connection = null;
@@ -116,7 +112,6 @@ export class ClientConnectionManager {
     });
     
     conn.on('error', (err) => {
-      console.error('Connection error:', err);
       this.onError(`连接错误: ${err}`);
       this.onStateChange(ConnectionState.ERROR);
     });
@@ -124,13 +119,11 @@ export class ClientConnectionManager {
   
   private setupPeerEvents(peer: Peer) {
     peer.on('error', (err) => {
-      console.error('Peer error:', err);
       this.onError(`连接错误: ${err}`);
       this.onStateChange(ConnectionState.ERROR);
     });
     
     peer.on('disconnected', () => {
-      console.log('Client peer disconnected');
       this.onStateChange(ConnectionState.DISCONNECTED);
       this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       // 尝试重新连接
@@ -138,7 +131,6 @@ export class ClientConnectionManager {
     });
     
     peer.on('close', () => {
-      console.log('Client peer closed');
       this.onStateChange(ConnectionState.DISCONNECTED);
       this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       this.peer = null;

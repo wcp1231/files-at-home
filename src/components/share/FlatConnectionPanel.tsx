@@ -225,7 +225,6 @@ export default function FlatConnectionPanel() {
 
   const isConnected = connectionState === ConnectionState.CONNECTED || 
                        connectionState === ConnectionState.WAITING_FOR_CONNECTION;
-  console.log('connectionState', connectionState, isConnected);
 
   const buttonProps = getStatusButtonProps(connectionState);
   return (

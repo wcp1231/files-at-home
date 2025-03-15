@@ -27,7 +27,6 @@ interface ErrorTooltipProps {
 
 const ErrorTooltip = ({ error }: ErrorTooltipProps) => {
   if (!error) return null;
-  console.log('error tooltip', error);
   return (
     <TooltipProvider>
       <Tooltip>
@@ -92,7 +91,7 @@ export default function FlatConnectionPanel({ initialConnectionId }: FlatConnect
     error
   } = useWebRTCClientStore()
   
-  const [connectionIdInput, setConnectionIdInput] = useState<string>('');
+  const [connectionIdInput, setConnectionIdInput] = useState<string>(initialConnectionId || '');
 
   // 创建一个自定义的断开连接函数，它会重置连接初始化标志
   const handleDisconnect = () => {
@@ -103,27 +102,17 @@ export default function FlatConnectionPanel({ initialConnectionId }: FlatConnect
   // 连接到主机
   const handleConnect = (id: string) => {
     if (!id) return;
-    
-    // 尝试从URL提取连接ID
-    let connectionId = id;
-    try {
-      if (id.includes('?id=')) {
-        const url = new URL(id);
-        const params = new URLSearchParams(url.search);
-        const extractedId = params.get('id');
-        if (extractedId) {
-          connectionId = extractedId;
-        }
-      }
-    } catch (e) {
-      // 如果解析失败，使用原始输入
-      console.warn('无法解析URL，使用原始输入作为连接ID', e);
+
+    // 重定向到对应 id 的分享页面
+    if (!location.href.includes(id)) {
+      location.href = `/access/${id}`;
+      return;
     }
     
     if (!isConnectionInitialized) {
       isConnectionInitialized = true;
       // 保存连接ID
-      initializeClient(connectionId);
+      initializeClient(id);
     }
   };
 

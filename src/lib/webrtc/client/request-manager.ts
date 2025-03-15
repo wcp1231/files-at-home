@@ -373,7 +373,6 @@ export class ClientRequestManager {
   private checkActivePhase(methodName: string) {
     if (this.currentPhase !== ConnectionPhase.ACTIVE) {
       const error = `Cannot call ${methodName} while not in ACTIVE phase (current phase: ${ConnectionPhase[this.currentPhase]})`;
-      console.warn(error);
       throw new Error(error);
     }
   }

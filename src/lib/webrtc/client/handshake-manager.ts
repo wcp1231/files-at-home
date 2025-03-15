@@ -213,7 +213,6 @@ export class HandshakeManager {
       await clientCrypto.setKeyFromPassphrase(passphrase);
       return true;
     } catch (error) {
-      console.error('设置加密密钥失败:', error);
       this.onError(`无法设置加密密钥: ${error}`);
       return false;
     }

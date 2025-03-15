@@ -1,6 +1,7 @@
 import { FSEntry, FSDirectory } from "@/lib/filesystem";
 import { MessageType, SharedFileInfo, WebRTCMessage } from "./types";
 import { Peer } from "peerjs";
+import { toast } from "@/hooks/use-toast";
 
 // 序列化消息
 export function serializeMessage(message: WebRTCMessage): string {
@@ -12,7 +13,10 @@ export function deserializeMessage(data: string): WebRTCMessage {
   try {
     return JSON.parse(data);
   } catch (error) {
-    console.error('Failed to parse message:', error);
+    toast({
+      title: '无法解析消息',
+      description: error instanceof Error ? error.message : String(error),
+    });
     return {
       type: MessageType.ERROR,
       payload: { error: 'Invalid message format' },

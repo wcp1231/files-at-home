@@ -14,6 +14,7 @@ import {
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { toast } from '@/hooks/use-toast';
 
 
 // 设置 PDF.js worker 路径
@@ -95,7 +96,10 @@ export default function PdfViewerDialog() {
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
                 onError={(error) => {
-                  console.error('PDF loading error', error);
+                  toast({
+                    title: 'PDF loading error',
+                    description: error.message,
+                  });
                   handleClose();
                 }}
                 loading={<div className="text-center py-10">正在加载 PDF...</div>}

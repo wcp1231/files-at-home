@@ -1,3 +1,4 @@
+import { toast } from '@/hooks/use-toast';
 import { FileChunkResponse, FileTransfer, FileTransferInfo, FileTransferStatus } from '@/lib/webrtc';
 
 /**
@@ -292,7 +293,10 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     try {
       this.streamWriter = stream.getWriter();
     } catch (error) {
-      console.error('Failed to get stream writer:', error);
+      toast({
+        title: '无法获取流写入器',
+        description: error instanceof Error ? error.message : String(error),
+      });
       throw error;
     }
   }
@@ -367,7 +371,10 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
         nextIndex++;
         this.nextChunkToProcess = nextIndex;
       } catch (error) {
-        console.error('Error writing to stream:', error);
+        toast({
+          title: '无法写入流',
+          description: error instanceof Error ? error.message : String(error),
+        });
         break;
       }
     }
@@ -439,7 +446,10 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
         // 尝试中止流
         await this.streamWriter.abort(error);
       } catch (abortError) {
-        console.error('Error aborting stream:', abortError);
+        toast({
+          title: '无法中止流',
+          description: abortError instanceof Error ? abortError.message : String(abortError),
+        });
       }
       
       throw error;
@@ -451,7 +461,10 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     try {
       this.streamWriter.abort(reason);
     } catch (error) {
-      console.error('Error aborting stream:', error);
+      toast({
+        title: '无法中止流',
+        description: error instanceof Error ? error.message : String(error),
+      });
     }
   }
   

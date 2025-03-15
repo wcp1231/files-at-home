@@ -9,7 +9,6 @@ const holder = {} as {
 
 function checkHeartbeat() {
   if (Date.now() - holder.heartbeat > 2000) {
-    console.log('heartbeat timeout', holder.heartbeat, Date.now());
     return false;
   }
   return true;
@@ -29,7 +28,7 @@ function handleWebrtcStateChange(event: ExtendableMessageEvent) {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handlePing(event: ExtendableMessageEvent) {
   if (!holder.port) {
-    console.log('port missing');
+    console.warn('[Service Worker] Port missing');
   }
   holder.heartbeat = Date.now();
 }

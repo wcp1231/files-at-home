@@ -7,7 +7,7 @@ import { useFileSystem } from '@/hooks/useFileSystem';
 // Import components from the barrel export
 import DirectorySelector from '@/components/share/DirectorySelector';
 import { Toaster } from '@/components/ui/toast/toaster';
-
+import { toast } from '@/hooks/use-toast';
 
 const FileExplorer = dynamic(() => import('@/components/share/FileExplorer'), { ssr: false });
 
@@ -26,7 +26,10 @@ export default function ShareView({ id }: { id: string }) {
       // 打开目录
       await openDirectory();
     } catch (err) {
-      console.error('Failed to select directory:', err);
+      toast({
+        title: '无法选择目录',
+        description: err instanceof Error ? err.message : String(err),
+      });
     }
   }, [openDirectory]);
   

@@ -99,7 +99,10 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       const { getDirectory, getFile, listFiles } = get();
 
       if (!getDirectory || !getFile || !listFiles) {
-        console.error('必须先设置 getDirectory 和 getFile 处理函数');
+        toast({
+          title: '必须先设置 getDirectory 和 getFile 处理函数',
+          description: '请确保在 store 中正确配置 getDirectory、getFile 和 listFiles 处理函数',
+        });
         return;
       }
 
@@ -109,14 +112,12 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         getFile,
         {
           onClientConnected: (clientId) => {
-            console.log('Client connected:', clientId);
             set((draft) => {
               draft.connectionId = clientId;
               draft.connectionState = ConnectionState.CONNECTED;
             })
           },
-          onClientDisconnected: (clientId) => {
-            console.log('Client disconnected:', clientId);
+          onClientDisconnected: () => {
             set((draft) => {
               draft.connectionId = null;
               draft.connectionState = ConnectionState.WAITING_FOR_CONNECTION;
@@ -167,7 +168,6 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         const file = await getFile(path);
         return mapFSEntryToFileEntry(file);
       } catch (err) {
-        console.error('Error selecting file:', err);
         onError('无法加载文件');
         return null;
       }
@@ -184,7 +184,6 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         if (!files) return [];  
         return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
       } catch (err) {
-        console.error('Error listing directory:', err);
         onError('无法加载目录内容');
         return [];
       }

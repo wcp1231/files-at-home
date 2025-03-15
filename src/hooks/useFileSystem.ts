@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { FSEntry, FSDirectory, FSFile } from "@/lib/filesystem";
+import { toast } from "./use-toast";
 
 declare global {
   interface Window {
@@ -22,14 +23,16 @@ export function useFileSystem() {
     try {
       const dirHandle = await window.showDirectoryPicker(/*{ mode: "readwrite" }*/);
       if (dirHandle) {
-        console.log("Directory handle opened.");
         handlesCache.current.set('/', new FSDirectory(dirHandle, dirHandle.name, '/'));
         setRootDirHandle(dirHandle);
       } else {
         throw new Error("Failed to open directory handle. `dirHandle` created but empty"); // not sure wether this is reachiable
       }
     } catch (error) {
-      console.error(error);
+      toast({
+        title: '无法打开目录',
+        description: error instanceof Error ? error.message : String(error),
+      });
       setStatus({ error: error as string, loading: false });
     }
   }

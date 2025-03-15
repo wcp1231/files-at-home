@@ -9,6 +9,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
+import { toast } from '@/hooks/use-toast';
 
 export default function VideoPlayerDialog() {
   const {
@@ -53,7 +54,10 @@ export default function VideoPlayerDialog() {
               width="100%"
               height="100%"
               onError={(e) => {
-                console.error('Video playback error', e);
+                toast({
+                  title: '视频播放错误',
+                  description: e instanceof Error ? e.message : String(e),
+                });
                 handleClose();
               }}
               config={{file:{attributes:{preload:'none'}}}}

@@ -3,6 +3,7 @@ import { immer } from 'zustand/middleware/immer';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { FileTransfer } from '@/lib/webrtc/types';
 import { isVideoFile, isPdfFile } from '@/utils/browserUtil';
+import { toast } from '@/hooks/use-toast';
 
 // 定义 store 的状态和操作
 interface FileBrowserState<FileViewEntry> {
@@ -156,7 +157,10 @@ export const createFileBrowserStore = () => {
             state.currentFiles = files;
           });
         } catch (error) {
-          console.error('Error loading files:', error);
+          toast({
+            title: '无法加载文件',
+            description: error instanceof Error ? error.message : String(error),
+          });
         } finally {
           set((state) => {
             state.loading = false;
@@ -232,7 +236,10 @@ export const createFileBrowserStore = () => {
             state.currentFiles = newFiles;
           });
         } catch (error) {
-          console.error('Error selecting file:', error);
+          toast({
+            title: '无法选择文件',
+            description: error instanceof Error ? error.message : String(error),
+          });
         }
       },
 
@@ -274,7 +281,10 @@ export const createFileBrowserStore = () => {
             setVideoUrl(`/receive?path=${file.path}&size=${file.size}&chunkSize=${chunkSize}&type=${file.type}#play`);
             setVideoDialogOpen(true);
           } catch (error) {
-            console.error('Error playing video:', error);
+            toast({
+              title: '无法播放视频',
+              description: error instanceof Error ? error.message : String(error),
+            });
           }
         }
       },
@@ -287,7 +297,10 @@ export const createFileBrowserStore = () => {
             setPdfUrl(`/receive?path=${file.path}&size=${file.size}&type=${file.type}#download`);
             setPdfDialogOpen(true);
           } catch (error) {
-            console.error('Error viewing PDF:', error);
+            toast({
+              title: '无法查看PDF',
+              description: error instanceof Error ? error.message : String(error),
+            });
           }
         }
       },

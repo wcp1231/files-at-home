@@ -32,8 +32,6 @@ export class HostHandshakeHandler {
    * Handle a meta request during the handshake phase
    */
   async handleMetaRequest(requestId: string, request: MetaRequest) {
-    console.log('Host: Handling meta request', requestId, request);
-    
     // 获取 API 版本和客户端信息
     const { message } = request;
 
