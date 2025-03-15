@@ -8,10 +8,10 @@ export default function Home() {
       <main className="flex flex-col gap-12 items-center max-w-3xl text-center">
         <div className="space-y-4">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-            轻松分享文件夹
+            FolderPort
           </h1>
           <p className="text-xl text-muted-foreground">
-            FolderPort 让你随时随地快速、安全地分享文件夹
+            让你随时随地快速、安全地分享文件夹
           </p>
         </div>
 
@@ -49,7 +49,7 @@ export default function Home() {
             <h3 className="font-semibold">主要特点</h3>
           </div>
           <ul className="grid gap-4 text-sm text-muted-foreground text-left list-disc list-inside">
-            <li>简单易用的界面，一键分享和下载</li>
+            <li>简单易用的界面，一键分享和访问</li>
             <li>P2P 传输，无需服务器</li>
             <li>支持大文件传输，不受文件大小限制</li>
             <li>支持加密传输，保护隐私</li>
