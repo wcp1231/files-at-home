@@ -117,6 +117,7 @@ function proxyDownloadRequest(event: FetchEvent, url: URL) {
   const filePath = url.searchParams.get('path');
   const fileName = url.searchParams.get('name')!;
   const fileSize = url.searchParams.get('size')!;
+  const contentType = url.searchParams.get('type')!;
   if (!filePath) {
     return new Response(null, { status: 404 });
   }
@@ -124,7 +125,7 @@ function proxyDownloadRequest(event: FetchEvent, url: URL) {
   const responseHeader = new Headers({
     'X-File-Size': fileSize,
     'X-File-Name': newFileName,
-    "Content-Type": "application/octet-stream; charset=utf-8",
+    "Content-Type": `${contentType}; charset=utf-8`,
     "Content-Security-Policy": "default-src 'none'",
     "X-Content-Security-Policy": "default-src 'none'",
     "X-WebKit-CSP": "default-src 'none'",

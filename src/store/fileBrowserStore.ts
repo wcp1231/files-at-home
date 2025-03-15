@@ -261,11 +261,19 @@ export const createFileBrowserStore = () => {
 
       // 请求下载文件
       handleFileDownload: (file) => {
+        let contentType = 'application/octet-stream';
+        // // 判断是不是 safari
+        if (navigator.userAgent.includes('Safari')) {
+          // 兼容 ios safari 浏览器
+          // 否则下载的文件都会是 html 格式
+          contentType = file.type || 'application/octet-stream';
+        }
+        const downloadUrl = `/access?path=${file.path}&name=${file.name}&size=${file.size}type=${contentType}#download`;
         const iframe = document.createElement('iframe');
         iframe.setAttribute('id', file.path);
         iframe.hidden = true
         iframe.style.display = "none";
-        iframe.src = `/access?path=${file.path}&name=${file.name}&size=${file.size}#download`;
+        iframe.src = downloadUrl;
         iframe.onload = function() {
           document.body.removeChild(iframe);
         };

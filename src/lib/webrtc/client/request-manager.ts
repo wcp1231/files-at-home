@@ -362,6 +362,11 @@ export class ClientRequestManager {
       let stream = writable;
       if (!stream) {
         stream = new WorkerWritableStream(fileId);
+        // 等待 3 秒，确保用户确认下载
+        // iOS safari 的逻辑比较特殊，如果用户没确认下载，往流中写入数据会丢失
+        // 导致用户确认后收不到之前写的数据
+        // 简单来说就是 safari 没有缓存之前的数据
+        await this.waitTimeout(3000);
       }
 
       // 使用流式方式请求文件
@@ -375,6 +380,14 @@ export class ClientRequestManager {
   // 获取所有活跃传输
   getAllActiveTransfers(): FileTransfer[] {
     return Array.from(this.activeChunkProcessors.values()).map(processor => processor.getTransfer());
+  }
+
+  private waitTimeout(duration: number) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(true);
+      }, duration);
+    });
   }
 
   // Helper method to check if we're in active phase
