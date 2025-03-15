@@ -210,7 +210,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
 
       // 处理文件选择
       handleFileSelect: async (file) => {
-        const { onFileSelect } = get();
+        const { onFileSelect, currentFiles } = get();
         if (!onFileSelect) return;
         
         // 如果已经选中了这个文件，不要重复请求
@@ -221,8 +221,14 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         
         try {
           const result = await onFileSelect(file.path);
+          const index = currentFiles.findIndex((f) => f.path === file.path);
+          const newFiles = [...currentFiles];
+          if (index !== -1) {
+            newFiles[index] = result as T;
+          }
           set((state) => {
             state.selectedFile = result as T | null;
+            state.currentFiles = newFiles;
           });
         } catch (error) {
           console.error('Error selecting file:', error);
