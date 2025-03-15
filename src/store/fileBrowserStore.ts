@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { FileTransfer } from '@/lib/webrtc/types';
-import { isVideoFile, isPdfFile } from '@/utils/browserUtil';
+import { isVideoFile, isPdfFile, isImageFile } from '@/utils/browserUtil';
 import { toast } from '@/hooks/use-toast';
 
 // 定义 store 的状态和操作
@@ -22,6 +22,8 @@ interface FileBrowserState<FileViewEntry> {
   videoDialogOpen: boolean;
   pdfUrl: string | null;
   pdfDialogOpen: boolean;
+  imageUrl: string | null;
+  imageDialogOpen: boolean;
 
   // 设置功能
   setFeatures: (features: {
@@ -38,6 +40,8 @@ interface FileBrowserState<FileViewEntry> {
   setVideoDialogOpen: (open: boolean) => void;
   setPdfUrl: (url: string | null) => void;
   setPdfDialogOpen: (open: boolean) => void;
+  setImageUrl: (url: string | null) => void;
+  setImageDialogOpen: (open: boolean) => void;
   
   // 设置回调函数
   setCallbacks: (callbacks: {
@@ -64,6 +68,7 @@ interface FileBrowserState<FileViewEntry> {
   handleFileDownload: (file: FileViewEntry) => void;
   handlePlayVideo: (file: FileViewEntry) => void;
   handleViewPdf: (file: FileViewEntry) => void;
+  handleViewImage: (file: FileViewEntry) => void;
   refreshCurrentDirectory: () => Promise<void>;
   
   // 初始化
@@ -91,6 +96,8 @@ export const createFileBrowserStore = () => {
       videoUrl: null,
       pdfDialogOpen: false,
       pdfUrl: null,
+      imageDialogOpen: false,
+      imageUrl: null,
       
       // 回调函数
       onFileSelect: undefined,
@@ -140,6 +147,12 @@ export const createFileBrowserStore = () => {
       }),
       setPdfDialogOpen: (open) => set((state) => {
         state.pdfDialogOpen = open;
+      }),
+      setImageUrl: (url) => set((state) => {
+        state.imageUrl = url;
+      }),
+      setImageDialogOpen: (open) => set((state) => {
+        state.imageDialogOpen = open;
       }),
 
       // 获取文件列表
@@ -313,6 +326,22 @@ export const createFileBrowserStore = () => {
         }
       },
 
+      handleViewImage: async (file) => {
+        const { setImageUrl, setImageDialogOpen } = get();
+        if (isImageFile(file)) {
+          try {
+            // 创建URL用于PDF查看
+            setImageUrl(`/access?path=${file.path}&size=${file.size}&type=${file.type}#download`);
+            setImageDialogOpen(true);
+          } catch (error) {
+            toast({
+              title: '无法查看图片',
+              description: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      },
+
       // 刷新当前目录
       refreshCurrentDirectory: async () => {
         const { currentPath, fetchFiles } = get();
@@ -337,6 +366,8 @@ export const createFileBrowserStore = () => {
           state.videoDialogOpen = false;
           state.pdfUrl = null;
           state.pdfDialogOpen = false;
+          state.imageUrl = null;
+          state.imageDialogOpen = false;
           state.onFileSelect = undefined;
           state.onFileData = undefined;
           state.onDirectorySelect = undefined;

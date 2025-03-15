@@ -126,6 +126,11 @@ export default function PdfViewerDialog() {
         <DialogHeader className='px-6'>
           <DialogTitle className=''>
             {selectedFile.name}
+            {selectedFile.size !== undefined && (
+              <span className="ml-2 text-sm text-muted-foreground">
+                {formatFileSize(selectedFile.size)}
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center max-h-[80vh] overflow-scroll">

@@ -5,6 +5,7 @@ import { HeaderTitle } from './HeaderTitle';
 import { FileList } from './FileList';
 import HeaderToolbar from './HeaderToolbar';
 import VideoPlayerDialog from './VideoPlayerDialog';
+import ImageViewerDialog from './ImageViewerDialog';
 
 const PdfViewerDialog = dynamic(() => import('./PdfViewerDialog'), { ssr: false });
 
@@ -47,6 +48,8 @@ export default function FileBrowser({
         <VideoPlayerDialog />
         {/* 使用PDF查看对话框组件 */}
         <PdfViewerDialog />
+        {/* 使用图片查看对话框组件 */}
+        <ImageViewerDialog />
       </CardContent>
     </Card>
   );

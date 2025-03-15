@@ -1,14 +1,14 @@
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { Button } from "../ui/button";
 import { TableCell } from "../ui/table";
-import { formatModifiedTime, isVideoFile, isPdfFile } from "@/utils/browserUtil";
+import { formatModifiedTime, isVideoFile, isPdfFile, isImageFile } from "@/utils/browserUtil";
 import { formatFileSize } from "@/lib/filesystem/util";
 import { FileViewEntry } from "./FileBrowser";
 import { getFileIcon } from './FileIcons';
 import { useFileBrowserStore } from "@/store/fileBrowserStore";
 
 function FileOperations({ file }: { file: FileViewEntry }) {
-  const { handleFileDownload, handlePlayVideo, handleViewPdf } = useFileBrowserStore();
+  const { handleFileDownload, handlePlayVideo, handleViewPdf, handleViewImage } = useFileBrowserStore();
   if (file.isDirectory) {
     return null;
   }
@@ -31,11 +31,24 @@ function FileOperations({ file }: { file: FileViewEntry }) {
           <DynamicIcon name="download" className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="icon" className="size-8" onClick={() => handleViewPdf(file)}>
-          <DynamicIcon name="file-text" className="h-4 w-4" />
+          <DynamicIcon name="eye" className="h-4 w-4" />
         </Button>
       </>
     );
   }
+  if (isImageFile(file)) {
+    return (
+      <>
+        <Button variant="outline" size="icon" className="size-8" onClick={() => handleFileDownload(file)}>
+          <DynamicIcon name="download" className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="icon" className="size-8" onClick={() => handleViewImage(file)}>
+          <DynamicIcon name="eye" className="h-4 w-4" />
+        </Button>
+      </>
+    );
+  }
+
   return (
     <>
       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFileDownload(file)}>

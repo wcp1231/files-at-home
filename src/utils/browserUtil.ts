@@ -15,6 +15,14 @@ export const isPdfFile = (file: FileViewEntry) => {
          (file.type && file.type === 'application/pdf');
 };
 
+export function isImageFile(file: FileViewEntry): boolean {
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'];
+  return imageExtensions.some(ext => 
+    file.name.toLowerCase().endsWith(ext) || 
+    (file.type && file.type.startsWith('image/'))
+  );
+}
+
 // 格式化修改时间
 // 忽略秒
 export const formatModifiedTime = (modifiedAt: string | Date | undefined) => {
