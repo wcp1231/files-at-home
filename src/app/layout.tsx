@@ -15,8 +15,8 @@ import { Header } from "@/components/Header";
 // });
 
 export const metadata: Metadata = {
-  title: "Files@Home",
-  description: "Share files at home",
+  title: "FolderPort",
+  description: "FolderPort is a simple and secure way to share folders with friends and family.",
 };
 
 export default function RootLayout({

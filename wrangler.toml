@@ -1,5 +1,5 @@
 main = ".open-next/worker.js"
-name = "fileathome"
+name = "folderport"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
@@ -7,12 +7,12 @@ minify = true
 
 # workers_dev = false
 # route = { pattern = "planetanote.com/*", zone_name = "planetanote.com" }
-# vars.BASE_URL = "https://fileathome.wcp1231.workers.dev"
-# vars.AUTH_URL= "https://fileathome.wcp1231.workers.dev/api/auth"
+# vars.BASE_URL = "https://folderport.wcp1231.workers.dev"
+# vars.AUTH_URL= "https://folderport.wcp1231.workers.dev/api/auth"
 
 [env.staging]
-name = "fileathome-staging"
+name = "folderport-staging"
 workers_dev = true
 
-# vars.BASE_URL= "https://fileathome-staging.wcp1231.workers.dev"
-# vars.AUTH_URL= "https://fileathome-staging.wcp1231.workers.dev/api/auth"
+# vars.BASE_URL= "https://folderport-staging.wcp1231.workers.dev"
+# vars.AUTH_URL= "https://folderport-staging.wcp1231.workers.dev/api/auth"

@@ -8,10 +8,10 @@ export default function Home() {
       <main className="flex flex-col gap-12 items-center max-w-3xl text-center">
         <div className="space-y-4">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-            轻松分享文件
+            轻松分享文件夹
           </h1>
           <p className="text-xl text-muted-foreground">
-            File@Home 让你随时随地快速、安全地分享文件
+            FolderPort 让你随时随地快速、安全地分享文件夹
           </p>
         </div>
 
@@ -22,7 +22,7 @@ export default function Home() {
           >
             <div className="flex items-center gap-4">
               <DynamicIcon name="share-2" className="h-6 w-6" />
-              <h3 className="font-semibold">分享目录</h3>
+              <h3 className="font-semibold">分享文件夹</h3>
             </div>
             <p className="mt-3 text-muted-foreground text-sm">
               选择要分享的文件夹，生成分享链接，轻松访问
@@ -35,10 +35,10 @@ export default function Home() {
           >
             <div className="flex items-center gap-4">
               <DynamicIcon name="download" className="h-6 w-6" />
-              <h3 className="font-semibold">接收分享</h3>
+              <h3 className="font-semibold">访问文件夹</h3>
             </div>
             <p className="mt-3 text-muted-foreground text-sm">
-              通过分享链接快速访问和下载分享的文件
+              通过分享链接快速访问分享的文件夹
             </p>
           </Link>
         </div>
