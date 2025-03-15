@@ -5,16 +5,16 @@ import { FileTransfer } from '@/lib/webrtc/types';
 import { isVideoFile, isPdfFile } from '@/utils/browserUtil';
 
 // 定义 store 的状态和操作
-interface FileBrowserState<T extends FileViewEntry> {
+interface FileBrowserState<FileViewEntry> {
   // State
   showOperations: boolean;
   packable: boolean;
   writeable: boolean;
 
   currentPath: string;
-  currentFiles: T[];
+  currentFiles: FileViewEntry[];
   breadcrumbs: string[];
-  selectedFile: T | null;
+  selectedFile: FileViewEntry | null;
   selectedFileTransfer: FileTransfer | null;
   loading: boolean;
   videoUrl: string | null;
@@ -30,9 +30,9 @@ interface FileBrowserState<T extends FileViewEntry> {
   }) => void;
 
   // 回调函数
-  onFileSelect?: (path: string) => Promise<T | null>;
+  onFileSelect?: (path: string) => Promise<FileViewEntry | null>;
   onFileData?: (path: string) => Promise<Blob | null>;
-  onDirectorySelect?: (path: string) => Promise<T[]>;
+  onDirectorySelect?: (path: string) => Promise<FileViewEntry[]>;
   setVideoUrl: (url: string | null) => void;
   setVideoDialogOpen: (open: boolean) => void;
   setPdfUrl: (url: string | null) => void;
@@ -40,16 +40,16 @@ interface FileBrowserState<T extends FileViewEntry> {
   
   // 设置回调函数
   setCallbacks: (callbacks: {
-    onFileSelect?: (path: string) => Promise<T | null>;
+    onFileSelect?: (path: string) => Promise<FileViewEntry | null>;
     onFileData?: (path: string) => Promise<Blob | null>;
-    onDirectorySelect?: (path: string) => Promise<T[]>;
+    onDirectorySelect?: (path: string) => Promise<FileViewEntry[]>;
   }) => void;
 
   // Actions
   setCurrentPath: (path: string) => void;
-  setCurrentFiles: (files: T[]) => void;
+  setCurrentFiles: (files: FileViewEntry[]) => void;
   setBreadcrumbs: (breadcrumbs: string[]) => void;
-  setSelectedFile: (file: T | null) => void;
+  setSelectedFile: (file: FileViewEntry | null) => void;
   setSelectedFileTransfer: (fileTransfer: FileTransfer | null) => void;
   setLoading: (loading: boolean) => void;
   
@@ -58,11 +58,11 @@ interface FileBrowserState<T extends FileViewEntry> {
   navigateToDirectory: (path: string) => Promise<void>;
   navigateToBreadcrumb: (index: number) => Promise<void>;
   navigateUp: () => Promise<void>;
-  handleFileSelect: (file: T) => Promise<void>;
-  handleItemClick: (file: T) => Promise<void>;
-  handleFileDownload: (file: T) => void;
-  handlePlayVideo: (file: T) => void;
-  handleViewPdf: (file: T) => void;
+  handleFileSelect: (file: FileViewEntry) => Promise<void>;
+  handleItemClick: (file: FileViewEntry) => Promise<void>;
+  handleFileDownload: (file: FileViewEntry) => void;
+  handlePlayVideo: (file: FileViewEntry) => void;
+  handleViewPdf: (file: FileViewEntry) => void;
   refreshCurrentDirectory: () => Promise<void>;
   
   // 初始化
@@ -72,14 +72,16 @@ interface FileBrowserState<T extends FileViewEntry> {
 }
 
 // 创建一个泛型工厂函数来生成特定类型的store
-export const createFileBrowserStore = <T extends FileViewEntry>() => {
-  return create<FileBrowserState<T>>()(
+export const createFileBrowserStore = () => {
+  return create<FileBrowserState<FileViewEntry>>()(
     immer((set, get) => ({
       // 初始状态
       showOperations: false,
+      packable: false,
+      writeable: false,
 
       currentPath: '/',
-      currentFiles: [] as T[],
+      currentFiles: [] as FileViewEntry[],
       breadcrumbs: ['/'],
       selectedFile: null,
       selectedFileTransfer: null,
@@ -112,16 +114,16 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         state.currentPath = path;
       }),
       setCurrentFiles: (files) => set((state) => {
-        state.currentFiles = files as T[];
+        state.currentFiles = files;
       }),
       setBreadcrumbs: (breadcrumbs) => set((state) => {
         state.breadcrumbs = breadcrumbs;
       }),
       setSelectedFile: (file) => set((state) => {
-        state.selectedFile = file as T | null;
+        state.selectedFile = file;
       }),
       setSelectedFileTransfer: (fileTransfer) => set((state) => {
-        state.selectedFileTransfer = fileTransfer as FileTransfer | null;
+        state.selectedFileTransfer = fileTransfer;
       }),
       setLoading: (loading) => set((state) => {
         state.loading = loading;
@@ -151,7 +153,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         try {
           const files = await onDirectorySelect(path);
           set((state) => {
-            state.currentFiles = files as T[];
+            state.currentFiles = files;
           });
         } catch (error) {
           console.error('Error loading files:', error);
@@ -210,12 +212,11 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
 
       // 处理文件选择
       handleFileSelect: async (file) => {
-        const { onFileSelect, currentFiles } = get();
+        const { onFileSelect, currentFiles, selectedFile } = get();
         if (!onFileSelect) return;
         
         // 如果已经选中了这个文件，不要重复请求
-        const currentSelectedFile = get().selectedFile;
-        if (currentSelectedFile && currentSelectedFile.path === file.path) {
+        if (selectedFile && selectedFile.path === file.path) {
           return;
         }
         
@@ -224,10 +225,10 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
           const index = currentFiles.findIndex((f) => f.path === file.path);
           const newFiles = [...currentFiles];
           if (index !== -1) {
-            newFiles[index] = result as T;
+            newFiles[index] = result as FileViewEntry;
           }
           set((state) => {
-            state.selectedFile = result as T | null;
+            state.selectedFile = result;
             state.currentFiles = newFiles;
           });
         } catch (error) {
@@ -278,7 +279,7 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
         }
       },
 
-      handleViewPdf: async (file) => {
+      handleViewPdf: async (file: FileViewEntry) => {
         const { setPdfUrl, setPdfDialogOpen } = get();
         if (isPdfFile(file)) {
           try {
@@ -324,4 +325,4 @@ export const createFileBrowserStore = <T extends FileViewEntry>() => {
 };
 
 // 创建一个全局的 store 实例
-export const useFileBrowserStore = createFileBrowserStore<FileViewEntry>();
+export const useFileBrowserStore = createFileBrowserStore();

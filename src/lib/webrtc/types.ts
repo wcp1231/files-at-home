@@ -5,6 +5,9 @@ declare global {
     getDirectoryHandle(name: string, options?: { create?: boolean }): Promise<FileSystemDirectoryHandle>;
     getFileHandle(name: string, options?: { create?: boolean }): Promise<FileSystemFileHandle>;
   }
+  interface FileSystemHandle extends FileSystemDirectoryHandle {
+    entries(): AsyncIterable<[string, FileSystemHandle]>;
+  }
 }
 
 // 连接状态枚举

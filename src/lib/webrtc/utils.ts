@@ -15,7 +15,7 @@ export function deserializeMessage(data: string): WebRTCMessage {
     console.error('Failed to parse message:', error);
     return {
       type: MessageType.ERROR,
-      payload: 'Invalid message format',
+      payload: { error: 'Invalid message format' },
     };
   }
 }

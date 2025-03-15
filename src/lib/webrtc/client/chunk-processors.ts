@@ -1,4 +1,4 @@
-import { FileChunk, FileTransfer, FileTransferInfo, FileTransferStatus } from '@/lib/webrtc';
+import { FileChunkResponse, FileTransfer, FileTransferInfo, FileTransferStatus } from '@/lib/webrtc';
 
 /**
  * 块处理器接口，定义所有块处理器需要实现的方法
@@ -7,7 +7,7 @@ export interface ChunkProcessor {
   /**
    * 处理接收到的块
    */
-  processChunk(chunk: FileChunk): void;
+  processChunk(chunk: FileChunkResponse): void;
 
   /**
    * 请求缺失的块
@@ -17,7 +17,7 @@ export interface ChunkProcessor {
   /**
    * 检查是否应该完成传输
    */
-  shouldComplete(chunk: FileChunk): boolean;
+  shouldComplete(chunk: FileChunkResponse): boolean;
 
   /**
    * 完成传输
@@ -120,9 +120,9 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
     }
   }
   
-  abstract processChunk(chunk: FileChunk): void;
+  abstract processChunk(chunk: FileChunkResponse): void;
   abstract requestMissingChunks(): void;
-  abstract shouldComplete(chunk: FileChunk): boolean;
+  abstract shouldComplete(chunk: FileChunkResponse): boolean;
   abstract complete(): Promise<Blob>;
   
   getTransfer(): FileTransfer {
@@ -143,7 +143,7 @@ export abstract class BaseChunkProcessor implements ChunkProcessor {
 export class BufferedChunkProcessor extends BaseChunkProcessor {
   private receivedChunks = new Map<number, Uint8Array>();
   
-  processChunk(chunk: FileChunk): void {
+  processChunk(chunk: FileChunkResponse): void {
     // 存储收到的块
     const binaryData = Buffer.from(chunk.data, 'base64');
     const chunkData = new Uint8Array(binaryData);
@@ -191,7 +191,7 @@ export class BufferedChunkProcessor extends BaseChunkProcessor {
     }
   }
   
-  shouldComplete(chunk: FileChunk): boolean {
+  shouldComplete(chunk: FileChunkResponse): boolean {
     return chunk.isLast || this.receivedChunks.size === this.transferInfo.totalChunks;
   }
   
@@ -297,7 +297,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     }
   }
   
-  async processChunk(chunk: FileChunk): Promise<void> {
+  async processChunk(chunk: FileChunkResponse): Promise<void> {
     // 解码和存储块数据
     const binaryData = Buffer.from(chunk.data, 'base64');
     const chunkData = new Uint8Array(binaryData);
@@ -404,7 +404,7 @@ export class StreamChunkProcessor extends BaseChunkProcessor {
     }
   }
   
-  shouldComplete(chunk: FileChunk): boolean {
+  shouldComplete(chunk: FileChunkResponse): boolean {
     return chunk.isLast || this.processedChunks.size === this.transferInfo.totalChunks;
   }
   

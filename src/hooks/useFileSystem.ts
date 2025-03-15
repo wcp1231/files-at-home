@@ -1,6 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { FSEntry, FSDirectory, FSFile } from "@/lib/filesystem";
 
+declare global {
+  interface Window {
+    showDirectoryPicker: (options?: { mode?: "readwrite" | "readonly" }) => Promise<FileSystemDirectoryHandle>;
+  }
+}
 
 export function useFileSystem() {
   const [status, setStatus] = useState<{ error?: string, status?: string, loading: boolean }>({ loading: false });
