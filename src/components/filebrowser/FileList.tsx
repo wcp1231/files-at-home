@@ -70,10 +70,10 @@ export function FileList() {
         fixedHeaderContent={() => (
           <TableRow>
             <TableHead className="px-4">Name</TableHead>
-            <TableHead className="px-4">Type</TableHead>
-            <TableHead className="px-4 text-right">Size</TableHead>
-            <TableHead className="px-4">Modified</TableHead>
-            {showOperations && <TableHead className="px-4">Operation</TableHead>}
+            <TableHead className="px-4 w-32">Type</TableHead>
+            <TableHead className="px-4 w-28 text-right">Size</TableHead>
+            <TableHead className="px-4 w-48">Modified</TableHead>
+            {showOperations && <TableHead className="px-4 w-32">Operation</TableHead>}
           </TableRow>
         )}
         itemContent={(index) => (
