@@ -39,6 +39,7 @@ export class WorkerWritableStreamWriter extends WritableStreamDefaultWriter<Uint
     return super.close();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   abort(reason?: any): Promise<void> {
     console.log('[WorkerWritableStreamWriter] abort', this.fileId);
     WorkerManager.sendPortMessage(<MessageEvent>{

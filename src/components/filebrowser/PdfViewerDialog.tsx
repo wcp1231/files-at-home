@@ -2,6 +2,9 @@
 
 import React, { useRef, useState, useLayoutEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import "core-js/proposals/promise-with-resolvers";
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 import useResizeObserver from '@react-hook/resize-observer';
 import { formatFileSize } from '@/lib/filesystem/util';
 import {
@@ -12,13 +15,52 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
-import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { toast } from '@/hooks/use-toast';
 
+// Function to detect if we need to use legacy build
+function shouldUseLegacyBuild() {
+  try {
+    if (typeof window === 'undefined') return false;
+    
+    const ua = window.navigator.userAgent;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+    
+    console.log(isSafari ? 'Running on Safari' : 'Not running on Safari');
+    if (!isSafari) return false;
+    
+    // Extract Safari version - matches "Version/18" format
+    const match = ua.match(/Version\/(\d+)/i);
+    console.log('Safari version:', match);
+    if (!match || !match[1]) return true; // If we can't determine version, use legacy to be safe
+    
+    const version = parseInt(match[1]);
+    return version < 18; // Use legacy build for Safari versions equal or below 18
+  } catch (e) {
+    console.error('Error detecting Safari version:', e);
+    return false;
+  }
+}
 
-// 设置 PDF.js worker 路径
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Function to initialize PDF worker
+function initPDFWorker() {
+  try {
+    if (typeof window !== 'undefined') {
+      const useLegacy = shouldUseLegacyBuild();
+      // Use local worker file instead of unpkg
+      const workerSrc = useLegacy 
+        ? new URL('pdfjs-dist/legacy/build/pdf.worker.min.mjs', import.meta.url).href
+        : new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).href;
+      console.log('Setting PDF worker to:', workerSrc);
+      pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+      pdfjs.GlobalWorkerOptions.workerPort = null;
+    }
+  } catch (e) {
+    console.error('Error setting PDF worker:', e);
+  }
+}
+
+// Initialize the worker at root
+initPDFWorker();
 
 const useWidth = (target: React.RefObject<HTMLDivElement | null>) => {
   const [width, setWidth] = useState<number | undefined>();
