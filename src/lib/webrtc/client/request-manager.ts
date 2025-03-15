@@ -1,5 +1,5 @@
 import { DataConnection } from 'peerjs';
-import { MessageType, SharedFileInfo, FileTransferInfo, FileTransfer, FileTransferResponse, DirectoryResponse, FileInfoResponse, FileChunkResponse, ErrorResponse, FileChunkRequest, WebRTCMessage } from '@/lib/webrtc';
+import { MessageType, SharedFileInfo, FileTransferInfo, FileTransfer, FileTransferResponse, DirectoryResponse, FileInfoResponse, FileChunkResponse, ErrorResponse, WebRTCMessage } from '@/lib/webrtc';
 import { v4 } from 'uuid';
 import { ChunkProcessor, BufferedChunkProcessor, StreamChunkProcessor } from './chunk-processors';
 import { ClientMessageHandler } from './message-handler';

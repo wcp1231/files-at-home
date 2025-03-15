@@ -37,7 +37,7 @@ export class HostMessageHandler {
   /**
    * Handle a message from a client
    */
-  handleMessage(clientId: string, connection: DataConnection, data: any) {
+  handleMessage(clientId: string, connection: DataConnection, data: string) {
     // Check phase
     const phase = this.connectionManager.getClientPhase(clientId);
     
@@ -64,14 +64,14 @@ export class HostMessageHandler {
    * Send a response message
    * Used by the request handler
    */
-  async sendResponse(conn: DataConnection, message: any) {
+  async sendResponse(conn: DataConnection, message: WebRTCMessage) {
     conn.send(await this.serializeResponse(message));
   }
   
   /**
    * Handle messages during handshake phase
    */
-  private async handleHandshakePhaseMessage(clientId: string, connection: DataConnection, data: any) {
+  private async handleHandshakePhaseMessage(clientId: string, connection: DataConnection, data: string) {
     const { type, payload, requestId } = await this.deserializeRequest(data);
     
     if (type === MessageType.META_REQUEST) {
@@ -91,7 +91,7 @@ export class HostMessageHandler {
   /**
    * Handle messages during active phase
    */
-  private async handleActivePhaseMessage(clientId: string, connection: DataConnection, data: any) {
+  private async handleActivePhaseMessage(clientId: string, connection: DataConnection, data: string) {
     const { type, payload, requestId } = await this.deserializeRequest(data);
     
     switch (type) {
