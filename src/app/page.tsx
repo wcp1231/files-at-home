@@ -1,100 +1,76 @@
-import Image from "next/image";
 import Link from "next/link";
+
+import { DynamicIcon } from "lucide-react/dynamic";
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="flex flex-col items-center justify-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+      <main className="flex flex-col gap-12 items-center max-w-3xl text-center">
+        <div className="space-y-4">
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
+            在家轻松分享文件
+          </h1>
+          <p className="text-xl text-muted-foreground">
+            Files@Home 让你在家庭网络中快速、安全地分享文件，无需互联网连接
+          </p>
+        </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
           <Link
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+            className="group relative rounded-lg border p-6 hover:border-foreground/40 transition-colors"
             href="/share"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-              <polyline points="16 6 12 2 8 6"></polyline>
-              <line x1="12" y1="2" x2="12" y2="15"></line>
-            </svg>
-            分享目录
+            <div className="flex items-center gap-4">
+              <DynamicIcon name="share-2" className="h-6 w-6" />
+              <h3 className="font-semibold">分享目录</h3>
+            </div>
+            <p className="mt-3 text-muted-foreground text-sm">
+              选择要分享的文件夹，生成分享链接，轻松访问
+            </p>
           </Link>
+
           <Link
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+            className="group relative rounded-lg border p-6 hover:border-foreground/40 transition-colors"
             href="/receive"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            接收分享
+            <div className="flex items-center gap-4">
+              <DynamicIcon name="download" className="h-6 w-6" />
+              <h3 className="font-semibold">接收分享</h3>
+            </div>
+            <p className="mt-3 text-muted-foreground text-sm">
+              通过分享链接快速访问和下载分享的文件
+            </p>
           </Link>
         </div>
+
+        <div className="rounded-lg border bg-card p-8 w-full">
+          <div className="flex items-center gap-4 mb-4">
+            <DynamicIcon name="laptop" className="h-6 w-6" />
+            <h3 className="font-semibold">主要特点</h3>
+          </div>
+          <ul className="grid gap-4 text-sm text-muted-foreground text-left list-disc list-inside">
+            <li>简单易用的界面，一键分享和下载</li>
+            <li>P2P 传输，无需服务器</li>
+            <li>支持大文件传输，不受文件大小限制</li>
+            <li>支持加密传输，保护隐私</li>
+            <li>无需注册和登录，即开即用</li>
+          </ul>
+        </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
+
+      <footer className="flex gap-6 flex-wrap items-center justify-center text-sm text-muted-foreground">
         <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          className="hover:text-foreground transition-colors"
+          href="#"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
+          使用文档
         </a>
+        <span>·</span>
         <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          className="hover:text-foreground transition-colors"
+          href="#"
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
+          关于项目
         </a>
       </footer>
     </div>
