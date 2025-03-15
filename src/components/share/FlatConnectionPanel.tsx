@@ -111,7 +111,7 @@ const ConnectedPopoverContent = () => {
   // 当连接 ID 变化时更新分享 URL
   useEffect(() => {
     if (peerId) {
-      const url = `${window.location.origin}/receive/${peerId}`;
+      const url = `${window.location.origin}/access/${peerId}`;
       setShareUrl(url);
     } else {
       setShareUrl('');

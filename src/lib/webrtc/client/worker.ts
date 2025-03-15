@@ -22,7 +22,7 @@ export class WorkerManager {
       }
       const worker = await navigator.serviceWorker.register(
         "/sw.js",
-        { scope: "/receive" }
+        { scope: "/access" }
       );
       WorkerManager.worker = worker;
       WorkerManager.initChannel();

@@ -31,7 +31,7 @@ export default function Home() {
 
           <Link
             className="group relative rounded-lg border p-6 hover:border-foreground/40 transition-colors"
-            href="/receive"
+            href="/access"
           >
             <div className="flex items-center gap-4">
               <DynamicIcon name="download" className="h-6 w-6" />
