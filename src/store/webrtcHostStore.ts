@@ -7,6 +7,7 @@ import {
 import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { useFileBrowserStore } from '@/components/filebrowser';
+import { toast } from '@/hooks/use-toast';
 
 // 将FSEntry映射到FileEntry
 function mapFSEntryToFileEntry (entry: FSEntry | null): FileViewEntry | null {
@@ -48,10 +49,11 @@ interface WebRTCHostState {
   // 动作
   initializeHost: (passphrase: string) => Promise<boolean>;
   disconnect: () => void;
+
+  onError: (error: string | null) => void;
   
   // 内部使用的帮助方法
   _initialize: () => void;
-  _setError: (error: string | null) => void;
   _getFileEntry: (path: string) => Promise<FileViewEntry | null>;
   _getListFilesEntry: (path: string) => Promise<FileViewEntry[]>;
 }
@@ -131,7 +133,7 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
             })
           },
           onError: (error) => {
-            get()._setError(error)
+            get().onError(error)
           }
         }
       );
@@ -142,31 +144,39 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       });
     },
     
-    _setError: (error) => set((draft) => {
-      draft.error = error;
-    }),
+    onError: (error) => {
+      if (error) {
+        toast({
+          title: 'Error',
+          description: error,
+        });
+      }
+      set((draft) => {
+        draft.error = error;
+      });
+    },
 
     _getFileEntry: async (path: string) => {
-      const { getFile, _setError } = get();
+      const { getFile, onError } = get();
       if (!getFile) {
-        _setError('必须先设置 getFile 处理函数');
+        onError('必须先设置 getFile 处理函数');
         return null;
       }
-      _setError(null);
+      onError(null);
       try {
         const file = await getFile(path);
         return mapFSEntryToFileEntry(file);
       } catch (err) {
         console.error('Error selecting file:', err);
-        _setError('无法加载文件');
+        onError('无法加载文件');
         return null;
       }
     },
 
     _getListFilesEntry: async (path: string) => {
-      const { listFiles, _setError } = get();
+      const { listFiles, onError } = get();
       if (!listFiles) {
-        _setError('必须先设置 listFiles 处理函数');
+        onError('必须先设置 listFiles 处理函数');
         return [];
       }
       try {
@@ -175,7 +185,7 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
         return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
       } catch (err) {
         console.error('Error listing directory:', err);
-        _setError('无法加载目录内容');
+        onError('无法加载目录内容');
         return [];
       }
     },
@@ -186,12 +196,12 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       
       // 确保已设置文件系统处理函数
       if (!state.getDirectory || !state.getFile) {
-        state._setError('必须先设置 getDirectory 和 getFile 处理函数');
+        state.onError('必须先设置 getDirectory 和 getFile 处理函数');
         return false;
       }
 
       if (!state.peerId) {
-        state._setError('必须先设置 peerId');
+        state.onError('必须先设置 peerId');
         return false;
       }
 

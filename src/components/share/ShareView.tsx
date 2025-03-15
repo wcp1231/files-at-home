@@ -6,6 +6,7 @@ import { useFileSystem } from '@/hooks/useFileSystem';
 
 // Import components from the barrel export
 import DirectorySelector from '@/components/share/DirectorySelector';
+import { Toaster } from '@/components/ui/toast/toaster';
 
 
 const FileExplorer = dynamic(() => import('@/components/share/FileExplorer'), { ssr: false });
@@ -53,6 +54,7 @@ export default function ShareView({ id }: { id: string }) {
       <div className="space-y-6">
         {renderContent()}
       </div>
+      <Toaster />
     </div>
   );
 } 
