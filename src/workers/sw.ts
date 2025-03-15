@@ -5,6 +5,7 @@ const holder = {} as {
   port: MessagePort | null;
   state: string | null;
   heartbeat: number;
+  streams: Map<string, WritableStreamDefaultWriter<Uint8Array>>;
 };
 
 function checkHeartbeat() {
@@ -14,9 +15,54 @@ function checkHeartbeat() {
   return true;
 }
 
+function handlePortMessage(event: MessageEvent) {
+  const data = event.data.data;
+  const type = data.type;
+  if (type === 'TRANSFER_CHUNK') {
+    const fileId = data.fileId;
+    const stream = holder.streams.get(fileId);
+    if (!stream) {
+      return;
+    }
+    stream.write(data.chunk);
+    return
+  }
+  if (type === 'TRANSFER_END') {
+    const fileId = data.fileId;
+    const stream = holder.streams.get(fileId);
+    if (!stream) {
+      return;
+    }
+    stream.close();
+    return
+  }
+  if (type === 'TRANSFER_ERROR') {
+    const fileId = data.fileId;
+    const stream = holder.streams.get(fileId);
+    if (!stream) {
+      return;
+    }
+    stream.abort();
+    return
+  }
+  if (type === 'TRANSFER_CANCEL') {
+    const fileId = data.fileId;
+    const stream = holder.streams.get(fileId);
+    if (!stream) {
+      return;
+    }
+    stream.abort();
+    return
+  }
+}
+
 function handleInitChannel(event: ExtendableMessageEvent) {
   if (event.ports.length > 0) {
     holder.port = event.ports[0];
+    holder.port.onmessage = (event) => {
+      handlePortMessage(event);
+    };
+    holder.streams = new Map();
   }
 }
 
@@ -48,6 +94,24 @@ function checkStateOK() {
   return true;
 }
 
+function startTransfer(payload: { fileId: string, path: string, start?: number, end?: number }, writable: WritableStream) {
+  try {
+    holder.port!.postMessage({
+      ...payload,
+      type: 'TRANSFER_START',
+      writable,
+    }, [writable]);
+    return;
+  } catch (error) {
+    console.error('[Service Worker] Transfer start failed', error);
+  }
+  holder.streams.set(payload.fileId, writable.getWriter());
+  holder.port!.postMessage({
+    ...payload,
+    type: 'TRANSFER_START',
+  }, []);
+}
+
 // 代理下载请求
 function proxyDownloadRequest(event: FetchEvent, url: URL) {
   const filePath = url.searchParams.get('path');
@@ -70,11 +134,11 @@ function proxyDownloadRequest(event: FetchEvent, url: URL) {
     "Content-Length": fileSize,
   });
   const ts = new TransformStream();
-  holder.port!.postMessage({
-    type: 'TRANSFER_START',
+  const payload = { 
+    fileId: `download#${filePath}`,
     path: filePath,
-    writable: ts.writable,
-  }, [ts.writable]);
+  };
+  startTransfer(payload, ts.writable);
   return new Response(ts.readable, {
     headers: responseHeader,
   });
@@ -112,13 +176,13 @@ function proxyPlayRequest(event: FetchEvent, url: URL) {
     'Content-Type': type,
   });
   const ts = new TransformStream();
-  holder.port!.postMessage({
-    type: 'TRANSFER_START',
-    path: filePath,
+  const payload = { 
+    fileId: `play#${filePath}#${start}-${end}`,
+    path: filePath!,
     start,
     end: end + 1,
-    writable: ts.writable,
-  }, [ts.writable]);
+  };
+  startTransfer(payload, ts.writable);
   return new Response(ts.readable, {
     status: 206,
     statusText: 'Partial Content',
@@ -161,7 +225,7 @@ sw.addEventListener('message', (event) => {
 // Fetch event - intercept requests
 sw.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (url.pathname !== '/receive') {
+  if (url.pathname !== '/access') {
     event.respondWith(fetch(event.request));
     return;
   }

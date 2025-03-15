@@ -265,7 +265,7 @@ export const createFileBrowserStore = () => {
         iframe.setAttribute('id', file.path);
         iframe.hidden = true
         iframe.style.display = "none";
-        iframe.src = `/receive?path=${file.path}&name=${file.name}&size=${file.size}#download`;
+        iframe.src = `/access?path=${file.path}&name=${file.name}&size=${file.size}#download`;
         iframe.onload = function() {
           document.body.removeChild(iframe);
         };
@@ -278,7 +278,7 @@ export const createFileBrowserStore = () => {
           try {
             const chunkSize = 512 * 1024;
             // 创建URL用于视频播放
-            setVideoUrl(`/receive?path=${file.path}&size=${file.size}&chunkSize=${chunkSize}&type=${file.type}#play`);
+            setVideoUrl(`/access?path=${file.path}&size=${file.size}&chunkSize=${chunkSize}&type=${file.type}#play`);
             setVideoDialogOpen(true);
           } catch (error) {
             toast({
@@ -294,7 +294,7 @@ export const createFileBrowserStore = () => {
         if (isPdfFile(file)) {
           try {
             // 创建URL用于PDF查看
-            setPdfUrl(`/receive?path=${file.path}&size=${file.size}&type=${file.type}#download`);
+            setPdfUrl(`/access?path=${file.path}&size=${file.size}&type=${file.type}#download`);
             setPdfDialogOpen(true);
           } catch (error) {
             toast({

@@ -6,7 +6,7 @@ export class WorkerManager {
   public static channel: MessageChannel | null = null;
   public static worker: ServiceWorkerRegistration | null = null;
   public static writer: Map<string, WritableStreamDefaultWriter<Uint8Array>> = new Map();
-  public static messageHandler: (path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) => Promise<void> = async () => {};
+  public static messageHandler: (fileId: string, path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) => Promise<void> = async () => {};
 
   public static async register(): Promise<ServiceWorkerRegistration | null> {
     if (!navigator.serviceWorker) {
@@ -57,7 +57,7 @@ export class WorkerManager {
     }, 1000);
   }
 
-  public static setMessageHandler(handler: (path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) => Promise<void>) {
+  public static setMessageHandler(handler: (fileId: string, path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) => Promise<void>) {
     WorkerManager.messageHandler = handler;
   }
 
@@ -66,8 +66,12 @@ export class WorkerManager {
   }
 
   public static async onMessage(event: MessageEvent) {
-    const { path, writable, start, end }: { path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number } = event.data;
-    await WorkerManager.messageHandler(path, writable, start, end);
+    const { fileId, path, writable, start, end }: { fileId: string, path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number } = event.data;
+    await WorkerManager.messageHandler(fileId, path, writable, start, end);
+  }
+
+  public static async sendPortMessage(event: MessageEvent) {
+    WorkerManager.channel?.port1.postMessage(event);
   }
 
   public static isTrustEnv() {

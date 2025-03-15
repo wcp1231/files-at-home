@@ -5,6 +5,7 @@ import { ChunkProcessor, BufferedChunkProcessor, StreamChunkProcessor } from './
 import { ClientMessageHandler } from './message-handler';
 import { ConnectionPhase } from './connection';
 import { WorkerManager } from './worker';
+import { WorkerWritableStream } from './worker-writable-stream';
 
 // 请求类型
 export interface PendingFileRequest {
@@ -351,13 +352,20 @@ export class ClientRequestManager {
   }
 
   // 处理 worker 消息
-  async workerMessageHandler(path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) {
+  async workerMessageHandler(fileId: string, path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) {
     try {
       // Ensure we're in active phase
       this.checkActivePhase('workerMessageHandler');
       
+      // 如果 writable 为空，则创建一个新的 WorkerWritableStream
+      // 兼容苹果系统的 safari 浏览器
+      let stream = writable;
+      if (!stream) {
+        stream = new WorkerWritableStream(fileId);
+      }
+
       // 使用流式方式请求文件
-      await this.requestFileData(path, { stream: writable, start, end });
+      await this.requestFileData(path, { stream, start, end });
     } catch (error) {
       console.error('Error in worker message handler:', error);
       writable.close();
