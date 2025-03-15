@@ -5,8 +5,12 @@ compatibility_flags = ["nodejs_compat"]
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 minify = true
 
-# workers_dev = false
-# route = { pattern = "planetanote.com/*", zone_name = "planetanote.com" }
+workers_dev = false
+routes = [
+  { pattern = "www.folderport.com", custom_domain = true },
+  { pattern = "folderport.com", custom_domain = true }
+]
+
 # vars.BASE_URL = "https://folderport.wcp1231.workers.dev"
 # vars.AUTH_URL= "https://folderport.wcp1231.workers.dev/api/auth"
 
