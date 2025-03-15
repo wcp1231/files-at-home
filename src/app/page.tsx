@@ -8,10 +8,10 @@ export default function Home() {
       <main className="flex flex-col gap-12 items-center max-w-3xl text-center">
         <div className="space-y-4">
           <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-            在家轻松分享文件
+            轻松分享文件
           </h1>
           <p className="text-xl text-muted-foreground">
-            Files@Home 让你在家庭网络中快速、安全地分享文件，无需互联网连接
+            File@Home 让你随时随地快速、安全地分享文件
           </p>
         </div>
 

@@ -30,7 +30,7 @@ export function Header() {
       <div className="container mx-auto flex h-10 items-center">
         <div className="mr-4 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="font-bold">Files@Home</span>
+            <span className="font-bold">File@Home</span>
           </Link>
         </div>
 
