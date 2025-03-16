@@ -12,7 +12,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { useFileBrowserStore } from '@/store/fileBrowserStore';
 import { toast } from '@/hooks/use-toast';
