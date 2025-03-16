@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { FileTransfer } from '@/lib/webrtc/types';
-import { isVideoFile, isPdfFile, isImageFile } from '@/utils/browserUtil';
+import { isVideoFile, isPdfFile, isImageFile, isAudioFile } from '@/utils/browserUtil';
 import { toast } from '@/hooks/use-toast';
 
 // 定义 store 的状态和操作
@@ -24,6 +24,8 @@ interface FileBrowserState<FileViewEntry> {
   pdfDialogOpen: boolean;
   imageUrl: string | null;
   imageDialogOpen: boolean;
+  audioUrl: string | null;
+  audioDialogOpen: boolean;
 
   // 设置功能
   setFeatures: (features: {
@@ -42,6 +44,8 @@ interface FileBrowserState<FileViewEntry> {
   setPdfDialogOpen: (open: boolean) => void;
   setImageUrl: (url: string | null) => void;
   setImageDialogOpen: (open: boolean) => void;
+  setAudioUrl: (url: string | null) => void;
+  setAudioDialogOpen: (open: boolean) => void;
   
   // 设置回调函数
   setCallbacks: (callbacks: {
@@ -69,6 +73,7 @@ interface FileBrowserState<FileViewEntry> {
   handlePlayVideo: (file: FileViewEntry) => void;
   handleViewPdf: (file: FileViewEntry) => void;
   handleViewImage: (file: FileViewEntry) => void;
+  handlePlayAudio: (file: FileViewEntry) => void;
   refreshCurrentDirectory: () => Promise<void>;
   
   // 初始化
@@ -98,6 +103,8 @@ export const createFileBrowserStore = () => {
       pdfUrl: null,
       imageDialogOpen: false,
       imageUrl: null,
+      audioDialogOpen: false,
+      audioUrl: null,
       
       // 回调函数
       onFileSelect: undefined,
@@ -153,6 +160,12 @@ export const createFileBrowserStore = () => {
       }),
       setImageDialogOpen: (open) => set((state) => {
         state.imageDialogOpen = open;
+      }),
+      setAudioUrl: (url) => set((state) => {
+        state.audioUrl = url;
+      }),
+      setAudioDialogOpen: (open) => set((state) => {
+        state.audioDialogOpen = open;
       }),
 
       // 获取文件列表
@@ -261,7 +274,6 @@ export const createFileBrowserStore = () => {
         const { navigateToDirectory, handleFileSelect, onFileSelect } = get();
         
         if (file.isDirectory) {
-          // 如果是目录，则导航到该目录
           await navigateToDirectory(file.path);
           return;
         }
@@ -342,6 +354,21 @@ export const createFileBrowserStore = () => {
         }
       },
 
+      handlePlayAudio: async (file) => {
+        const { setAudioUrl, setAudioDialogOpen } = get();
+        if (isAudioFile(file)) {
+          try {
+            setAudioUrl(`/access?path=${file.path}&size=${file.size}&type=${file.type}#download`);
+            setAudioDialogOpen(true);
+          } catch (error) {
+            toast({
+              title: '无法播放音频',
+              description: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      },
+
       // 刷新当前目录
       refreshCurrentDirectory: async () => {
         const { currentPath, fetchFiles } = get();
@@ -356,22 +383,24 @@ export const createFileBrowserStore = () => {
 
       // 清理
       cleanup: () => set((state) => {
-          state.currentPath = '/';
-          state.currentFiles = [];
-          state.breadcrumbs = ['/'];
-          state.selectedFile = null;
-          state.selectedFileTransfer = null;
-          state.loading = false;
-          state.videoUrl = null;
-          state.videoDialogOpen = false;
-          state.pdfUrl = null;
-          state.pdfDialogOpen = false;
-          state.imageUrl = null;
-          state.imageDialogOpen = false;
-          state.onFileSelect = undefined;
-          state.onFileData = undefined;
-          state.onDirectorySelect = undefined;
-        }),
+        state.currentPath = '/';
+        state.currentFiles = [];
+        state.breadcrumbs = ['/'];
+        state.selectedFile = null;
+        state.selectedFileTransfer = null;
+        state.loading = false;
+        state.videoUrl = null;
+        state.videoDialogOpen = false;
+        state.pdfUrl = null;
+        state.pdfDialogOpen = false;
+        state.imageUrl = null;
+        state.imageDialogOpen = false;
+        state.audioUrl = null;
+        state.audioDialogOpen = false;
+        state.onFileSelect = undefined;
+        state.onFileData = undefined;
+        state.onDirectorySelect = undefined;
+      }),
     }))
   );
 };

@@ -36,6 +36,10 @@ export default function ShareView({ id }: { id: string }) {
   
   // 渲染内容
   const renderContent = () => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
     // 检查是否支持文件系统访问 API
     if (!isFileSystemAccessSupported()) {
       return (

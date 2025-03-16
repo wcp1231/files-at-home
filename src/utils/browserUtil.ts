@@ -23,6 +23,14 @@ export function isImageFile(file: FileViewEntry): boolean {
   );
 }
 
+export function isAudioFile(file: FileViewEntry): boolean {
+  const audioExtensions = ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'];
+  return audioExtensions.some(ext => 
+    file.name.toLowerCase().endsWith(ext) || 
+    (file.type && file.type.startsWith('audio/'))
+  );
+}
+
 // 格式化修改时间
 // 忽略秒
 export const formatModifiedTime = (modifiedAt: string | Date | undefined) => {
