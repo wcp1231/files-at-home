@@ -17,7 +17,7 @@ export interface HostConnectionCallbacks {
   onClientConnected?: (clientId: string) => void;
   onClientDisconnected?: (clientId: string) => void;
   onStateChanged?: (state: ConnectionState) => void;
-  onEncryptionPassphraseGenerated?: (passphrase: string) => void;
+  onEncryptionPassphraseGenerated?: (passphrase: string | null) => void;
   onError?: (error: string | null) => void;
 }
 
@@ -69,6 +69,10 @@ export class HostConnectionManager {
       if (passphrase) {
         await hostCrypto.waitReady();
         this.encryptionPassphrase = await hostCrypto.generateKeyFromPassphrase(passphrase);
+        this.callbacks.onEncryptionPassphraseGenerated!(this.encryptionPassphrase);
+      } else {
+        hostCrypto.clearKey();
+        this.encryptionPassphrase = null;
         this.callbacks.onEncryptionPassphraseGenerated!(this.encryptionPassphrase);
       }
 

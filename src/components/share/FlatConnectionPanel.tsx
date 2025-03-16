@@ -178,8 +178,8 @@ const ConnectedPopoverContent = () => {
 };
 
 const DisconnectedPopoverContent = () => {
-  const { connectionState, initializeHost } = useWebRTCHostStore();
-  const [passphrase, setPassphrase] = useState('');
+  const { connectionState, initializeHost, encryptionPassphrase } = useWebRTCHostStore();
+  const [passphrase, setPassphrase] = useState(encryptionPassphrase || '');
   const [buttonProps, setButtonProps] = useState(getConnectionButtonProps(connectionState));
 
   const handleSubmit = async (e: React.FormEvent) => {

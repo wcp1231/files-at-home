@@ -43,8 +43,23 @@ const ErrorTooltip = ({ error }: ErrorTooltipProps) => {
   );
 };
 
-// 使用模块级变量来跟踪连接状态，确保它在组件重新渲染或卸载时不会重置
-let isConnectionInitialized = false;
+// 获取按钮状态和标签
+const getConnectionButtonProps = (connectionState: ConnectionState) => {
+  switch (connectionState) {
+    case ConnectionState.INITIALIZING:
+      return {
+        icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
+        label: '连接中...',
+        disabled: true
+      };
+    default:
+      return {
+        icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
+        label: '连接',
+        disabled: false
+      };
+  }
+};
 
 // 获取按钮状态和标签
 const getButtonProps = (connectionState: ConnectionState) => {
@@ -82,43 +97,85 @@ const getButtonProps = (connectionState: ConnectionState) => {
   }
 };
 
+const ConnectedPopoverContent = () => {
+  const { connectionId, disconnect } = useWebRTCClientStore();
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-col">
+        <p className="text-sm font-medium mb-1">已连接到远程分享</p>
+        {connectionId && (
+          <p className="text-xs text-muted-foreground mt-1">
+            ID: <span className="font-mono bg-muted px-1 py-0.5 rounded text-xs">{connectionId}</span>
+          </p>
+        )}
+      </div>
+      <Button 
+        size="sm" 
+        variant="outline" 
+        className="w-full h-7 text-xs"
+        onClick={disconnect}
+      >
+        断开连接
+      </Button>
+    </div>
+  );
+}
+const DisconnectedPopoverContent = ({ initialConnectionId, handleConnect }: { initialConnectionId: string | undefined, handleConnect: (id: string) => void }) => {
+  const { connectionState } = useWebRTCClientStore();
+  const [connectionIdInput, setConnectionIdInput] = useState<string>(initialConnectionId || '');
+  const [buttonProps, setButtonProps] = useState(getConnectionButtonProps(connectionState));
+
+
+  useEffect(() => {
+    setButtonProps(getConnectionButtonProps(connectionState));
+  }, [connectionState]);
+
+  
+  return (
+    <div className="space-y-3">
+      <p className="text-xs">输入连接 ID 或粘贴分享链接</p>
+      <div className="flex items-center space-x-2">
+        <Input 
+          value={connectionIdInput}
+          onChange={(e) => setConnectionIdInput(e.target.value)}
+          placeholder="Connection ID"
+          className="h-7 text-xs"
+        />
+        <Button 
+          size="sm" 
+          className="h-7 text-xs"
+          onClick={() => handleConnect(connectionIdInput)}
+          disabled={!connectionIdInput || buttonProps.disabled}
+        >
+          {buttonProps.icon}
+          <span className="ml-1">{buttonProps.label}</span>
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 export default function FlatConnectionPanel({ initialConnectionId }: FlatConnectionPanelProps) {
   const {
-    connectionId,
     initializeClient,
-    disconnect,
     connectionState,
     error
   } = useWebRTCClientStore()
-  
-  const [connectionIdInput, setConnectionIdInput] = useState<string>(initialConnectionId || '');
-
-  // 创建一个自定义的断开连接函数，它会重置连接初始化标志
-  const handleDisconnect = () => {
-    disconnect();
-    isConnectionInitialized = false;
-  };
 
   // 连接到主机
   const handleConnect = (id: string) => {
     if (!id) return;
-
     // 重定向到对应 id 的分享页面
     if (!location.href.includes(id)) {
       location.href = `/access/${id}`;
       return;
     }
-    
-    if (!isConnectionInitialized) {
-      isConnectionInitialized = true;
-      // 保存连接ID
-      initializeClient(id);
-    }
+    initializeClient(id);
   };
 
   // 如果提供了初始连接ID，则自动连接
   useEffect(() => {
-    if (initialConnectionId && !isConnectionInitialized) {
+    if (initialConnectionId) {
       handleConnect(initialConnectionId);
     }
   }, [initialConnectionId]);
@@ -145,44 +202,9 @@ export default function FlatConnectionPanel({ initialConnectionId }: FlatConnect
         </PopoverTrigger>
         <PopoverContent className="w-80 p-3 mt-1">
           {isConnected ? (
-            <div className="space-y-3">
-              <div className="flex flex-col">
-                <p className="text-sm font-medium mb-1">已连接到远程分享</p>
-                {connectionId && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    ID: <span className="font-mono bg-muted px-1 py-0.5 rounded text-xs">{connectionId}</span>
-                  </p>
-                )}
-              </div>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full h-7 text-xs"
-                onClick={handleDisconnect}
-              >
-                断开连接
-              </Button>
-            </div>
+            <ConnectedPopoverContent />
           ) : (
-            <div className="space-y-3">
-              <p className="text-xs">输入连接 ID 或粘贴分享链接</p>
-              <div className="flex items-center space-x-2">
-                <Input 
-                  value={connectionIdInput}
-                  onChange={(e) => setConnectionIdInput(e.target.value)}
-                  placeholder="Connection ID"
-                  className="h-7 text-xs"
-                />
-                <Button 
-                  size="sm" 
-                  className="h-7 text-xs"
-                  onClick={() => handleConnect(connectionIdInput)}
-                  disabled={!connectionIdInput}
-                >
-                  连接
-                </Button>
-              </div>
-            </div>
+            <DisconnectedPopoverContent initialConnectionId={initialConnectionId} handleConnect={handleConnect} />
           )}
         </PopoverContent>
       </Popover>
