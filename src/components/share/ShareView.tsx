@@ -1,17 +1,19 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useFileSystem } from '@/hooks/useFileSystem';
 
 // Import components from the barrel export
 import DirectorySelector from '@/components/share/DirectorySelector';
 import { Toaster } from '@/components/ui/toast/toaster';
 import { toast } from '@/hooks/use-toast';
+import { useTranslations } from 'next-intl';
 
 const FileExplorer = dynamic(() => import('@/components/share/FileExplorer'), { ssr: false });
 
 export default function ShareView({ id }: { id: string }) {
+  const t = useTranslations('ShareView');
   const {
     rootDirHandle,
     openDirectory,
@@ -36,17 +38,13 @@ export default function ShareView({ id }: { id: string }) {
   
   // 渲染内容
   const renderContent = () => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
     // 检查是否支持文件系统访问 API
     if (!isFileSystemAccessSupported()) {
       return (
         <div className="flex flex-col items-center justify-center h-full space-y-4">
-          <h2 className="text-2xl font-semibold">不支持的浏览器或设备</h2>
+          <h2 className="text-2xl font-semibold">{t('unsupported.title')}</h2>
           <p className="text-gray-600 text-center max-w-md">
-            您当前的浏览器或设备不支持文件系统访问功能。请尝试使用最新版本的 Chrome、Edge 或其他支持文件系统访问的现代浏览器。如果问题仍然存在，请尝试使用其他设备。
+            {t('unsupported.description')}
           </p>
         </div>
       );
@@ -68,6 +66,15 @@ export default function ShareView({ id }: { id: string }) {
       />
     );
   };
+
+  // 确保在客户端渲染
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted) {
+    return null; // 或者返回一个加载占位符
+  }
   
   return (
     <div className="max-w-8xl mx-auto pt-4 px-4">

@@ -20,7 +20,7 @@ export function useFileSystem() {
 
   // Check if the File System Access API is supported
   const isFileSystemAccessSupported = () => {
-    return typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+    return 'showDirectoryPicker' in window;
   };
 
   // Open dir

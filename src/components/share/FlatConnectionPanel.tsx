@@ -15,6 +15,7 @@ import {
   TooltipTrigger 
 } from "@/components/ui/tooltip";
 import { useWebRTCHostStore } from '@/store/webrtcHostStore';
+import { useTranslations } from 'next-intl';
 
 // 错误提示组件
 interface ErrorTooltipProps {
@@ -45,13 +46,13 @@ const getConnectionButtonProps = (connectionState: ConnectionState) => {
     case ConnectionState.INITIALIZING:
       return {
         icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
-        label: '初始化中...',
+        label: 'button.initializing',
         disabled: true
       };
     default:
       return {
         icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
-        label: '初始化连接',
+        label: 'button.share',
         disabled: false
       };
   }
@@ -63,28 +64,28 @@ const getStatusButtonProps = (connectionState: ConnectionState) => {
     case ConnectionState.INITIALIZING:
       return {
         icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
-        label: '初始化中...',
+        label: 'initializing.statusButton',
         variant: 'outline',
         disabled: true
       };
     case ConnectionState.CONNECTING:
       return {
         icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
-        label: '连接中...',
+        label: 'connecting.statusButton',
         variant: 'outline',
         disabled: true
       };
     case ConnectionState.WAITING_FOR_CONNECTION:
       return {
         icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
-        label: '等待连接',
+        label: 'connected.statusButton.waiting',
         variant: 'secondary',
         disabled: false
       };
     case ConnectionState.CONNECTED:
       return {
         icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
-        label: '已连接',
+        label: 'connected.statusButton.connected',
         variant: 'default',
         disabled: false
       };
@@ -92,7 +93,7 @@ const getStatusButtonProps = (connectionState: ConnectionState) => {
     default:
       return {
         icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
-        label: '分享',
+        label: 'disconnected.statusButton',
         variant: 'outline',
         disabled: false
       };
@@ -100,6 +101,7 @@ const getStatusButtonProps = (connectionState: ConnectionState) => {
 };
 
 const ConnectedPopoverContent = () => {
+  const t = useTranslations('ShareView.connectionPanel');
   const {
     peerId,
     encryptionPassphrase,
@@ -129,7 +131,7 @@ const ConnectedPopoverContent = () => {
   return (
     <div className="space-y-3">
       <div className="flex flex-col">
-        <p className="text-sm font-medium mb-1">分享链接</p>
+        <p className="text-sm font-medium mb-1">{t('connected.shareLink')}</p>
         {peerId && (
           <div className="flex items-center space-x-1">
             <Input 
@@ -151,7 +153,7 @@ const ConnectedPopoverContent = () => {
         )}
         {encryptionPassphrase && (
           <>
-            <p className="text-sm font-medium mb-1">连接密码</p>
+            <p className="text-sm font-medium mb-1">{t('connected.connectionPassphrase')}</p>
             <div className="flex items-center space-x-1">
               <Input 
                 value={encryptionPassphrase || ''} 
@@ -171,33 +173,30 @@ const ConnectedPopoverContent = () => {
         className="w-full h-7 text-xs"
         onClick={disconnect}
       >
-        断开连接
+        {t('connected.button.disconnect')}
       </Button>
     </div>
   );
 };
 
 const DisconnectedPopoverContent = () => {
+  const t = useTranslations('ShareView.connectionPanel.disconnected');
   const { connectionState, initializeHost, encryptionPassphrase } = useWebRTCHostStore();
   const [passphrase, setPassphrase] = useState(encryptionPassphrase || '');
-  const [buttonProps, setButtonProps] = useState(getConnectionButtonProps(connectionState));
+  const buttonProps = getConnectionButtonProps(connectionState);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await initializeHost(passphrase)
   };
 
-  useEffect(() => {
-    setButtonProps(getConnectionButtonProps(connectionState));
-  }, [connectionState]);
-  
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <p className="text-xs">初始化分享连接，让远程设备访问你的文件</p>
+      <p className="text-xs">{t('description')}</p>
       <div className="space-y-2">
         <Input
           type="text"
-          placeholder="设置连接密码（可选）"
+          placeholder={t('passphrasePlaceholder')}
           value={passphrase}
           onChange={(e) => setPassphrase(e.target.value)}
           className="h-7 text-xs"
@@ -209,7 +208,7 @@ const DisconnectedPopoverContent = () => {
           disabled={buttonProps.disabled}
         >
           {buttonProps.icon}
-          <span className="ml-1">{buttonProps.label}</span>
+          <span className="ml-1">{t(buttonProps.label)}</span>
         </Button>
       </div>
     </form>
@@ -217,6 +216,7 @@ const DisconnectedPopoverContent = () => {
 };
 
 export default function FlatConnectionPanel() {
+  const t = useTranslations('ShareView.connectionPanel');
   // 使用 useWebRTCHost hook 管理 WebRTC 连接
   const {
     connectionState,
@@ -240,7 +240,7 @@ export default function FlatConnectionPanel() {
           disabled={buttonProps.disabled}
         >
           {buttonProps.icon}
-          <span className="ml-1">{buttonProps.label}</span>
+          <span className="ml-1">{t(buttonProps.label)}</span>
         </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80 p-3 mt-1" align="end">

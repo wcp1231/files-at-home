@@ -1,18 +1,15 @@
 'use client'
 
+import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
-import { Sun, Moon, Globe } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import Link from 'next/link'
+import { DynamicIcon } from 'lucide-react/dynamic'
+import LocaleSwitcher from './LocaleSwitcher'
 
 export function Header() {
+  const t = useTranslations('Header');
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
 
@@ -30,7 +27,7 @@ export function Header() {
       <div className="container mx-auto flex h-10 items-center">
         <div className="mx-4 md:mx-0 flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="font-bold">FolderPort</span>
+            <span className="font-bold">{t('title')}</span>
           </Link>
         </div>
 
@@ -41,20 +38,9 @@ export function Header() {
               size="icon"
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
             >
-              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+              <DynamicIcon name={theme === 'light' ? 'moon' : 'sun'} size={20} />
             </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Globe size={20} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>English</DropdownMenuItem>
-                <DropdownMenuItem>中文</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <LocaleSwitcher />
           </div>
         </div>
       </div>

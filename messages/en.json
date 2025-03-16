@@ -1,0 +1,145 @@
+{
+  "Header": {
+    "title": "FolderPort"
+  },
+  "HomePage": {
+    "title": "FolderPort",
+    "description": "Share your folders with anyone, anywhere",
+    "actions": {
+      "share": {
+        "title": "Share Folder",
+        "description": "Share your folders with anyone, anywhere"
+      },
+      "access": {
+        "title": "Access Folder",
+        "description": "Access your folders from anywhere, anytime"
+      }
+    },
+    "features": {
+      "title": "Main Features",
+      "features": [
+        "No registration and login required, one-click sharing and access",
+        "P2P transmission, no server required",
+        "Support large file transfer, no file size limit",
+        "Support document, image, video, audio, etc. file type preview",
+        "Support AES encryption transmission, protect privacy",
+        "Support desktop and mobile access"
+      ]
+    },
+    "footer": {
+      "documentation": "Documentation",
+      "about": "About"
+    }
+  },
+  "ShareView": {
+    "unsupported": {
+      "title": "Unsupported browser or device",
+      "description": "Your current browser or device does not support the file system access feature. Please try using the latest version of Chrome, Edge, or other modern browsers that support file system access. If the problem persists, please try using another device."
+    },
+    "directorySelector": {
+      "title": "Select a folder to share",
+      "description": "Select a folder and click the share button to share the folder content.",
+      "selectDirectoryButton": "Select folder"
+    },  
+    "connectionPanel": {
+      "disconnected": {
+        "statusButton": "Not sharing",
+        "description": "Start sharing, allowing remote devices to access your folder",
+        "passphrasePlaceholder": "Set connection password (optional)",
+        "button": {
+          "share": "Share",
+          "initializing": "Initializing..."
+        }
+      },
+      "initializing": {
+        "statusButton": "Initializing...",
+        "description": "Initializing...",
+        "button": {
+          "cancel": "Cancel"
+        }
+      },
+      "connecting": {
+        "statusButton": "Connecting...",
+        "description": "Connecting...",
+        "button": {
+          "cancel": "Cancel"
+        }
+      },
+      "connected": {
+        "statusButton": {
+          "waiting": "Waiting for connection",
+          "connected": "Connected"
+        },
+        "shareLink": "Share link",
+        "connectionPassphrase": "Connection passphrase",
+        "button": {
+          "disconnect": "Disconnect"
+        }
+      }
+    }
+  },
+  "AccessView": { 
+    "connectionPanel": {
+      "disconnected": {
+        "statusButton": "Not Connected",
+        "description": "Enter connection ID or paste share link",
+        "button": {
+          "connect": "Connect",
+          "initializing": "Initializing..."
+        }
+      },
+      "initializing": {
+        "statusButton": "Initializing...",
+        "description": "Initializing...",
+        "button": {
+          "cancel": "Cancel"
+        }
+      },
+      "connecting": {
+        "statusButton": "Connecting...",
+        "description": "Connecting...",
+        "button": {
+          "cancel": "Cancel"
+        }
+      },
+      "connected": {
+        "statusButton": "Connected",
+        "description": "Connected to remote folder",
+        "button": {
+          "disconnect": "Disconnect"
+        }
+      }
+    }
+  },
+  "PassphraseDialog": {
+    "title": "Enter Connection Passphrase",
+    "description": "Please enter the passphrase to establish a secure connection",
+    "placeholder": "Connection Passphrase",
+    "button": {
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    }
+  },
+  "NetworkSpeedDisplay": {
+    "title": "File Transfer Status",
+    "noTransferRecord": "No transfer record",
+    "speed": "Speed",
+    "size": "Size",
+    "timeElapsed": "Time Elapsed",
+    "error": "Error",
+    "status": {
+      "initializing": "Initializing",
+      "transferring": "Transferring",
+      "assembling": "Assembling",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "unknown": "Unknown"
+    }
+  },
+  "messages": {
+    "uploadSuccess": "File uploaded successfully",
+    "deleteSuccess": "File deleted successfully",
+    "error": "An error occurred"
+  }
+} 

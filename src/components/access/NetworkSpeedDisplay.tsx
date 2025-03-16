@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog';
+import { useTranslations } from 'next-intl';
 
 interface NetworkSpeedDisplayProps {
   className?: string;
@@ -29,6 +30,7 @@ const formatBytes = (bytes: number, decimals = 2): string => {
 };
 
 export default function NetworkSpeedDisplay({ className = '' }: NetworkSpeedDisplayProps) {
+  const t = useTranslations('NetworkSpeedDisplay');
   const fileTransferMap = useWebRTCClientStore(state => state.fileTransfers);
   const fileTransfers = Array.from(fileTransferMap.values());
   const [totalSpeed, setTotalSpeed] = useState<number>(0);
@@ -69,19 +71,19 @@ export default function NetworkSpeedDisplay({ className = '' }: NetworkSpeedDisp
   const getStatusText = (status: FileTransferStatus): string => {
     switch (status) {
       case FileTransferStatus.INITIALIZING:
-        return '初始化';
+        return t('status.initializing');
       case FileTransferStatus.TRANSFERRING:
-        return '传输中';
+        return t('status.transferring');
       case FileTransferStatus.ASSEMBLING:
-        return '组装中';
+        return t('status.assembling');
       case FileTransferStatus.COMPLETED:
-        return '已完成';
+        return t('status.completed');
       case FileTransferStatus.ERROR:
-        return '错误';
+        return t('status.failed');
       case FileTransferStatus.CANCELLED:
-        return '已取消';
+        return t('status.cancelled');
       default:
-        return '未知';
+        return t('status.unknown');
     }
   };
 
@@ -117,12 +119,12 @@ export default function NetworkSpeedDisplay({ className = '' }: NetworkSpeedDisp
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>文件传输状态</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
         <div className="max-h-[60vh] overflow-y-auto">
           {fileTransfers.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
-              没有文件传输记录
+              {t('noTransferRecord')}
             </div>
           ) : (
             <div className="space-y-4">
@@ -153,19 +155,19 @@ export default function NetworkSpeedDisplay({ className = '' }: NetworkSpeedDisp
                   
                   <div className="flex justify-between text-xs mb-2">
                     <span>{formatBytes(transfer.size)}</span>
-                    <span>已用时间: {formatTimeElapsed(transfer)}</span>
+                    <span>{t('timeElapsed')}: {formatTimeElapsed(transfer)}</span>
                   </div>
                   
                   <Progress value={transfer.progress} className="h-2 mb-2" />
                   
                   <div className="flex justify-between text-xs">
                     <span>{Math.round(transfer.progress)}%</span>
-                    <span>速度: {formatSpeed(transfer.speed)}</span>
+                    <span>{t('speed')}: {formatSpeed(transfer.speed)}</span>
                   </div>
                   
                   {transfer.error && (
                     <div className="mt-2 text-xs text-red-500">
-                      错误: {transfer.error}
+                      {t('error')}: {transfer.error}
                     </div>
                   )}
                 </div>

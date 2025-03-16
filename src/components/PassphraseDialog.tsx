@@ -12,8 +12,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useDialogStore } from '@/store/dialogStore';
+import { useTranslations } from 'next-intl';
 
 export function PassphraseDialog() {
+  const t = useTranslations('PassphraseDialog');
   const [passphrase, setPassphrase] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { passphraseRequest, confirmPassphrase, cancelPassphrase } = useDialogStore();
@@ -43,9 +45,9 @@ export function PassphraseDialog() {
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{passphraseRequest.title}</DialogTitle>
+            <DialogTitle>{t('title')}</DialogTitle>
             <DialogDescription>
-              {passphraseRequest.message}
+              {t('description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -55,7 +57,7 @@ export function PassphraseDialog() {
               type="text"
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
-              placeholder="输入连接密码"
+              placeholder={t('placeholder')}
               className="w-full"
               autoFocus
             />
@@ -70,13 +72,13 @@ export function PassphraseDialog() {
                 cancelPassphrase();
               }}
             >
-              取消
+              {t('button.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={!passphrase.trim()}
             >
-              确认
+              {t('button.confirm')}
             </Button>
           </DialogFooter>
         </form>

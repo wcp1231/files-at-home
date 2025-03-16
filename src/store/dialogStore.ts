@@ -2,8 +2,6 @@ import { create } from 'zustand';
 
 interface PassphraseRequest {
   isOpen: boolean;
-  title: string;
-  message: string;
   resolve: (value: string) => void;
 }
 
@@ -17,16 +15,11 @@ interface DialogState {
 export const useDialogStore = create<DialogState>((set, get) => ({
   passphraseRequest: null,
 
-  askForPassphrase: async (
-    title = '输入密码',
-    message = '请输入共享密码以继续连接'
-  ) => {
+  askForPassphrase: async () => {
     return new Promise<string>((resolve) => {
       set({
         passphraseRequest: {
           isOpen: true,
-          title,
-          message,
           resolve
         }
       });

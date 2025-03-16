@@ -1,0 +1,138 @@
+{
+  "Header": {
+    "title": "FolderPort"
+  },
+  "HomePage": {
+    "title": "FolderPort",
+    "description": "让你随时随地快速、安全地分享文件夹",
+    "actions": {
+      "share": {
+        "title": "分享文件夹",
+        "description": "选择要分享的文件夹，生成分享链接，轻松访问"
+      },
+      "access": {
+        "title": "访问文件夹",
+        "description": "通过分享链接快速访问分享的文件夹"
+      }
+    },
+    "features": {
+      "title": "主要特点",
+      "features": [
+        "无需注册和登录，一键分享和访问",
+        "P2P 传输，无需服务器",
+        "支持大文件传输，不受文件大小限制",
+        "支持文档、图片、视频、音频等文件类型预览",
+        "支持 AES 加密传输，保护隐私",
+        "支持桌面端和移动端访问"
+      ]
+    },
+    "footer": {
+      "documentation": "使用文档",
+      "about": "关于项目"
+    }
+  },
+  "ShareView": {
+    "unsupported": {
+      "title": "不支持的浏览器或设备",
+      "description": "您当前的浏览器或设备不支持文件系统访问功能。请尝试使用最新版本的 Chrome、Edge 或其他支持文件系统访问的现代浏览器。如果问题仍然存在，请尝试使用其他设备。"
+    },
+    "directorySelector": {
+      "title": "选择要分享的文件夹",
+      "description": "选择一个文件夹并点击分享按钮后，可以通过分享链接访问该文件夹的内容。",
+      "selectDirectoryButton": "选择文件夹"
+    },
+    "connectionPanel": {
+      "disconnected": {
+        "statusButton": "未开启分享",
+        "description": "开启分享，让远程设备访问你的文件夹",
+        "passphrasePlaceholder": "设置连接密码（可选）",
+        "button": {
+          "share": "开启分享",
+          "initializing": "初始化中..."
+        }
+      },
+      "initializing": {
+        "statusButton": "初始化中...",
+        "description": "初始化中...",
+        "button": {
+          "cancel": "取消"
+        }
+      },
+      "connected": {
+        "statusButton": {
+          "waiting": "等待连接",
+          "connected": "已连接"
+        },
+        "shareLink": "分享链接",
+        "connectionPassphrase": "连接密码",
+        "button": {
+          "disconnect": "断开连接"
+        }
+      }
+    }
+  },
+  "AccessView": { 
+    "connectionPanel": {
+      "disconnected": {
+        "statusButton": "未连接",
+        "description": "输入连接ID或粘贴分享链接",
+        "button": {
+          "connect": "连接",
+          "initializing": "初始化中..."
+        }
+      },
+      "initializing": {
+        "statusButton": "初始化中...",
+        "description": "初始化中...",
+        "button": {
+          "cancel": "取消"
+        }
+      },
+      "connecting": {
+        "statusButton": "连接中...",
+        "description": "连接中...",
+        "button": {
+          "cancel": "取消"
+        }
+      },
+      "connected": {
+        "statusButton": "已连接",
+        "description": "已连接到远程文件夹",
+        "button": {
+          "disconnect": "断开连接"
+        }
+      }
+    }
+  },
+  "PassphraseDialog": {
+    "title": "输入连接密码",
+    "description": "请输入密码以建立安全连接",
+    "placeholder": "连接密码",
+    "button": {
+      "cancel": "取消",
+      "confirm": "确认"
+    }
+  },
+  "NetworkSpeedDisplay": {
+    "title": "文件传输状态",
+    "noTransferRecord": "没有传输记录",
+    "speed": "速度",
+    "size": "大小",
+    "timeElapsed": "预估用时",
+    "error": "错误",
+    "status": {
+      "initializing": "初始化",
+      "transferring": "传输中",
+      "assembling": "组装中",
+      "completed": "已完成",
+      "failed": "失败",
+      "cancelled": "已取消",
+      "unknown": "未知"
+    }
+  },
+  "messages": {
+    "uploadSuccess": "文件上传成功",
+    "deleteSuccess": "文件删除成功",
+    "error": "发生错误"
+  }
+} 
