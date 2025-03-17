@@ -1,6 +1,6 @@
-import { HEADER_KEY, MessageType } from "@/types/worker";
-import { MESSAGE_TYPE } from "@/types/worker";
-import { ConnectionState } from "..";
+import { HEADER_KEY, MessageType, MESSAGE_TYPE } from "@/types/worker";
+import { ConnectionState } from "@/lib/webrtc/types";
+import { useServiceWorkerStore } from "@/store/serviceWorkerStore";
 
 export class WorkerManager {
   public static channel: MessageChannel | null = null;
@@ -42,10 +42,15 @@ export class WorkerManager {
     }
     if (!WorkerManager.channel) {
       WorkerManager.channel = new MessageChannel();
-      WorkerManager.channel.port1.onmessage = WorkerManager.onMessage;
-      WorkerManager.worker?.active?.postMessage({ type: MESSAGE_TYPE.INIT_CHANNEL }, [
+      WorkerManager.channel.port1.onmessage = WorkerManager.onPortMessage;
+      WorkerManager.worker.active.postMessage({ type: MESSAGE_TYPE.INIT_CHANNEL }, [
         WorkerManager.channel.port2,
       ]);
+
+      // 监听 Service Worker 的消息，只有这样才可以监听到 Service Worker 的消息
+      navigator.serviceWorker.onmessage = (event) => {
+        WorkerManager.onMessage(event as MessageEvent);
+      };
       WorkerManager.heartbeat();
     }
   }
@@ -57,6 +62,13 @@ export class WorkerManager {
     }, 1000);
   }
 
+  public static async onMessage(event: MessageEvent) {
+    const { type, data } = event.data;
+    if (type === 'PONG') {
+      useServiceWorkerStore.getState().update(data.portExists, data.heartbeat);
+    }
+  }
+
   public static setMessageHandler(handler: (fileId: string, path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) => Promise<void>) {
     WorkerManager.messageHandler = handler;
   }
@@ -65,7 +77,7 @@ export class WorkerManager {
     WorkerManager.worker?.active?.postMessage({ type: MESSAGE_TYPE.WEBRTC_STATE_CHANGE, state });
   }
 
-  public static async onMessage(event: MessageEvent) {
+  public static async onPortMessage(event: MessageEvent) {
     const { fileId, path, writable, start, end }: { fileId: string, path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number } = event.data;
     await WorkerManager.messageHandler(fileId, path, writable, start, end);
   }

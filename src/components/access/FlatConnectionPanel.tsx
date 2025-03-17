@@ -21,29 +21,6 @@ interface FlatConnectionPanelProps {
   initialConnectionId?: string;
 }
 
-// 错误提示组件
-interface ErrorTooltipProps {
-  error: string | null;
-}
-
-const ErrorTooltip = ({ error }: ErrorTooltipProps) => {
-  if (!error) return null;
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="text-destructive cursor-pointer">
-            <DynamicIcon name="alert-circle" className="h-4 w-4" />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="max-w-xs">{error}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
-
 // 获取按钮状态和标签
 const getConnectionButtonProps = (connectionState: ConnectionState) => {
   switch (connectionState) {
@@ -184,8 +161,6 @@ export default function FlatConnectionPanel({ initialConnectionId }: FlatConnect
 
   return (
     <div className="flex items-center space-x-2">
-      <ErrorTooltip error={error} />
-
       <Popover>
         <PopoverTrigger asChild>
           <Button

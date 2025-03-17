@@ -163,6 +163,11 @@
       "noConnection": "Not connected to the remote device"
     }
   },
+  "WorkerStatusTooltip": {
+    "running": "Worker is running",
+    "notRunning": "Worker is not running",
+    "notRunningTooltip": "It may affect file transfer, please try refreshing the page"
+  },
   "messages": {
     "uploadSuccess": "File uploaded successfully",
     "deleteSuccess": "File deleted successfully",

@@ -73,10 +73,15 @@ function handleWebrtcStateChange(event: ExtendableMessageEvent) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handlePing(event: ExtendableMessageEvent) {
-  if (!holder.port) {
-    console.warn('[Service Worker] Port missing');
-  }
+  const portExists = !!holder.port;
   holder.heartbeat = Date.now();
+  event.source!.postMessage({
+    type: 'PONG',
+    data: {
+      heartbeat: holder.heartbeat,
+      portExists,
+    },
+  });
 }
 
 /**

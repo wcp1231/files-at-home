@@ -156,6 +156,11 @@
       "noConnection": "未连接到远端设备"
     }
   },
+  "WorkerStatusTooltip": {
+    "running": "Worker 运行中",
+    "notRunning": "Worker 未运行",
+    "notRunningTooltip": "可能会影响文件传输，请尝试刷新页面"
+  },
   "messages": {
     "uploadSuccess": "文件上传成功",
     "deleteSuccess": "文件删除成功",
