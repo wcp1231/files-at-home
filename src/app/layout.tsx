@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Header } from "@/components/Header";
 import { NextIntlClientProvider } from 'next-intl';
+import { HighlightInit } from '@highlight-run/next/client'
 import "./globals.css";
 
 const geistSans = Geist({
@@ -65,6 +66,15 @@ export default function RootLayout({
   params: { locale: string }
 }) {
   return (
+    <>
+      <HighlightInit
+				projectId={'jd40w90g'}
+				serviceName="folderport"
+        disableOtelTracing
+				networkRecording={{
+					enabled: false,
+				}}
+			/>
     <html lang={locale} suppressHydrationWarning>
       <head>
         <link rel="canonical" href="https://folderport.com" />
@@ -113,5 +123,6 @@ export default function RootLayout({
         />
       </body>
     </html>
+    </>
   );
 }
