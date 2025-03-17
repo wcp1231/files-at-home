@@ -109,7 +109,7 @@ export default function Home() {
               {t('footer.product.documentation')}
             </Link>
             <span className="text-muted-foreground/40">·</span>
-            <Link href="/#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="mailto:contact@folderport.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               {t('footer.support.contact')}
             </Link>
           </div>

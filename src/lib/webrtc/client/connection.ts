@@ -159,6 +159,7 @@ export class ClientConnectionManager {
     this.onStateChange(ConnectionState.DISCONNECTED);
     this.requestManager.setConnection(null);
     this.handshakeManager.setConnection(null);
+    this.clearEncryptionKey();
   }
   
   // Helper method to change connection phase and update dependencies
