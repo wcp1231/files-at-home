@@ -1,5 +1,5 @@
 import Link from "next/link";
-import {useTranslations} from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { DynamicIcon } from "lucide-react/dynamic";
 import { Metadata } from "next";
 

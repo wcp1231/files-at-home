@@ -78,7 +78,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
 
     _createConnectionManager: () => {
       const { _setConnectionState, onError, _updateFileTransfer, _connectionManager, requestFile, requestFileData, requestDirectory } = get();
-      const { setCallbacks, initialize, cleanup } = useFileBrowserStore.getState();
+      const { setCallbacks, initialize, cleanup, setConnected } = useFileBrowserStore.getState();
       const manager = new ClientConnectionManager(
         (state) => {
           _setConnectionState(state);
@@ -95,6 +95,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
               onFileData: requestFileData,
               onDirectorySelect: requestDirectory,
             });
+            setConnected(true);  // 设置 FileBrowserStore 的连接状态为已连接
             initialize('/');
           } else if (state === ConnectionState.DISCONNECTED) {
             set((draft) => {
@@ -106,6 +107,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
               onFileData: undefined,
               onDirectorySelect: undefined,
             });
+            setConnected(false);  // 设置 FileBrowserStore 的连接状态为未连接
             cleanup();
           }
         },

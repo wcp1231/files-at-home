@@ -1,4 +1,6 @@
 import React, { HTMLAttributes, useCallback } from 'react';
+import { DynamicIcon } from 'lucide-react/dynamic';
+import { useTranslations } from 'next-intl';
 import { FileViewEntry } from './FileBrowser';
 import { 
   Table, 
@@ -34,12 +36,14 @@ const TableRowComponent = (selectedFilePath: string | null, rows: FileViewEntry[
   };
 
 export function FileList() {
+  const t = useTranslations('FileBrowser');
   const {
     showOperations,
     currentFiles,
     loading,
     selectedFile,
     handleItemClick,
+    isConnected,
   } = useFileBrowserStore();
 
   // 只传递选中文件的路径，而不是整个文件对象，减少不必要的渲染
@@ -49,12 +53,31 @@ export function FileList() {
     await handleItemClick(file);
   }, [handleItemClick]);
 
+  if (!isConnected) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 space-y-4">
+        <DynamicIcon name="wifi-off" className="h-8 w-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">{t('status.noConnection')}</p>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div className="p-4 text-center">Loading...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 space-y-4">
+        <DynamicIcon name="loader-2" className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">{t('status.loading')}</p>
+      </div>
+    );
   }
 
   if (!currentFiles || currentFiles.length === 0) {
-    return <div className="p-4 text-center">No files found</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-8 space-y-4">
+        <DynamicIcon name="folder" className="h-8 w-8 text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">{t('status.emptyFolder')}</p>
+      </div>
+    );
   }
 
   return (

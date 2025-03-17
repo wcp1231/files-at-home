@@ -156,6 +156,13 @@
       "unknown": "Unknown"
     }
   },
+  "FileBrowser": {
+    "status": {
+      "loading": "Loading...",
+      "emptyFolder": "The folder is empty",
+      "noConnection": "Not connected to the remote device"
+    }
+  },
   "messages": {
     "uploadSuccess": "File uploaded successfully",
     "deleteSuccess": "File deleted successfully",

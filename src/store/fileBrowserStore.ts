@@ -11,6 +11,7 @@ interface FileBrowserState<FileViewEntry> {
   showOperations: boolean;
   packable: boolean;
   writeable: boolean;
+  isConnected: boolean;
 
   currentPath: string;
   currentFiles: FileViewEntry[];
@@ -33,6 +34,9 @@ interface FileBrowserState<FileViewEntry> {
     packable: boolean;
     writeable: boolean;
   }) => void;
+
+  // 新增设置连接状态的方法
+  setConnected: (isConnected: boolean) => void;
 
   // 回调函数
   onFileSelect?: (path: string) => Promise<FileViewEntry | null>;
@@ -90,6 +94,7 @@ export const createFileBrowserStore = () => {
       showOperations: false,
       packable: false,
       writeable: false,
+      isConnected: false,
 
       currentPath: '/',
       currentFiles: [] as FileViewEntry[],
@@ -122,6 +127,11 @@ export const createFileBrowserStore = () => {
         state.showOperations = features.showOperations;
         state.packable = features.packable;
         state.writeable = features.writeable;
+      }),
+
+      // 新增设置连接状态的方法
+      setConnected: (isConnected) => set((state) => {
+        state.isConnected = isConnected;
       }),
 
       // 基础状态设置函数
@@ -400,6 +410,7 @@ export const createFileBrowserStore = () => {
         state.onFileSelect = undefined;
         state.onFileData = undefined;
         state.onDirectorySelect = undefined;
+        state.isConnected = false;
       }),
     }))
   );
