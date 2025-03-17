@@ -17,18 +17,37 @@
     },
     "features": {
       "title": "主要特点",
-      "features": [
-        "无需注册和登录，一键分享和访问",
-        "P2P 传输，无需服务器",
-        "支持大文件传输，不受文件大小限制",
-        "支持文档、图片、视频、音频等文件类型预览",
-        "支持 AES 加密传输，保护隐私",
-        "支持桌面端和移动端访问"
-      ]
+      "oneClick": {
+        "title": "一键分享",
+        "description": "无需安装任何软件，打开浏览器即可开始分享。基于 P2P 技术，文件直传更安全"
+      },
+      "preview": {
+        "title": "即时预览",
+        "description": "图片、音频、视频文件即刻在线预览，让分享体验更加流畅自然"
+      },
+      "unlimited": {
+        "title": "无限传输",
+        "description": "突破文件大小限制，告别文件分割烦恼，轻松传输任意大小文件"
+      },
+      "security": {
+        "title": "加密保护",
+        "description": "可设置 AES 加密口令，全程加密传输，保护您的数据安全，让分享更有保障"
+      },
+      "crossPlatform": {
+        "title": "跨平台支持",
+        "description": "Windows、Mac、Android 全功能支持，iOS 可直接访问，随时随地轻松分享"
+      }
     },
     "footer": {
-      "documentation": "使用文档",
-      "about": "关于项目"
+      "product": {
+        "title": "产品",
+        "documentation": "使用文档"
+      },
+      "support": {
+        "title": "支持",
+        "contact": "联系我们"
+      },
+      "copyright": "© {year} FolderPort. 保留所有权利。"
     }
   },
   "ShareView": {
@@ -45,7 +64,7 @@
       "disconnected": {
         "statusButton": "未开启分享",
         "description": "开启分享，让远程设备访问你的文件夹",
-        "passphrasePlaceholder": "设置连接密码（可选）",
+        "passphrasePlaceholder": "设置 AES 加密口令（可选）",
         "button": {
           "share": "开启分享",
           "initializing": "初始化中..."

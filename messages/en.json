@@ -4,31 +4,50 @@
   },
   "HomePage": {
     "title": "FolderPort",
-    "description": "Share your folders with anyone, anywhere",
+    "description": "Share folders quickly and securely from anywhere",
     "actions": {
       "share": {
         "title": "Share Folder",
-        "description": "Share your folders with anyone, anywhere"
+        "description": "Select a folder to share and generate a sharing link for easy access"
       },
       "access": {
         "title": "Access Folder",
-        "description": "Access your folders from anywhere, anytime"
+        "description": "Quickly access shared folders using the sharing link"
       }
     },
     "features": {
-      "title": "Main Features",
-      "features": [
-        "No registration and login required, one-click sharing and access",
-        "P2P transmission, no server required",
-        "Support large file transfer, no file size limit",
-        "Support document, image, video, audio, etc. file type preview",
-        "Support AES encryption transmission, protect privacy",
-        "Support desktop and mobile access"
-      ]
+      "title": "Key Features",
+      "oneClick": {
+        "title": "One-Click Share",
+        "description": "No software installation needed. Start sharing right from your browser with secure P2P technology"
+      },
+      "preview": {
+        "title": "Instant Preview",
+        "description": "Preview images, audio, and video files instantly for a seamless sharing experience"
+      },
+      "unlimited": {
+        "title": "Unlimited Transfer",
+        "description": "Transfer files of any size without limitations. Say goodbye to file splitting hassles"
+      },
+      "security": {
+        "title": "Encrypted Protection",
+        "description": "Set AES passphrase for encryption, ensuring your data is secure throughout the transfer process"
+      },
+      "crossPlatform": {
+        "title": "Cross-Platform",
+        "description": "Full support for Windows, Mac, and Android. Access from iOS devices. Share from anywhere"
+      }
     },
     "footer": {
-      "documentation": "Documentation",
-      "about": "About"
+      "product": {
+        "title": "Product",
+        "documentation": "Documentation"
+      },
+      "support": {
+        "title": "Support",
+        "contact": "Contact Us"
+      },
+      "copyright": "© {year} FolderPort. All rights reserved."
     }
   },
   "ShareView": {
@@ -45,7 +64,7 @@
       "disconnected": {
         "statusButton": "Not sharing",
         "description": "Start sharing, allowing remote devices to access your folder",
-        "passphrasePlaceholder": "Set connection password (optional)",
+        "passphrasePlaceholder": "Set the AES passphrase (optional)",
         "button": {
           "share": "Share",
           "initializing": "Initializing..."
