@@ -1,6 +1,15 @@
 import Link from "next/link";
 import {useTranslations} from 'next-intl';
 import { DynamicIcon } from "lucide-react/dynamic";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: 'FolderPort - Fast & Secure Folder Sharing',
+  description: 'Share folders quickly and securely from anywhere. Support large file transfers, preview files online, and encrypt your data. No registration required.',
+  alternates: {
+    canonical: '/'
+  },
+}
 
 export default function Home() {
   const t = useTranslations('HomePage');

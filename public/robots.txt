@@ -1,0 +1,13 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://folderport.com/sitemap.xml
+
+# Disallow certain paths
+Disallow: /share/
+Disallow: /share/*
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/ 
