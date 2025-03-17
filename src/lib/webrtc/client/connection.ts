@@ -61,6 +61,10 @@ export class ClientConnectionManager {
   }
   
   initializeClient(connectionId: string) {
+    // 如果已经初始化，则不重复初始化
+    if (this.peer) {
+      return;
+    }
     try {
       this.onStateChange(ConnectionState.INITIALIZING);
       this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
