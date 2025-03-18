@@ -1,5 +1,5 @@
 import { Peer, DataConnection } from 'peerjs';
-import { ConnectionState, createPeer, FileTransfer } from '@/lib/webrtc';
+import { ConnectionState, createPeer, FileTransfer, WebRTCMessage } from '@/lib/webrtc';
 import { ClientMessageHandler } from './message-handler';
 import { ClientRequestManager } from './request-manager';
 import { HandshakeManager } from './handshake-manager';
@@ -105,7 +105,7 @@ export class ClientConnectionManager {
     
     conn.on('data', (data) => {
       // Pass the connection phase to handle the message according to the current phase
-      this.messageHandler.handleMessage(conn, data);
+      this.messageHandler.handleMessage(conn, data as WebRTCMessage);
     });
     
     conn.on('close', () => {

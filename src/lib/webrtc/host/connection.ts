@@ -1,5 +1,5 @@
 import { Peer, DataConnection } from 'peerjs';
-import { ConnectionState, createPeer } from '@/lib/webrtc';
+import { ConnectionState, createPeer, WebRTCMessage } from '@/lib/webrtc';
 import { HostRequestHandler } from './request-handler';
 import { HostMessageHandler } from './message-handler';
 import { HostHandshakeHandler } from './handshake-handler';
@@ -188,7 +188,7 @@ export class HostConnectionManager {
     const clientId = connection.peer;
 
     connection.on('data', (data) => {
-      this.messageHandler.handleMessage(clientId, connection, data);
+      this.messageHandler.handleMessage(clientId, connection, data as WebRTCMessage);
     });
 
     connection.on('close', () => {
