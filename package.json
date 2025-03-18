@@ -8,11 +8,12 @@
     "build": "next build",
     "start": "next start",
     "preview": "opennextjs-cloudflare && wrangler dev",
+    "deploy:staging": "opennextjs-cloudflare && wrangler deploy --env staging",
     "deploy": "opennextjs-cloudflare && wrangler deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "prepare": "husky"
+    "prepare": "husky && cd vendors/peerjs && bun run build:submodule"
   },
   "packageManager": "bun@1.2.3",
   "dependencies": {

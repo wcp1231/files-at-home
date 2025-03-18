@@ -15,16 +15,8 @@ const nextConfig: NextConfig = {
         outputDir: path.join(__dirname, 'public'),
       })
     );
-    config.resolve.alias['peerjs'] = path.resolve(__dirname, 'vendors/peerjs/');
     return config;
-  },
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        'peerjs': './vendors/peerjs',
-      },
-    },
-  },
+  }
 };
 
 import withBundleAnalyzer from '@next/bundle-analyzer'
