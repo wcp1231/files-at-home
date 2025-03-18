@@ -77,7 +77,8 @@ export class ClientConnectionManager {
       peer.on('open', () => {
         // 连接到主机
         const conn = peer.connect(connectionId, {
-          reliable: true
+          reliable: true,
+          serialization: "json"
         });
         this.setupConnection(conn);
       });
@@ -104,7 +105,7 @@ export class ClientConnectionManager {
     
     conn.on('data', (data) => {
       // Pass the connection phase to handle the message according to the current phase
-      this.messageHandler.handleMessage(conn, data as string);
+      this.messageHandler.handleMessage(conn, data);
     });
     
     conn.on('close', () => {

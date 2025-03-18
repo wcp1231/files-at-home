@@ -37,7 +37,7 @@ export class HostMessageHandler {
   /**
    * Handle a message from a client
    */
-  handleMessage(clientId: string, connection: DataConnection, data: string) {
+  handleMessage(clientId: string, connection: DataConnection, data: WebRTCMessage) {
     // Check phase
     const phase = this.connectionManager.getClientPhase(clientId);
     
@@ -71,7 +71,7 @@ export class HostMessageHandler {
   /**
    * Handle messages during handshake phase
    */
-  private async handleHandshakePhaseMessage(clientId: string, connection: DataConnection, data: string) {
+  private async handleHandshakePhaseMessage(clientId: string, connection: DataConnection, data: WebRTCMessage) {
     const { type, payload, requestId } = await this.deserializeRequest(data);
     
     if (type === MessageType.META_REQUEST) {
@@ -91,7 +91,7 @@ export class HostMessageHandler {
   /**
    * Handle messages during active phase
    */
-  private async handleActivePhaseMessage(clientId: string, connection: DataConnection, data: string) {
+  private async handleActivePhaseMessage(clientId: string, connection: DataConnection, data: WebRTCMessage) {
     const { type, payload, requestId } = await this.deserializeRequest(data);
     
     switch (type) {
@@ -129,11 +129,10 @@ export class HostMessageHandler {
       type: MessageType.ENCRYPTED_RESPONSE,
       payload: { encrypted, iv }
     };
-    return JSON.stringify(encryptedMessage);
+    return encryptedMessage;
   }
 
-  private async deserializeRequest(data: string) {
-    const message = deserializeMessage(data);
+  private async deserializeRequest(message: WebRTCMessage) {
     if (message.type === MessageType.ERROR) {
       return message
     }
@@ -159,6 +158,6 @@ export class HostMessageHandler {
       requestId
     };
     
-    connection.send(JSON.stringify(message));
+    connection.send(message);
   }
 } 

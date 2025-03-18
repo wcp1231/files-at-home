@@ -188,7 +188,7 @@ export class HostConnectionManager {
     const clientId = connection.peer;
 
     connection.on('data', (data) => {
-      this.messageHandler.handleMessage(clientId, connection, data as string);
+      this.messageHandler.handleMessage(clientId, connection, data);
     });
 
     connection.on('close', () => {

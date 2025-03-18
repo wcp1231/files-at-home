@@ -117,7 +117,7 @@ export class HandshakeManager {
       requestId
     };
 
-    this.connection!.send(JSON.stringify(wrtcMessage));
+    this.connection!.send(wrtcMessage);
     return requestPromise;
   }
   

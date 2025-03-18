@@ -30,13 +30,13 @@ export class ClientMessageHandler {
   }
   
   // Handle incoming messages based on the current phase
-  async handleMessage(conn: DataConnection, data: string) {
+  async handleMessage(conn: DataConnection, message: WebRTCMessage) {
     try {
       // Handle messages according to the current phase
       if (this.currentPhase === ConnectionPhase.HANDSHAKING) {
-        await this.handleHandshakePhaseMessage(conn, data);
+        await this.handleHandshakePhaseMessage(conn, message);
       } else if (this.currentPhase === ConnectionPhase.ACTIVE) {
-        await this.handleActivePhaseMessage(conn, data);
+        await this.handleActivePhaseMessage(conn, message);
       } else {
         console.warn('Received message in unexpected phase:', ConnectionPhase[this.currentPhase]);
       }
@@ -46,7 +46,7 @@ export class ClientMessageHandler {
   }
   
   // Handle messages during handshake phase
-  private async handleHandshakePhaseMessage(conn: DataConnection, data: string) {
+  private async handleHandshakePhaseMessage(conn: DataConnection, data: WebRTCMessage) {
     const message = await this.deserializeResponse(data);
     // During handshake, we only care about META_RESPONSE and ERROR messages
     switch (message.type) {
@@ -64,7 +64,7 @@ export class ClientMessageHandler {
   }
   
   // Handle messages during active phase
-  private async handleActivePhaseMessage(conn: DataConnection, data: string) {
+  private async handleActivePhaseMessage(conn: DataConnection, data: WebRTCMessage) {
     const message = await this.deserializeResponse(data);
     switch (message.type) {
       case MessageType.FILE_INFO_RESPONSE:
@@ -112,7 +112,7 @@ export class ClientMessageHandler {
   private async serializeRequest(message: WebRTCMessage) {
     // 如果还没有密钥，则不加密
     if (!clientCrypto.hasKey()) {
-      return JSON.stringify(message);
+      return message;
     }
 
     const encodedPlaintext = JSON.stringify(message);
@@ -121,11 +121,10 @@ export class ClientMessageHandler {
       type: MessageType.ENCRYPTED_REQUEST,
       payload: { encrypted, iv }
     };
-    return JSON.stringify(encryptedMessage);
+    return encryptedMessage;
   }
 
-  private async deserializeResponse(data: string) {
-    const message = deserializeMessage(data);
+  private async deserializeResponse(message: WebRTCMessage) {
     if (message.type === MessageType.ERROR) {
       return message
     }

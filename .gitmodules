@@ -1,0 +1,3 @@
+[submodule "vendors/peerjs"]
+	path = vendors/peerjs
+	url = git@github.com:wcp1231/peerjs.git

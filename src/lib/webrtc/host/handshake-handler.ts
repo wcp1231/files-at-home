@@ -88,7 +88,7 @@ export class HostHandshakeHandler {
       requestId
     };
 
-    this.connection.send(JSON.stringify(wrtcMessage));
+    this.connection.send(wrtcMessage);
   }
   
   /**
@@ -101,7 +101,7 @@ export class HostHandshakeHandler {
       requestId
     };
     
-    this.connection.send(JSON.stringify(message));
+    this.connection.send(message);
   }
 }
 
