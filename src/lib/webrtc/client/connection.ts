@@ -126,6 +126,7 @@ export class ClientConnectionManager {
     peer.on('error', (err) => {
       this.onError(`连接错误: ${err}`);
       this.onStateChange(ConnectionState.ERROR);
+      this.disconnect();
     });
     
     peer.on('disconnected', () => {

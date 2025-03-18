@@ -109,7 +109,9 @@
         "description": "Enter connection ID or paste share link",
         "button": {
           "connect": "Connect",
-          "initializing": "Initializing..."
+          "initializing": "Initializing...",
+          "connecting": "Connecting...",
+          "handshaking": "Handshaking..."
         }
       },
       "initializing": {

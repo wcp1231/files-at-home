@@ -48,7 +48,7 @@ export function MultiFilesSelector({ onFilesSelected, accept, className }: Multi
             accept={accept}
             className={className}
           />
-          <Button onClick={handleFilesSelected}>
+          <Button onClick={handleFilesSelected} disabled={files.length === 0}>
             {t('shareButton')}
           </Button>
         </div>

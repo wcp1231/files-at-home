@@ -24,6 +24,20 @@ const getConnectionButtonProps = (connectionState: ConnectionState) => {
         label: 'disconnected.button.initializing',
         disabled: true
       };
+    case ConnectionState.CONNECTING:
+      return {
+        icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
+        label: 'disconnected.button.connecting',
+        variant: 'outline',
+        disabled: true
+      };
+    case ConnectionState.HANDSHAKING:
+      return {
+        icon: <DynamicIcon name="loader-2" className="h-3.5 w-3.5 animate-spin" />,
+        label: 'disconnected.button.handshaking',
+        variant: 'outline',
+        disabled: true
+      };
     default:
       return {
         icon: <DynamicIcon name="link-2" className="h-3.5 w-3.5" />,
