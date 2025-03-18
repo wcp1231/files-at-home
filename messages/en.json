@@ -51,15 +51,20 @@
     }
   },
   "ShareView": {
-    "unsupported": {
-      "title": "Unsupported browser or device",
-      "description": "Your current browser or device does not support the file system access feature. Please try using the latest version of Chrome, Edge, or other modern browsers that support file system access. If the problem persists, please try using another device."
-    },
     "directorySelector": {
       "title": "Select a folder to share",
       "description": "Select a folder and click the share button to share the folder content.",
-      "selectDirectoryButton": "Select folder"
-    },  
+      "selectDirectoryButton": "Select folder",
+      "unsupported": {
+        "title": "Unsupported to share folder",
+        "description": "Your current browser or device does not support the file system access feature. Please try using the latest version of modern browsers. Or try to select files to share instead."
+      }
+    },
+    "multiFilesSelector": {
+      "title": "Select files to share",
+      "description": "Select files and click the share button to share the files.",
+      "shareButton": "Share files"
+    },
     "connectionPanel": {
       "disconnected": {
         "statusButton": "Not sharing",

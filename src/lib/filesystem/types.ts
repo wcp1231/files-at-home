@@ -1,9 +1,9 @@
 class BaseFSEntry {
-  handle: FileSystemHandle;
+  handle: FileSystemHandle | null;
   name: string;
   path: string;
 
-  constructor(handle: FileSystemHandle, name: string, path: string) {
+  constructor(handle: FileSystemHandle | null, name: string, path: string) {
     this.handle = handle;
     this.name = name;
     this.path = path;
@@ -24,7 +24,7 @@ export class FSDirectory extends BaseFSEntry {
       return this.files;
     }
     const files = [];
-    for await (const [name, handle] of this.handle.entries()) {
+    for await (const [name, handle] of this.handle!.entries()) {
       if (handle instanceof FileSystemDirectoryHandle) {
         files.push(new FSDirectory(handle, name, `${this.path}${name}/`));
       } else if (handle instanceof FileSystemFileHandle) {
@@ -52,6 +52,38 @@ export class FSFile extends BaseFSEntry {
       this.type = this.file.type;
       this.modifiedAt = new Date(this.file.lastModified);
     }
+    return this.file;
+  }
+}
+
+export class FilesFSDirectory extends BaseFSEntry {
+  files: FileFSFile[] = [];
+
+  constructor(files: File[], name: string, path: string) {
+    super(null, name, path);
+    this.files = files.map((file) => new FileFSFile(file, file.name, path));
+  }
+
+  async getFiles() {
+    return this.files;
+  }
+}
+
+export class FileFSFile extends BaseFSEntry {
+  file: File;
+  size?: number;
+  modifiedAt?: Date;
+  type?: string;
+
+  constructor(file: File, name: string, path: string) {
+    super(null, name, path);
+    this.file = file;
+    this.size = file.size;
+    this.modifiedAt = new Date(file.lastModified);
+    this.type = file.type;
+  }
+
+  async getFile() {
     return this.file;
   }
 }

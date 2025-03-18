@@ -12,6 +12,7 @@ interface FileBrowserState<FileViewEntry> {
   packable: boolean;
   writeable: boolean;
   isConnected: boolean;
+  role: 'share' | 'access';
 
   currentPath: string;
   currentFiles: FileViewEntry[];
@@ -34,6 +35,7 @@ interface FileBrowserState<FileViewEntry> {
     packable: boolean;
     writeable: boolean;
   }) => void;
+  setRole: (role: 'share' | 'access') => void;
 
   // 新增设置连接状态的方法
   setConnected: (isConnected: boolean) => void;
@@ -95,6 +97,7 @@ export const createFileBrowserStore = () => {
       packable: false,
       writeable: false,
       isConnected: false,
+      role: 'access',
 
       currentPath: '/',
       currentFiles: [] as FileViewEntry[],
@@ -127,6 +130,9 @@ export const createFileBrowserStore = () => {
         state.showOperations = features.showOperations;
         state.packable = features.packable;
         state.writeable = features.writeable;
+      }),
+      setRole: (role) => set((state) => {
+        state.role = role;
       }),
 
       // 新增设置连接状态的方法

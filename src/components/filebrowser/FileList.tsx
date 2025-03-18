@@ -44,6 +44,7 @@ export function FileList() {
     selectedFile,
     handleItemClick,
     isConnected,
+    role,
   } = useFileBrowserStore();
 
   // 只传递选中文件的路径，而不是整个文件对象，减少不必要的渲染
@@ -53,7 +54,7 @@ export function FileList() {
     await handleItemClick(file);
   }, [handleItemClick]);
 
-  if (!isConnected) {
+  if (role === 'access' && !isConnected) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 space-y-4">
         <DynamicIcon name="wifi-off" className="h-8 w-8 text-muted-foreground" />
@@ -100,10 +101,10 @@ export function FileList() {
           </TableRow>
         )}
         itemContent={(index) => (
-          <FileListItem
-            key={currentFiles[index].path}
-            file={currentFiles[index]}
-          />
+            <FileListItem
+              key={currentFiles[index].path}
+              file={currentFiles[index]}
+            />
         )}
       />
     </>

@@ -4,7 +4,7 @@ import {
   ConnectionState,
   HostConnectionManager
 } from '@/lib/webrtc';
-import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
+import { FileFSFile, FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { useFileBrowserStore } from '@/components/filebrowser';
 import { toast } from '@/hooks/use-toast';
@@ -14,13 +14,14 @@ function mapFSEntryToFileEntry (entry: FSEntry | null): FileViewEntry | null {
   if (!entry) {
     return null;
   }
+  const isFile = entry instanceof FSFile || entry instanceof FileFSFile;
   return {
     name: entry.name,
     path: entry.path,
-    size: entry instanceof FSFile ? entry.size : undefined,
-    type: entry instanceof FSFile ? entry.type : undefined,
-    modifiedAt: entry instanceof FSFile ? entry.modifiedAt : undefined,
-    isDirectory: !(entry instanceof FSFile)
+    size: isFile ? entry.size : undefined,
+    type: isFile ? entry.type : undefined,
+    modifiedAt: isFile ? entry.modifiedAt : undefined,
+    isDirectory: entry instanceof FSDirectory
   };
 }
 
