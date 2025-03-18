@@ -8,12 +8,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { 
-  Tooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
 import { useWebRTCClientStore } from '@/store/webrtcClientStore';
 import { useTranslations } from 'next-intl';
 
@@ -134,7 +128,6 @@ export default function FlatConnectionPanel({ initialConnectionId }: FlatConnect
   const {
     initializeClient,
     connectionState,
-    error
   } = useWebRTCClientStore()
 
   // 连接到主机
