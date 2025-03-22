@@ -41,11 +41,7 @@ export class WorkerManager {
       return;
     }
     if (!WorkerManager.channel) {
-      WorkerManager.channel = new MessageChannel();
-      WorkerManager.channel.port1.onmessage = WorkerManager.onPortMessage;
-      WorkerManager.worker.active.postMessage({ type: MESSAGE_TYPE.INIT_CHANNEL }, [
-        WorkerManager.channel.port2,
-      ]);
+      WorkerManager.createAndSendChannel();
 
       // 监听 Service Worker 的消息，只有这样才可以监听到 Service Worker 的消息
       navigator.serviceWorker.onmessage = (event) => {
@@ -55,17 +51,32 @@ export class WorkerManager {
     }
   }
 
+  private static createAndSendChannel() {
+    if (!WorkerManager.worker || !WorkerManager.worker.active) {
+      return;
+    }
+    WorkerManager.channel = new MessageChannel();
+    WorkerManager.channel.port1.onmessage = WorkerManager.onPortMessage;
+    WorkerManager.worker.active.postMessage({ type: MESSAGE_TYPE.INIT_CHANNEL }, [
+      WorkerManager.channel.port2,
+    ]);
+  }
+
   public static heartbeat() {
     WorkerManager.worker?.active?.postMessage({ type: MESSAGE_TYPE.PING });
     setTimeout(() => {
       WorkerManager.heartbeat();
-    }, 1000);
+    }, 1500);
   }
 
   public static async onMessage(event: MessageEvent) {
     const { type, data } = event.data;
     if (type === 'PONG') {
       useServiceWorkerStore.getState().update(data.portExists, data.heartbeat);
+      // 如果发现 Service Worker 没有建立通道，就建立通道
+      if (!data.portExists) {
+        WorkerManager.createAndSendChannel();
+      }
     }
   }
 
