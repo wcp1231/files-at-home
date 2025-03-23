@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { Peer, DataConnection } from 'peerjs';
+import { Peer } from 'peerjs';
 import { 
   ConnectionState,
   PeerRole,
@@ -37,7 +37,6 @@ interface WebRTCClientState {
   error: string | null;
   role: PeerRole;
   peer: Peer | null;
-  connection: DataConnection | null;
   connectionId: string | null;
   fileTransfers: Map<string, FileTransfer>;
   
@@ -48,7 +47,6 @@ interface WebRTCClientState {
   initializeClient: (id: string) => void;
   disconnect: () => void;
   requestFile: (filePath: string) => Promise<FileViewEntry | null>;
-  requestFileData: (filePath: string) => Promise<Blob | null>;
   requestDirectory: (path: string) => Promise<FileViewEntry[]>;
   cancelFileTransfer: (fileId: string) => void;
   clearCompletedTransfers: () => void;
@@ -58,7 +56,6 @@ interface WebRTCClientState {
   _createConnectionManager: () => void;
   _setConnectionState: (state: ConnectionState) => void;
   _setPeer: (peer: Peer | null) => void;
-  _setConnection: (connection: DataConnection | null) => void;
   _setConnectionId: (id: string | null) => void;
   _updateFileTransfer: (transfer: FileTransfer) => void;
 }
@@ -77,7 +74,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     _connectionManager: null,
 
     _createConnectionManager: () => {
-      const { _setConnectionState, onError, _updateFileTransfer, _connectionManager, requestFile, requestFileData, requestDirectory } = get();
+      const { _setConnectionState, onError, _updateFileTransfer, _connectionManager, requestFile, requestDirectory } = get();
       const { setCallbacks, initialize, cleanup, setConnected } = useFileBrowserStore.getState();
       const manager = new ClientConnectionManager(
         (state) => {
@@ -87,12 +84,10 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
             if (_connectionManager) {
               set((draft) => {
                 draft.peer = _connectionManager.getPeer();
-                draft.connection = _connectionManager.getConnection();
               });
             }
             setCallbacks({
               onFileSelect: requestFile,
-              onFileData: requestFileData,
               onDirectorySelect: requestDirectory,
             });
             setConnected(true);  // 设置 FileBrowserStore 的连接状态为已连接
@@ -100,11 +95,9 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
           } else if (state === ConnectionState.DISCONNECTED) {
             set((draft) => {
               draft.peer = null;
-              draft.connection = null;
             });
             setCallbacks({
               onFileSelect: undefined,
-              onFileData: undefined,
               onDirectorySelect: undefined,
             });
             setConnected(false);  // 设置 FileBrowserStore 的连接状态为未连接
@@ -128,10 +121,6 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     
     _setPeer: (peer) => set((draft) => {
       draft.peer = peer;
-    }),
-    
-    _setConnection: (connection) => set((draft) => {
-      draft.connection = connection;
     }),
     
     _setConnectionId: (id) => set((draft) => {
@@ -194,24 +183,8 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
       }
       
       try {
-        const file =  await state._connectionManager.getRequestManager().requestFile(filePath);
+        const file =  await state._connectionManager.requestFile(filePath);
         return mapFSEntryToFileEntry(file);
-      } catch (err: unknown) {
-        state.onError(err instanceof Error ? err.message : String(err));
-        return null;
-      }
-    },
-    
-    // 请求文件数据
-    requestFileData: async (filePath) => {
-      const state = get();
-      if (!state._connectionManager) {
-        state.onError('管理器未初始化');
-        return null;
-      }
-      
-      try {
-        return await state._connectionManager.getRequestManager().requestFileData(filePath);
       } catch (err: unknown) {
         state.onError(err instanceof Error ? err.message : String(err));
         return null;
@@ -227,7 +200,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
       }
       
       try {
-        const files =  await state._connectionManager.getRequestManager().requestDirectory(path);
+        const files =  await state._connectionManager.requestDirectory(path);
         return files.map(mapFSEntryToFileEntry).filter((file): file is FileViewEntry => file !== null);
       } catch (err: unknown) {
         state.onError(err instanceof Error ? err.message : String(err));
@@ -239,7 +212,7 @@ export const useWebRTCClientStore = create<WebRTCClientState>()(
     cancelFileTransfer: (fileId) => {
       const state = get();
       if (state._connectionManager) {
-        state._connectionManager.getRequestManager().cancelFileTransfer(fileId);
+        state._connectionManager.cancelFileTransfer(fileId);
       }
     },
     

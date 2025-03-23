@@ -1,10 +1,9 @@
-import { DataConnection } from 'peerjs';
-import { MessageType, MetaResponse, ConnectionState, ErrorResponse } from '@/lib/webrtc';
+import { MessageType, MetaResponse, ErrorResponse } from '@/lib/webrtc';
 import { v4 } from 'uuid';
 import { clientCrypto } from '../crypto';
+import { EnhancedConnection } from './enhanced-connection';
 import { useDialogStore } from '@/store/dialogStore';
-import { ConnectionPhase } from './connection';
-import { useFileBrowserStore } from '@/store/fileBrowserStore';
+import { WebRTCMessage } from '@/lib/webrtc';
 
 export type RequestId = string;
 
@@ -14,40 +13,53 @@ export interface PendingMetaRequest {
 }
 
 export class HandshakeManager {
-  private connection: DataConnection | null = null;
+  private connection: EnhancedConnection;
   private pendingMetaRequest: Map<RequestId, PendingMetaRequest> = new Map();
   private timeoutDuration: number = 30000; // 30 seconds default timeout
   
-  // Callbacks
-  private onPhaseChange: (phase: ConnectionPhase) => void;
-  private onStateChange: (state: ConnectionState) => void;
-  private onError: (error: string | null) => void;
+  // Callbacks for handshake events
+  private onHandshakeComplete: (meta: MetaResponse) => void;
+  private onHandshakeFailed: (error: string) => void;
+  private onHandshakeError: (error: string) => void;
   
   constructor(
-    onPhaseChange: (phase: ConnectionPhase) => void,
-    onStateChange: (state: ConnectionState) => void,
-    onError: (error: string | null) => void,
+    connection: EnhancedConnection,
+    onHandshakeComplete: (meta: MetaResponse) => void,
+    onHandshakeFailed: (error: string) => void,
+    onHandshakeError: (error: string) => void,
     timeoutDuration?: number
   ) {
-    this.onPhaseChange = onPhaseChange;
-    this.onStateChange = onStateChange;
-    this.onError = onError;
+    this.connection = connection;
+    this.onHandshakeComplete = onHandshakeComplete;
+    this.onHandshakeFailed = onHandshakeFailed;
+    this.onHandshakeError = onHandshakeError;
     if (timeoutDuration) {
       this.timeoutDuration = timeoutDuration;
     }
+    this.connection.getConnection().on('data', this.handleMessage.bind(this));
   }
-  
-  /**
-   * Set the connection object
-   */
-  setConnection(connection: DataConnection | null) {
-    this.connection = connection;
+
+  async handleMessage(data: unknown) {
+    const message = await this.connection.deserializeResponse(data as WebRTCMessage);
+    // During handshake, we only care about META_RESPONSE and ERROR messages
+    switch (message.type) {
+      case MessageType.META_RESPONSE:
+        this.handleMetaResponse(message.requestId!, message.payload);
+        break;
+        
+      case MessageType.ERROR:
+        this.handleErrorResponse(message.requestId!, message.payload);
+        break;
+        
+      default:
+        console.log('Ignored message during handshake phase:', message.type);
+    }
   }
   
   /**
    * Handle meta response during handshake
    */
-  handleMetaResponse(requestId: string, payload: MetaResponse) {
+  private handleMetaResponse(requestId: string, payload: MetaResponse) {
     const request = this.pendingMetaRequest.get(requestId);
     if (request) {
       request.resolve(payload);
@@ -58,13 +70,13 @@ export class HandshakeManager {
   /**
    * Handle error response during handshake
    */
-  handleErrorResponse(requestId: string, payload: ErrorResponse) {
+  private handleErrorResponse(requestId: string, payload: ErrorResponse) {
     const request = this.pendingMetaRequest.get(requestId);
     if (request) {
       request.reject(new Error(payload.error));
       this.pendingMetaRequest.delete(requestId);
     }
-    this.onError(payload.error);
+    this.onHandshakeFailed(payload.error);
   }
   
   /**
@@ -80,7 +92,7 @@ export class HandshakeManager {
   /**
    * Request meta information from host
    */
-  async requestMeta(): Promise<MetaResponse> {
+  private async requestMeta(): Promise<MetaResponse> {
     if (!this.connection) {
       throw new Error('未连接');
     }
@@ -113,11 +125,17 @@ export class HandshakeManager {
     // Send the request
     const wrtcMessage = {
       type: MessageType.META_REQUEST,
-      payload: { message },
+      payload: { 
+        message,
+        platform: 'web',
+        version: '1.0.0',
+        apiVersion: '1',
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+      },
       requestId
     };
 
-    this.connection!.send(wrtcMessage);
+    this.connection.send(wrtcMessage as WebRTCMessage);
     return requestPromise;
   }
   
@@ -127,7 +145,7 @@ export class HandshakeManager {
    */
   async startHandshake(): Promise<boolean> {
     if (!this.connection) {
-      this.onError('未连接');
+      this.onHandshakeError('未连接');
       return false;
     }
     
@@ -137,7 +155,7 @@ export class HandshakeManager {
       
       while (meta.message !== 'error') {
         if (meta.message === 'hello') {
-          this.onHandshakeCompleted(meta);
+          this.onHandshakeComplete(meta);
           return true;
         }
         
@@ -148,15 +166,13 @@ export class HandshakeManager {
         
         if (meta.message === 'mismatch') {
           // Password mismatch
-          this.onError('密码短语不匹配');
+          this.onHandshakeFailed('密码短语不匹配');
           passphrase = await this.askForPassphrase();
         }
         
         if (passphrase === '') {
           // User canceled passphrase input
-          this.onError('未提供密码，无法建立安全连接');
-          this.onStateChange(ConnectionState.DISCONNECTED);
-          this.onPhaseChange(ConnectionPhase.DISCONNECTED);
+          this.onHandshakeError('未提供密码，无法建立安全连接');
           return false;
         }
         
@@ -165,31 +181,12 @@ export class HandshakeManager {
       }
       
       // Handshake failed
-      this.onError('握手失败');
-      this.onStateChange(ConnectionState.ERROR);
-      this.onPhaseChange(ConnectionPhase.DISCONNECTED);
+      this.onHandshakeError('握手失败');
       return false;
     } catch (error) {
-      this.onError(`握手错误: ${error instanceof Error ? error.message : String(error)}`);
-      this.onStateChange(ConnectionState.ERROR);
-      this.onPhaseChange(ConnectionPhase.DISCONNECTED);
+      this.onHandshakeError(`握手错误: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
-  }
-
-  private onHandshakeCompleted(meta: MetaResponse) {
-    const features = meta.features;
-    // 临时在这里设置 features
-    useFileBrowserStore.getState().setFeatures({
-      showOperations: true,
-      packable: features.packable,
-      writeable: features.writeable,
-    });
-
-    this.onPhaseChange(ConnectionPhase.ACTIVE);
-    this.onStateChange(ConnectionState.CONNECTED);
-    this.onError(null);
-    console.log('Handshake completed, now in ACTIVE phase');
   }
   
   /**
@@ -213,7 +210,7 @@ export class HandshakeManager {
       await clientCrypto.setKeyFromPassphrase(passphrase);
       return true;
     } catch (error) {
-      this.onError(`无法设置加密密钥: ${error}`);
+      this.onHandshakeError(`无法设置加密密钥: ${error}`);
       return false;
     }
   }

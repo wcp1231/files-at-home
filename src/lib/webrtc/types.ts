@@ -67,6 +67,7 @@ export interface MetaRequest {
   version: string;
   apiVersion: string;
   message: string;
+  userAgent?: string;
 }
 
 export interface MetaResponse {
@@ -78,6 +79,7 @@ export interface MetaResponse {
     packable: boolean;
   };
   message: string;
+  userAgent?: string;
 }
 
 // 定义文件信息接口

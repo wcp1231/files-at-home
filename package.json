@@ -13,7 +13,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "prepare": "husky && cd vendors/peerjs && bun run build:submodule"
+    "build:vendors": "cd vendors/peerjs && bun run build:submodule",
+    "prepare": "husky"
   },
   "packageManager": "bun@1.2.3",
   "dependencies": {

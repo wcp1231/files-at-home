@@ -1,9 +1,7 @@
-import { DataConnection } from 'peerjs';
 import { MessageType, SharedFileInfo, FileTransferInfo, FileTransfer, FileTransferResponse, DirectoryResponse, FileInfoResponse, FileChunkResponse, ErrorResponse, WebRTCMessage } from '@/lib/webrtc';
 import { v4 } from 'uuid';
 import { ChunkProcessor, BufferedChunkProcessor, StreamChunkProcessor } from './chunk-processors';
-import { ClientMessageHandler } from './message-handler';
-import { ConnectionPhase } from './connection';
+import { EnhancedConnection } from './enhanced-connection';
 import { WorkerManager } from './worker';
 import { WorkerWritableStream } from './worker-writable-stream';
 
@@ -40,12 +38,11 @@ export interface PendingFileChunkRequest {
 export type RequestId = string;
 
 export class ClientRequestManager {
-  private messageHandler?: ClientMessageHandler;
+  private enhancedConnection: EnhancedConnection;
   private pendingFileRequests: Map<RequestId, PendingFileRequest> = new Map();
   private pendingDirectoryRequests: Map<RequestId, PendingDirectoryRequest> = new Map();
   private pendingFileChunkRequests: Map<RequestId, PendingFileChunkRequest> = new Map();
   private pendingFileTransferRequests: Map<RequestId, PendingFileTransferRequest> = new Map();
-  private connection: DataConnection | null = null;
   private timeoutDuration: number = 30000; // 30秒默认超时
   
   // 活跃的文件传输处理器
@@ -55,16 +52,13 @@ export class ClientRequestManager {
   private onProgressCallback: ((fileId: string, progress: number, speed: number) => void) | null = null;
   private onTransferStatusChange: ((transfer: FileTransfer) => void) | null = null;
 
-  // 当前连接阶段
-  private currentPhase: ConnectionPhase = ConnectionPhase.DISCONNECTED;
-  
   constructor(
-    connection: DataConnection | null = null, 
+    enhancedConnection: EnhancedConnection, 
     timeoutDuration?: number,
     onProgress?: (fileId: string, progress: number, speed: number) => void,
     onTransferStatusChange?: (transfer: FileTransfer) => void
   ) {
-    this.connection = connection;
+    this.enhancedConnection = enhancedConnection;
     if (timeoutDuration) {
       this.timeoutDuration = timeoutDuration;
     }
@@ -73,24 +67,6 @@ export class ClientRequestManager {
 
     // 设置 worker 消息处理器
     WorkerManager.setMessageHandler(this.workerMessageHandler.bind(this));
-  }
-
-  setMessageHandler(messageHandler: ClientMessageHandler) {
-    this.messageHandler = messageHandler;
-  }
-
-  setConnection(connection: DataConnection | null) {
-    this.connection = connection;
-  }
-
-  // Set the current connection phase
-  setPhase(phase: ConnectionPhase) {
-    this.currentPhase = phase;
-    
-    // If transitioning to disconnected, clear all requests
-    if (phase === ConnectionPhase.DISCONNECTED) {
-      this.clearAllRequests('连接已关闭');
-    }
   }
 
   // 处理接收到的响应
@@ -103,12 +79,6 @@ export class ClientRequestManager {
   }
 
   handleFileTransferResponse(requestId: string, payload: FileTransferResponse) {
-    // Only process in active phase
-    if (this.currentPhase !== ConnectionPhase.ACTIVE) {
-      console.warn('Received file transfer response while not in ACTIVE phase');
-      return;
-    }
-    
     const request = this.pendingFileTransferRequests.get(requestId);
     if (!request) {
       console.warn('Received file transfer response without active request:', requestId);
@@ -118,12 +88,6 @@ export class ClientRequestManager {
   }
 
   handleFileChunkResponse(requestId: string, payload: FileChunkResponse) {
-    // Only process in active phase
-    if (this.currentPhase !== ConnectionPhase.ACTIVE) {
-      console.warn('Received file chunk response while not in ACTIVE phase');
-      return;
-    }
-    
     const request = this.pendingFileChunkRequests.get(requestId);
     if (request) {
       request.resolve(payload);
@@ -132,12 +96,6 @@ export class ClientRequestManager {
   }
 
   handleDirectoryResponse(requestId: string, payload: DirectoryResponse) {
-    // Only process in active phase
-    if (this.currentPhase !== ConnectionPhase.ACTIVE) {
-      console.warn('Received directory response while not in ACTIVE phase');
-      return;
-    }
-    
     if (this.pendingDirectoryRequests.has(requestId)) {
       const request = this.pendingDirectoryRequests.get(requestId)!;
       request.resolve(payload.files);
@@ -165,19 +123,9 @@ export class ClientRequestManager {
     }
   }
 
-  // 设置进度回调
-  setProgressCallback(callback: (fileId: string, progress: number, speed: number) => void) {
-    this.onProgressCallback = callback;
-  }
-
-  // 设置传输状态变化回调
-  setTransferStatusChangeCallback(callback: (transfer: FileTransfer) => void) {
-    this.onTransferStatusChange = callback;
-  }
-
   // 取消文件传输
   cancelFileTransfer(fileId: string) {
-    if (!this.connection || !this.activeChunkProcessors.has(fileId)) {
+    if (!this.activeChunkProcessors.has(fileId)) {
       return;
     }
     
@@ -191,7 +139,7 @@ export class ClientRequestManager {
       }
     };
     
-    this.messageHandler!.sendRequest(this.connection!, message);
+    this.enhancedConnection.sendRequest(message);
     
     // 取消处理
     processor.cancel(new Error('传输已取消'));
@@ -204,13 +152,6 @@ export class ClientRequestManager {
 
   // 发送请求方法
   async requestFile(filePath: string): Promise<SharedFileInfo | null> {
-    // Ensure we're in active phase
-    this.checkActivePhase('requestFile');
-    
-    if (!this.connection) {
-      throw new Error('未连接');
-    }
-    
     const requestId = v4();
     const requestPromise = new Promise<SharedFileInfo | null>((resolve, reject) => {
       const pendingRequest: PendingFileRequest = {
@@ -231,7 +172,7 @@ export class ClientRequestManager {
     });
     
     // 发送请求
-    this.messageHandler!.sendRequest(this.connection!, {
+    this.enhancedConnection.sendRequest({
       type: MessageType.FILE_INFO_REQUEST,
       payload: { path: filePath },
       requestId
@@ -242,13 +183,6 @@ export class ClientRequestManager {
 
   // 请求文件数据
   async requestFileData(filePath: string, options?: { stream?: WritableStream<Uint8Array>, start?: number, end?: number }): Promise<Blob> {
-    // Ensure we're in active phase
-    this.checkActivePhase('requestFileData');
-    
-    if (!this.connection) {
-      throw new Error('未连接');
-    }
-    
     // 生成请求ID
     const requestId = v4();
     
@@ -276,19 +210,12 @@ export class ClientRequestManager {
       requestId
     };
     
-    this.messageHandler!.sendRequest(this.connection!, message);
+    this.enhancedConnection.sendRequest(message);
     
     return requestPromise;
   }
 
   async requestDirectory(path: string): Promise<SharedFileInfo[]> {
-    // Ensure we're in active phase
-    this.checkActivePhase('requestDirectory');
-    
-    if (!this.connection) {
-      throw new Error('未连接');
-    }
-    
     const requestId = v4();
     const requestPromise = new Promise<SharedFileInfo[]>((resolve, reject) => {
       const pendingRequest: PendingDirectoryRequest = {
@@ -309,7 +236,7 @@ export class ClientRequestManager {
     });
     
     // 发送请求
-    this.messageHandler!.sendRequest(this.connection!, {
+    this.enhancedConnection.sendRequest({
       type: MessageType.DIRECTORY_REQUEST,
       payload: { path },
       requestId
@@ -354,9 +281,6 @@ export class ClientRequestManager {
   // 处理 worker 消息
   async workerMessageHandler(fileId: string, path: string, writable: WritableStream<Uint8Array>, start?: number, end?: number) {
     try {
-      // Ensure we're in active phase
-      this.checkActivePhase('workerMessageHandler');
-      
       // 如果 writable 为空，则创建一个新的 WorkerWritableStream
       // 兼容苹果系统的 safari 浏览器
       let stream = writable;
@@ -388,14 +312,6 @@ export class ClientRequestManager {
         resolve(true);
       }, duration);
     });
-  }
-
-  // Helper method to check if we're in active phase
-  private checkActivePhase(methodName: string) {
-    if (this.currentPhase !== ConnectionPhase.ACTIVE) {
-      const error = `Cannot call ${methodName} while not in ACTIVE phase (current phase: ${ConnectionPhase[this.currentPhase]})`;
-      throw new Error(error);
-    }
   }
 
   // 开始传输逻辑，创建 chunk 处理器
@@ -482,8 +398,6 @@ export class ClientRequestManager {
 
   // 请求文件块
   private requestFileChunk(fileId: string, chunkIndex: number, filePath: string, start: number, end: number) {
-    if (!this.connection) return;
-
     const requestId = v4();
     const requestPromise = new Promise<FileChunkResponse>((resolve, reject) => {
       const pendingRequest: PendingFileChunkRequest = {
@@ -515,7 +429,7 @@ export class ClientRequestManager {
       requestId,
     }
 
-    this.messageHandler!.sendRequest(this.connection!, request);
+    this.enhancedConnection.sendRequest(request);
     
     requestPromise.then((chunk) => {
       this.handleFileChunk(chunk, requestId);

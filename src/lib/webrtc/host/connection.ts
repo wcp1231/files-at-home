@@ -1,10 +1,9 @@
 import { Peer, DataConnection } from 'peerjs';
-import { ConnectionState, createPeer, WebRTCMessage } from '@/lib/webrtc';
+import { ConnectionState, createPeer } from '@/lib/webrtc';
 import { HostRequestHandler } from './request-handler';
-import { HostMessageHandler } from './message-handler';
-import { HostHandshakeHandler } from './handshake-handler';
 import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { hostCrypto } from '../crypto';
+import { EnhancedConnection, ClientConnectionInfo } from './enhanced-connection';
 
 // Define connection phases for host-side
 export enum ConnectionPhase {
@@ -15,6 +14,7 @@ export enum ConnectionPhase {
 
 export interface HostConnectionCallbacks {
   onClientConnected?: (clientId: string) => void;
+  onClientActivated?: (clientId: string) => void;
   onClientDisconnected?: (clientId: string) => void;
   onStateChanged?: (state: ConnectionState) => void;
   onEncryptionPassphraseGenerated?: (passphrase: string | null) => void;
@@ -24,13 +24,9 @@ export interface HostConnectionCallbacks {
 export class HostConnectionManager {
   private peer: Peer | null = null;
   private peerId: string = '';
-  private connections: Map<string, DataConnection> = new Map();
-  private requestHandler: HostRequestHandler;
-  private messageHandler: HostMessageHandler;
+  private connections: Map<string, EnhancedConnection> = new Map();
   private callbacks: HostConnectionCallbacks;
   private encryptionPassphrase: string | null = null;
-  // Track connection phase per client
-  private clientPhases: Map<string, ConnectionPhase> = new Map();
   
   constructor(
     getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>,
@@ -38,29 +34,35 @@ export class HostConnectionManager {
     getFile: (filePath: string) => Promise<FSFile | null>,
     callbacks: HostConnectionCallbacks = {}
   ) {
-    this.requestHandler = new HostRequestHandler(getDirectory, listFiles, getFile);
-    this.messageHandler = new HostMessageHandler(
-      this,
-      this.requestHandler,
-      (clientId: string, phase: ConnectionPhase) => this.setClientPhase(clientId, phase)
-    );
+    HostRequestHandler.setFileSystem({
+      getDirectory,
+      listFiles,
+      getFile
+    });
     this.callbacks = callbacks;
   }
 
   // 获取当前连接的客户端 ID 列表
   getConnectedClients(): string[] {
-    return Array.from(this.connections.keys());
+    return Array.from(this.connections.values()).map(conn => conn.getClientId());
   }
 
-  // 获取客户端的连接阶段
-  getClientPhase(clientId: string): ConnectionPhase {
-    return this.clientPhases.get(clientId) || ConnectionPhase.DISCONNECTED;
+  // 获取客户端连接信息
+  getClientInfo(clientId: string): ClientConnectionInfo | null {
+    const connection = this.connections.get(clientId);
+    if (connection) {
+      return connection.getConnectionInfo();
+    }
+    return null;
   }
 
-  // 设置客户端的连接阶段
-  private setClientPhase(clientId: string, phase: ConnectionPhase) {
-    console.log(`Setting client ${clientId} phase to ${ConnectionPhase[phase]}`);
-    this.clientPhases.set(clientId, phase);
+  // 获取所有客户端连接信息
+  getAllClientInfo(): ClientConnectionInfo[] {
+    const result: ClientConnectionInfo[] = [];
+    for (const connection of this.connections.values()) {
+      result.push(connection.getConnectionInfo());
+    }
+    return result;
   }
 
   // 作为服务器启动
@@ -89,30 +91,20 @@ export class HostConnectionManager {
   }
 
   // 断开所有连接
-  disconnect() {
+  disconnectAll(): void {
     // 关闭所有连接
     for (const connection of this.connections.values()) {
       connection.close();
     }
     this.connections.clear();
-    this.clientPhases.clear();
-    
-    // 关闭 Peer
-    if (this.peer) {
-      this.peer.destroy();
-      this.peer = null;
-    }
-    this.callbacks.onStateChanged!(ConnectionState.DISCONNECTED);
   }
 
   // 断开指定客户端连接
-  disconnectClient(clientId: string) {
+  disconnectClient(clientId: string): void {
     const connection = this.connections.get(clientId);
     if (connection) {
       connection.close();
       this.connections.delete(clientId);
-      this.clientPhases.delete(clientId);
-      
       if (this.callbacks.onClientDisconnected) {
         this.callbacks.onClientDisconnected(clientId);
       }
@@ -129,7 +121,7 @@ export class HostConnectionManager {
     });
 
     this.peer.on('connection', (connection) => {
-      this.handleNewConnection(connection);
+      this.handleConnection(connection);
     });
 
     this.peer.on('error', (error) => {
@@ -139,74 +131,78 @@ export class HostConnectionManager {
     });
   }
 
-  // 处理新的连接
-  private handleNewConnection(connection: DataConnection) {
-    const clientId = connection.peer;
-    
-    // 设置初始阶段为握手阶段
-    this.callbacks.onStateChanged!(ConnectionState.HANDSHAKING);
-    this.setClientPhase(clientId, ConnectionPhase.HANDSHAKING);
-    
-    // 保存连接
-    this.connections.set(clientId, connection);
-    
-    // 创建握手处理器
-    const handshakeHandler = new HostHandshakeHandler(
-      connection,
-      () => this.onHandshakeComplete(clientId),
-      (error) => this.onHandshakeFailed(clientId, error)
+  // 处理新连接
+  private handleConnection(conn: DataConnection): void {
+    // 创建增强的连接对象
+    const enhancedConn = new EnhancedConnection(conn,
+      (clientId) => this.onConnectionClose(clientId),
+      (clientId, error) => this.onConnectionError(clientId, error),
+      (clientId) => this.onHandshakeComplete(clientId),
+      (clientId, error) => this.onHandshakeFailed(clientId, error)
     );
     
-    // 设置握手处理器
-    this.messageHandler.setHandshakeHandler(clientId, handshakeHandler);
+    // 存储连接
+    this.connections.set(conn.peer, enhancedConn);
     
-    // 设置连接事件
-    this.setupConnectionEvents(connection);
-    
+    // TODO 握手成功后才通知？
     // 通知客户端连接
     if (this.callbacks.onClientConnected) {
-      this.callbacks.onClientConnected(clientId);
+      this.callbacks.onClientConnected(enhancedConn.getClientId());
     }
   }
 
   // 处理握手成功
-  private onHandshakeComplete(clientId: string) {
+  private onHandshakeComplete(clientId: string): void {
     console.log(`Handshake completed for client ${clientId}`);
-    this.setClientPhase(clientId, ConnectionPhase.ACTIVE);
+    
+    // 更新连接状态
+    // TODO 判断数量
     this.callbacks.onStateChanged!(ConnectionState.CONNECTED);
+    
+    // 通知客户端激活
+    if (this.callbacks.onClientActivated) {
+      this.callbacks.onClientActivated(clientId);
+    }
+    
+    // 清除错误
+    if (this.callbacks.onError) {
+      this.callbacks.onError(null);
+    }
   }
-
+  
   // 处理握手失败
-  private onHandshakeFailed(clientId: string, error: string) {
+  private onHandshakeFailed(clientId: string, error: string): void {
     console.error(`Handshake failed for client ${clientId}: ${error}`);
-    this.disconnectClient(clientId);
+    
+    // 移除连接
+    this.connections.delete(clientId);
+    
+    // 更新连接状态
     this.callbacks.onStateChanged!(ConnectionState.WAITING_FOR_CONNECTION);
+    
+    // 报告错误
+    if (this.callbacks.onError) {
+      this.callbacks.onError(`握手失败: ${error}`);
+    }
+    
+    // 通知客户端断开连接
+    if (this.callbacks.onClientDisconnected) {
+      this.callbacks.onClientDisconnected(clientId);
+    }
   }
 
-  // 设置连接事件
-  private setupConnectionEvents(connection: DataConnection) {
-    const clientId = connection.peer;
+  private onConnectionClose(clientId: string) {
+    this.connections.delete(clientId);
+    if (this.callbacks.onClientDisconnected) {
+      this.callbacks.onClientDisconnected(clientId);
+    }
+  }
 
-    connection.on('data', (data) => {
-      this.messageHandler.handleMessage(clientId, connection, data as WebRTCMessage);
-    });
-
-    connection.on('close', () => {
-      this.connections.delete(clientId);
-      this.clientPhases.delete(clientId);
-
-      this.callbacks.onStateChanged!(ConnectionState.WAITING_FOR_CONNECTION);
-      if (this.callbacks.onClientDisconnected) {
-        this.callbacks.onClientDisconnected(clientId);
-      }
-    });
-
-    connection.on('error', (error) => {
-      if (this.callbacks.onError) {
-        this.callbacks.onError(`连接错误: ${error.message}`);
-      }
-    });
+  private onConnectionError(clientId: string, error: string) {
+    if (this.callbacks.onError) {
+      this.callbacks.onError(error);
+    }
   }
 }
 
-export default HostConnectionManager; 
+export default HostConnectionManager;

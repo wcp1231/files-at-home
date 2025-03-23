@@ -65,6 +65,23 @@
       "description": "Select files and click the share button to share the files.",
       "shareButton": "Share files"
     },
+    "connectionsDialog": {
+      "buttonLabel": "Connection List",
+      "title": "Connection List",
+      "description": "Connection list displays all established connections.",
+      "noConnections": "No active connections.",
+      "connectionPhase": {
+        "handshaking": "Handshaking",
+        "active": "Connected",
+        "disconnected": "Disconnected"
+      },
+      "disconnectClient": "Disconnect Client",
+      "disconnectAllButton": "Disconnect All",
+      "closeButton": "Close",
+      "unknownBrowser": "Unknown Browser",
+      "unknownSystem": "Unknown System",
+      "connectedAt": "Connected at"
+    },
     "connectionPanel": {
       "disconnected": {
         "statusButton": "Not sharing",

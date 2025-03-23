@@ -42,7 +42,6 @@ interface FileBrowserState<FileViewEntry> {
 
   // 回调函数
   onFileSelect?: (path: string) => Promise<FileViewEntry | null>;
-  onFileData?: (path: string) => Promise<Blob | null>;
   onDirectorySelect?: (path: string) => Promise<FileViewEntry[]>;
   setVideoUrl: (url: string | null) => void;
   setVideoDialogOpen: (open: boolean) => void;
@@ -56,7 +55,6 @@ interface FileBrowserState<FileViewEntry> {
   // 设置回调函数
   setCallbacks: (callbacks: {
     onFileSelect?: (path: string) => Promise<FileViewEntry | null>;
-    onFileData?: (path: string) => Promise<Blob | null>;
     onDirectorySelect?: (path: string) => Promise<FileViewEntry[]>;
   }) => void;
 
@@ -122,7 +120,6 @@ export const createFileBrowserStore = () => {
       // 设置回调函数
       setCallbacks: (callbacks) => set((state) => {
         state.onFileSelect = callbacks.onFileSelect;
-        state.onFileData = callbacks.onFileData;
         state.onDirectorySelect = callbacks.onDirectorySelect;
       }),
 
@@ -414,7 +411,6 @@ export const createFileBrowserStore = () => {
         state.audioUrl = null;
         state.audioDialogOpen = false;
         state.onFileSelect = undefined;
-        state.onFileData = undefined;
         state.onDirectorySelect = undefined;
         state.isConnected = false;
       }),

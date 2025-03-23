@@ -1,10 +1,7 @@
 import { Peer, DataConnection } from 'peerjs';
-import { ConnectionState, createPeer, FileTransfer, WebRTCMessage } from '@/lib/webrtc';
-import { ClientMessageHandler } from './message-handler';
-import { ClientRequestManager } from './request-manager';
-import { HandshakeManager } from './handshake-manager';
+import { ConnectionState, createPeer, FileTransfer } from '@/lib/webrtc';
+import { EnhancedConnection } from './enhanced-connection';
 import { WorkerManager } from './worker';
-import { clientCrypto } from '@/lib/webrtc/crypto';
 
 // Define connection phases
 export enum ConnectionPhase {
@@ -15,13 +12,7 @@ export enum ConnectionPhase {
 
 export class ClientConnectionManager {
   private peer: Peer | null = null;
-  private connection: DataConnection | null = null;
-  private requestManager: ClientRequestManager;
-  private messageHandler: ClientMessageHandler;
-  private handshakeManager: HandshakeManager;
-  
-  // Connection phase tracking
-  private connectionPhase: ConnectionPhase = ConnectionPhase.DISCONNECTED;
+  private enhancedConnection: EnhancedConnection | null = null;
   
   // 状态回调函数
   private onStateChangeHandler: (state: ConnectionState) => void;
@@ -36,28 +27,6 @@ export class ClientConnectionManager {
     this.onStateChangeHandler = onStateChange;
     this.onError = onError;
     this.onTransferStatusChange = onTransferStatusChange || (() => {});
-    
-    // Initialize managers
-    this.requestManager = new ClientRequestManager(
-      null, 
-      30000, 
-      () => {}, // 进度回调会在请求管理器中直接设置
-      this.onTransferStatusChange
-    );
-    this.handshakeManager = new HandshakeManager(
-      this.setConnectionPhase.bind(this),
-      this.onStateChange.bind(this),
-      this.onError,
-      30000
-    );
-
-    this.messageHandler = new ClientMessageHandler(this.requestManager, this.handshakeManager, this.onError);
-    
-    // Set relationship between managers
-    this.messageHandler.setHandshakeManager(this.handshakeManager);
-    
-    // 初始化设置阶段
-    this.setConnectionPhase(this.connectionPhase);
   }
   
   initializeClient(connectionId: string) {
@@ -67,7 +36,6 @@ export class ClientConnectionManager {
     }
     try {
       this.onStateChange(ConnectionState.INITIALIZING);
-      this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       
       // 创建一个Peer（不指定ID）
       const peer = createPeer();
@@ -89,106 +57,73 @@ export class ClientConnectionManager {
       this.onStateChange(ConnectionState.ERROR);
     }
   }
+
+  requestFile(filePath: string) {
+    return this.enhancedConnection?.requestFile(filePath) || null;
+  }
+
+  requestDirectory(path: string) {
+    return this.enhancedConnection?.requestDirectory(path) || [];
+  }
+
+  cancelFileTransfer(fileId: string) {
+    this.enhancedConnection?.cancelFileTransfer(fileId);
+  }
   
   private setupConnection(conn: DataConnection) {
     this.onStateChange(ConnectionState.CONNECTING);
-    this.connection = conn;
-    this.requestManager.setConnection(conn);
-    this.handshakeManager.setConnection(conn);
-    
-    // 设置连接事件
-    conn.on('open', () => {
-      this.onStateChange(ConnectionState.HANDSHAKING);
-      this.setConnectionPhase(ConnectionPhase.HANDSHAKING);
-      this.startHandshake();
-    });
-    
-    conn.on('data', (data) => {
-      // Pass the connection phase to handle the message according to the current phase
-      this.messageHandler.handleMessage(conn, data as WebRTCMessage);
-    });
-    
-    conn.on('close', () => {
-      this.onStateChange(ConnectionState.DISCONNECTED);
-      this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
-      this.connection = null;
-      this.requestManager.setConnection(null);
-      this.handshakeManager.setConnection(null);
-    });
-    
-    conn.on('error', (err) => {
-      this.onError(`连接错误: ${err}`);
-      this.onStateChange(ConnectionState.ERROR);
-    });
+    this.enhancedConnection = new EnhancedConnection(conn, 
+      this.onConnectionActive.bind(this), 
+      this.onConnectionClose.bind(this), 
+      this.onConnectionError.bind(this), 
+      this.onTransferStatusChange);
+  }
+
+  private onConnectionActive() {
+    this.onStateChange(ConnectionState.CONNECTED);
+  }
+
+  private onConnectionClose() {
+    this.onStateChange(ConnectionState.DISCONNECTED);
+  }
+
+  private onConnectionError(error: string) {
+    this.onStateChange(ConnectionState.ERROR);
+    this.onError(`连接错误: ${error}`);
   }
   
   private setupPeerEvents(peer: Peer) {
     peer.on('error', (err) => {
       this.onError(`连接错误: ${err}`);
       this.onStateChange(ConnectionState.ERROR);
-      this.disconnect();
     });
     
     peer.on('disconnected', () => {
       this.onStateChange(ConnectionState.DISCONNECTED);
-      this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
       // 尝试重新连接
       peer.reconnect();
     });
     
     peer.on('close', () => {
-      this.onStateChange(ConnectionState.DISCONNECTED);
-      this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
-      this.peer = null;
-      this.connection = null;
-      this.requestManager.setConnection(null);
-      this.handshakeManager.setConnection(null);
+      this.onPeerClose()
     });
   }
 
-  disconnect() {
-    if (this.connection) {
-      this.connection.close();
-      this.connection = null;
-    }
-    
+  private onPeerClose() {    
     if (this.peer) {
       this.peer.destroy();
       this.peer = null;
     }
-    
-    this.setConnectionPhase(ConnectionPhase.DISCONNECTED);
-    this.onStateChange(ConnectionState.DISCONNECTED);
-    this.requestManager.setConnection(null);
-    this.handshakeManager.setConnection(null);
-    this.clearEncryptionKey();
   }
-  
-  // Helper method to change connection phase and update dependencies
-  private setConnectionPhase(phase: ConnectionPhase) {
-    if (this.connectionPhase === phase) return;
-    
-    console.log(`Connection phase changing from ${ConnectionPhase[this.connectionPhase]} to ${ConnectionPhase[phase]}`);
-    this.connectionPhase = phase;
-    
-    // Update related components
-    this.messageHandler.setPhase(phase);
-    this.requestManager.setPhase(phase);
+
+  disconnect() {    
+    this.onStateChange(ConnectionState.DISCONNECTED);
+    this.enhancedConnection?.disconnect();
   }
   
   // 获取当前连接阶段
   getCurrentPhase(): ConnectionPhase {
-    return this.connectionPhase;
-  }
-  
-  // 暴露 RequestManager 的方法以供外部调用
-  getRequestManager() {
-    return this.requestManager;
-  }
-  
-  // 获取当前连接
-  getConnection() {
-    return this.connection;
+    return this.enhancedConnection?.getPhase() || ConnectionPhase.DISCONNECTED;
   }
   
   // 获取当前 Peer
@@ -197,33 +132,17 @@ export class ClientConnectionManager {
   }
 
   /**
-   * 启动握手过程
-   */
-  private async startHandshake() {
-    if (!this.connection) {
-      this.onError('未连接，无法进行握手');
-      return;
-    }
-    
-    const success = await this.handshakeManager.startHandshake();
-    if (!success) {
-      // If handshake failed, disconnect
-      this.disconnect();
-    }
-  }
-
-  /**
    * 检查是否设置了加密密钥
    */
   hasEncryptionKey(): boolean {
-    return clientCrypto.hasKey();
+    return this.enhancedConnection?.hasEncryptionKey() || false;
   }
   
   /**
    * 清除加密密钥
    */
   clearEncryptionKey(): void {
-    clientCrypto.clearKey();
+    this.enhancedConnection?.clearEncryptionKey();
   }
 
   private onStateChange(state: ConnectionState) {

@@ -5,6 +5,7 @@ import FlatConnectionPanel from './FlatConnectionPanel';
 import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 import { Button } from '../ui/button';
 import { DynamicIcon } from 'lucide-react/dynamic';
+import ConnectionsDialog from './ConnectionsDialog';
 
 interface FileExplorerProps {
   id: string;
@@ -51,6 +52,7 @@ export default function FileExplorer({ id, isInitialized, getDirectory, getFile,
         <FileBrowser
           titlePanel={
             <div className="flex items-center justify-between w-full gap-2">
+              <ConnectionsDialog />
               <FlatConnectionPanel />
               <CloseButton onClose={onClose} />
             </div>

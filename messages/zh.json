@@ -65,6 +65,23 @@
       "description": "选择文件并点击分享按钮后，可以通过分享链接访问这些文件。",
       "shareButton": "分享文件"
     },
+    "connectionsDialog": {
+      "buttonLabel": "连接列表",
+      "title": "连接列表",
+      "description": "连接列表显示所有已建立的连接。",
+      "noConnections": "没有活动连接。",
+      "connectionPhase": {
+        "handshaking": "握手中",
+        "active": "已连接",
+        "disconnected": "已断开"
+      },
+      "disconnectClient": "断开连接",
+      "disconnectAllButton": "断开所有连接",
+      "closeButton": "关闭",
+      "unknownBrowser": "未知浏览器",
+      "unknownSystem": "未知系统",
+      "connectedAt": "连接时间"
+    },
     "connectionPanel": {
       "disconnected": {
         "statusButton": "未开启分享",

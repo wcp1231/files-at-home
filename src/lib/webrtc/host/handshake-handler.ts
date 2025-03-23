@@ -1,6 +1,7 @@
-import { DataConnection } from 'peerjs';
-import { HostInfo, MessageType, MetaRequest } from '@/lib/webrtc';
+import { HostInfo, MessageType, MetaRequest, WebRTCMessage } from '@/lib/webrtc';
 import { hostCrypto } from '../crypto';
+import { EnhancedConnection } from './enhanced-connection';
+import { ConnectionPhase } from './connection';
 
 /**
  * Handles the handshake process on the host side.
@@ -9,35 +10,54 @@ import { hostCrypto } from '../crypto';
  */
 export class HostHandshakeHandler {
   private hostInfo: HostInfo;
-  private connection: DataConnection;
+  private connection: EnhancedConnection;
   private mismatchCount: number = 0;
   private readonly MAX_MISMATCH_COUNT = 3;
   
   // Callbacks for handshake events
-  private onHandshakeComplete: () => void;
+  private onHandshakeComplete: (meta: MetaRequest) => void;
   private onHandshakeFailed: (error: string) => void;
   
   constructor(
-    connection: DataConnection,
-    onHandshakeComplete: () => void,
+    connection: EnhancedConnection,
+    onHandshakeComplete: (meta: MetaRequest) => void,
     onHandshakeFailed: (error: string) => void
   ) {
     this.hostInfo = new HostInfo();
     this.connection = connection;
     this.onHandshakeComplete = onHandshakeComplete;
     this.onHandshakeFailed = onHandshakeFailed;
+    this.connection.getConnection().on('data', this.handleMessage.bind(this));
   }
-  
+
+  async handleMessage(data: unknown) {
+    const phase = this.connection.getPhase();
+    if (phase !== ConnectionPhase.HANDSHAKING) {
+      console.warn(`Unexpected message type during non-handshake phase: ${data}`);
+      return;
+    }
+
+    const { type, payload, requestId } = await this.connection.deserializeRequest(data as WebRTCMessage);
+    
+    if (type === MessageType.META_REQUEST) {
+      await this.handleMetaRequest(requestId!, payload);
+    } else {
+      console.warn(`Unexpected message type during handshake phase: ${type}`);
+      this.sendError(requestId!, 'Handshake required before other requests');
+    }
+  }
+
   /**
    * Handle a meta request during the handshake phase
    */
   async handleMetaRequest(requestId: string, request: MetaRequest) {
     // 获取 API 版本和客户端信息
     const { message } = request;
+    this.connection.setMetaInfo(request);
 
     // 如果不需要加密，则直接返回
     if (message === 'hello' && !hostCrypto.hasKey()) {
-      this.onHandshakeComplete();
+      this.onHandshakeComplete(request);
       this.sendMetaResponse(requestId, 'hello');
       return
     }
@@ -50,7 +70,7 @@ export class HostHandshakeHandler {
     const isPassphraseValid = await this.checkPassphrase(message)
     
     if (isPassphraseValid) {
-      this.onHandshakeComplete();
+      this.onHandshakeComplete(request);
       this.sendMetaResponse(requestId, 'hello');
       return
     }
@@ -62,7 +82,7 @@ export class HostHandshakeHandler {
 
     // TODO 断开连接（或停止接受新连接）
     // TODO 发送错误消息
-    this.sendError(requestId, 'error');
+    this.sendError(requestId, 'Passphrase mismatch');
     this.onHandshakeFailed('Passphrase mismatch');
   }
 
@@ -88,7 +108,7 @@ export class HostHandshakeHandler {
       requestId
     };
 
-    this.connection.send(wrtcMessage);
+    this.connection.send(wrtcMessage as WebRTCMessage);
   }
   
   /**
@@ -101,7 +121,7 @@ export class HostHandshakeHandler {
       requestId
     };
     
-    this.connection.send(message);
+    this.connection.send(message as WebRTCMessage);
   }
 }
 

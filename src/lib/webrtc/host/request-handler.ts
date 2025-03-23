@@ -1,4 +1,3 @@
-import { DataConnection } from 'peerjs';
 import { FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { 
   MessageType, 
@@ -17,35 +16,34 @@ import { HostMessageHandler } from './message-handler';
 // 常量配置
 const MAX_CHUNK_SIZE = 512 * 1024; // 512KB 块大小
 
-export class HostRequestHandler {
-  private messageHandler?: HostMessageHandler;
-  private getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
-  private listFiles: (path: string) => Promise<FSEntry[] | null>;
-  private getFile: (filePath: string) => Promise<FSFile | null>;
+type FileSystem = {
+  getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>;
+  listFiles: (path: string) => Promise<FSEntry[] | null>;
+  getFile: (filePath: string) => Promise<FSFile | null>;
+};
 
-  constructor(
-    getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>,
-    listFiles: (path: string) => Promise<FSEntry[] | null>,
-    getFile: (filePath: string) => Promise<FSFile | null>
-  ) {
-    this.getDirectory = getDirectory;
-    this.listFiles = listFiles;
-    this.getFile = getFile;
+export class HostRequestHandler {
+  static FileSystem: FileSystem;
+  static setFileSystem(fs: FileSystem) {
+    HostRequestHandler.FileSystem = fs;
   }
 
-  setMessageHandler(messageHandler: HostMessageHandler) {
+  private messageHandler: HostMessageHandler;
+
+  constructor(
+    messageHandler: HostMessageHandler
+  ) {
     this.messageHandler = messageHandler;
   }
 
   // 处理文件请求
   async handleFileRequest(
-    conn: DataConnection,
     payload: FileInfoRequest, 
     requestId?: string
   ) {
     try {
       const { path } = payload;
-      const file = await this.getFile(path);
+      const file = await HostRequestHandler.FileSystem.getFile(path);
       if (!file) {
         throw new Error('文件不存在');
       }
@@ -65,22 +63,21 @@ export class HostRequestHandler {
         requestId
       };
       
-      this.messageHandler!.sendResponse(conn, message);
+      this.messageHandler.sendResponse(message);
     } catch (err: unknown) {
-      this.sendErrorResponse(conn, payload.path, err instanceof Error ? err.message : String(err), requestId);
+      this.sendErrorResponse(err instanceof Error ? err.message : String(err), requestId);
     }
   }
 
   // 处理文件数据请求，统一使用分块传输方式
   // 处理文件信息请求并开始传输
   async handleFileTransferRequest(
-    conn: DataConnection,
     payload: FileTransferRequest, 
     requestId?: string
   ) {
     try {
       const { path } = payload;
-      const file = await this.getFile(path);
+      const file = await HostRequestHandler.FileSystem.getFile(path);
       if (!file) {
         throw new Error('文件不存在');
       }
@@ -110,19 +107,18 @@ export class HostRequestHandler {
         requestId
       };
       
-      this.messageHandler!.sendResponse(conn, message);
+      this.messageHandler.sendResponse(message);
       
       // 获取文件对象并开始传输
       const fileObj = await file.getFile();
-      await this.handleFileTransfer(conn, file, fileId, fileObj, start, end, requestId);
+      await this.handleFileTransfer(file, fileId, fileObj, start, end, requestId);
     } catch (err: unknown) {
-      this.sendErrorResponse(conn, payload.path, err instanceof Error ? err.message : String(err), requestId);
+      this.sendErrorResponse(err instanceof Error ? err.message : String(err), requestId);
     }
   }
   
   // 统一的文件传输方法
   private async handleFileTransfer(
-    conn: DataConnection,
     file: FSFile,
     fileId: string,
     fileObj: File,
@@ -164,7 +160,7 @@ export class HostRequestHandler {
         requestId
       };
       
-      this.messageHandler!.sendResponse(conn, chunkMessage);
+      this.messageHandler.sendResponse(chunkMessage);
       return
     }
 
@@ -197,12 +193,11 @@ export class HostRequestHandler {
       requestId
     };
     
-    this.messageHandler!.sendResponse(conn, chunkMessage);
+    this.messageHandler.sendResponse(chunkMessage);
   }
 
   // 处理文件块请求
   async handleFileChunkRequest(
-    conn: DataConnection,
     payload: FileChunkRequest,
     requestId?: string
   ) {
@@ -211,7 +206,7 @@ export class HostRequestHandler {
       const offsetStart = payload.start;
       const offsetEnd = payload.end;
 
-      const file = await this.getFile(filePath);      
+      const file = await HostRequestHandler.FileSystem.getFile(filePath);      
       if (!file) {
         throw new Error('文件不存在');
       }
@@ -254,28 +249,27 @@ export class HostRequestHandler {
         requestId
       };
       
-      this.messageHandler!.sendResponse(conn, message);
+      this.messageHandler.sendResponse(message);
     } catch (err: unknown) {
-      this.sendErrorResponse(conn, payload.filePath, err instanceof Error ? err.message : String(err), requestId);
+      this.sendErrorResponse(err instanceof Error ? err.message : String(err), requestId);
     }
   }
 
   // 处理目录请求
   async handleDirectoryRequest(
-    conn: DataConnection,
     payload: DirectoryRequest,
     requestId?: string
   ) {
     try {
       const { path } = payload;
-      const directory = await this.getDirectory(path, true);
+      const directory = await HostRequestHandler.FileSystem.getDirectory(path, true);
       
       if (!directory) {
         throw new Error('目录不存在');
       }
 
       // 获取目录中的文件列表
-      const files = await this.listFiles(path);
+      const files = await HostRequestHandler.FileSystem.listFiles(path);
       if (!files) {
         throw new Error('目录不存在');
       }
@@ -293,16 +287,14 @@ export class HostRequestHandler {
         requestId
       };
       
-      this.messageHandler!.sendResponse(conn, message);
+      this.messageHandler.sendResponse(message);
     } catch (err: unknown) {
-      this.sendErrorResponse(conn, payload.path, err instanceof Error ? err.message : String(err), requestId);
+      this.sendErrorResponse(err instanceof Error ? err.message : String(err), requestId);
     }
   }
 
   // 发送错误响应
   private sendErrorResponse(
-    conn: DataConnection, 
-    path: string, 
     errorMessage: string, 
     requestId?: string
   ) {
@@ -313,8 +305,6 @@ export class HostRequestHandler {
       },
       requestId
     };
-    this.messageHandler!.sendResponse(conn, message);
+    this.messageHandler.sendResponse(message);
   }
 }
-
-export default HostRequestHandler; 

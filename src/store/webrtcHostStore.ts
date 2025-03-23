@@ -8,6 +8,7 @@ import { FileFSFile, FSDirectory, FSEntry, FSFile } from "@/lib/filesystem";
 import { FileViewEntry } from '@/components/filebrowser/FileBrowser';
 import { useFileBrowserStore } from '@/components/filebrowser';
 import { toast } from '@/hooks/use-toast';
+import { ClientConnectionInfo } from '@/lib/webrtc/host/enhanced-connection';
 
 // 将FSEntry映射到FileEntry
 function mapFSEntryToFileEntry (entry: FSEntry | null): FileViewEntry | null {
@@ -30,6 +31,7 @@ interface WebRTCHostState {
   // 状态
   peerId: string;
   isConnectionInitialized: boolean;
+  connections: ClientConnectionInfo[];
   connectionState: ConnectionState;
   error: string | null;
   connectionId: string | null;
@@ -50,6 +52,7 @@ interface WebRTCHostState {
   // 动作
   initializeHost: (passphrase: string) => Promise<boolean>;
   disconnect: () => void;
+  disconnectClient: (clientId: string) => void;
 
   onError: (error: string | null) => void;
   
@@ -65,6 +68,7 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
     // 初始状态
     peerId: '',
     isConnectionInitialized: false,
+    connections: [],
     connectionState: ConnectionState.DISCONNECTED,
     error: null,
     connectionId: null,
@@ -116,12 +120,21 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
             set((draft) => {
               draft.connectionId = clientId;
               draft.connectionState = ConnectionState.CONNECTED;
+              draft.connections = manager.getAllClientInfo();
+            })
+          },
+          onClientActivated: (clientId) => {
+            set((draft) => {
+              draft.connectionId = clientId;
+              draft.connectionState = ConnectionState.CONNECTED;
+              draft.connections = manager.getAllClientInfo();
             })
           },
           onClientDisconnected: () => {
             set((draft) => {
               draft.connectionId = null;
               draft.connectionState = ConnectionState.WAITING_FOR_CONNECTION;
+              draft.connections = manager.getAllClientInfo();
             })
           },
           onStateChanged: (state) => {
@@ -230,17 +243,19 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
     
     // 断开连接
     disconnect: () => {
-      const state = get();
-      if (state._connectionManager) {
-        state._connectionManager.disconnect();
+      const { _connectionManager } = get();
+      if (_connectionManager) {
+        _connectionManager.disconnectAll();
+        set({ connectionState: ConnectionState.DISCONNECTED });
       }
-      
-      set((draft) => {
-        draft.connectionId = null;
-        draft.error = null;
-        draft.isConnectionInitialized = false;
-        draft.connectionState = ConnectionState.DISCONNECTED;
-      });
+    },
+
+    // 断开指定客户端连接
+    disconnectClient: (clientId: string) => {
+      const { _connectionManager } = get();
+      if (_connectionManager) {
+        _connectionManager.disconnectClient(clientId);
+      }
     }
   }))
 );
