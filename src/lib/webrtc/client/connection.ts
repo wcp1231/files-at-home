@@ -32,6 +32,7 @@ export class ClientConnectionManager {
   initializeClient(connectionId: string) {
     // 如果已经初始化，则不重复初始化
     if (this.peer) {
+      this.connect(connectionId);
       return;
     }
     try {
@@ -44,11 +45,7 @@ export class ClientConnectionManager {
       // 监听 open 事件
       peer.on('open', () => {
         // 连接到主机
-        const conn = peer.connect(connectionId, {
-          reliable: true,
-          serialization: "json"
-        });
-        this.setupConnection(conn);
+        this.connect(connectionId);
       });
       
       this.setupPeerEvents(peer);
@@ -68,6 +65,15 @@ export class ClientConnectionManager {
 
   cancelFileTransfer(fileId: string) {
     this.enhancedConnection?.cancelFileTransfer(fileId);
+  }
+
+  private connect(connectionId: string) {
+    // 连接到主机
+    const conn = this.peer!.connect(connectionId, {
+      reliable: true,
+      serialization: "json"
+    });
+    this.setupConnection(conn);
   }
   
   private setupConnection(conn: DataConnection) {

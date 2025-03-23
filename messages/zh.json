@@ -66,30 +66,17 @@
       "shareButton": "分享文件"
     },
     "connectionsDialog": {
-      "buttonLabel": "连接列表",
-      "title": "连接列表",
-      "description": "连接列表显示所有已建立的连接。",
+      "title": "连接管理",
       "noConnections": "没有活动连接。",
-      "connectionPhase": {
-        "handshaking": "握手中",
-        "active": "已连接",
-        "disconnected": "已断开"
-      },
-      "disconnectClient": "断开连接",
-      "disconnectAllButton": "断开所有连接",
-      "closeButton": "关闭",
-      "unknownBrowser": "未知浏览器",
-      "unknownSystem": "未知系统",
-      "connectedAt": "连接时间"
-    },
-    "connectionPanel": {
       "disconnected": {
-        "statusButton": "未开启分享",
-        "description": "开启分享，让远程设备访问你的文件夹",
-        "passphrasePlaceholder": "设置 AES 加密口令（可选）",
+        "statusButton": "未分享",
         "button": {
-          "share": "开启分享",
+          "share": "分享",
           "initializing": "初始化中..."
+        },
+        "passphrase": {
+          "description": "设置 AES 密码以保护您的数据",
+          "placeholder": "密码 (可选)"
         }
       },
       "initializing": {
@@ -105,11 +92,20 @@
           "connected": "已连接"
         },
         "shareLink": "分享链接",
-        "connectionPassphrase": "连接密码",
-        "button": {
-          "disconnect": "断开连接"
-        }
-      }
+        "connectionPassphrase": "连接密码"
+      },
+      "connectedClients": "已连接客户端",
+      "connectionPhase": {
+        "handshaking": "握手中",
+        "active": "已连接",
+        "disconnected": "已断开"
+      },
+      "stopSharingButton": "停止分享",
+      "disconnectClient": "断开客户端",
+      "closeButton": "关闭",
+      "unknownBrowser": "未知浏览器",
+      "unknownSystem": "未知系统",
+      "connectedAt": "连接时间"
     }
   },
   "AccessView": { 

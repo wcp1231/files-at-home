@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { FileBrowser, useFileBrowserStore } from '@/components/filebrowser';
 import { FSEntry, FSFile, FSDirectory } from '@/lib/filesystem';
-import FlatConnectionPanel from './FlatConnectionPanel';
 import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 import { Button } from '../ui/button';
 import { DynamicIcon } from 'lucide-react/dynamic';
@@ -53,7 +52,6 @@ export default function FileExplorer({ id, isInitialized, getDirectory, getFile,
           titlePanel={
             <div className="flex items-center justify-between w-full gap-2">
               <ConnectionsDialog />
-              <FlatConnectionPanel />
               <CloseButton onClose={onClose} />
             </div>
           }

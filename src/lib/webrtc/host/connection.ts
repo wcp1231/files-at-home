@@ -97,6 +97,8 @@ export class HostConnectionManager {
       connection.close();
     }
     this.connections.clear();
+    this.peer?.destroy();
+    this.peer = null;
   }
 
   // 断开指定客户端连接

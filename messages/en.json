@@ -66,30 +66,17 @@
       "shareButton": "Share files"
     },
     "connectionsDialog": {
-      "buttonLabel": "Connection List",
-      "title": "Connection List",
-      "description": "Connection list displays all established connections.",
+      "title": "Connection Management",
       "noConnections": "No active connections.",
-      "connectionPhase": {
-        "handshaking": "Handshaking",
-        "active": "Connected",
-        "disconnected": "Disconnected"
-      },
-      "disconnectClient": "Disconnect Client",
-      "disconnectAllButton": "Disconnect All",
-      "closeButton": "Close",
-      "unknownBrowser": "Unknown Browser",
-      "unknownSystem": "Unknown System",
-      "connectedAt": "Connected at"
-    },
-    "connectionPanel": {
       "disconnected": {
         "statusButton": "Not sharing",
-        "description": "Start sharing, allowing remote devices to access your folder",
-        "passphrasePlaceholder": "Set the AES passphrase (optional)",
         "button": {
           "share": "Share",
           "initializing": "Initializing..."
+        },
+        "passphrase": {
+          "description": "Set AES passphrase to protect your data",
+          "placeholder": "passphrase (optional)"
         }
       },
       "initializing": {
@@ -112,11 +99,20 @@
           "connected": "Connected"
         },
         "shareLink": "Share link",
-        "connectionPassphrase": "Connection passphrase",
-        "button": {
-          "disconnect": "Disconnect"
-        }
-      }
+        "connectionPassphrase": "Connection passphrase"
+      },
+      "connectedClients": "Connected Clients",
+      "connectionPhase": {
+        "handshaking": "Handshaking",
+        "active": "Connected",
+        "disconnected": "Disconnected"
+      },
+      "stopSharingButton": "Stop Sharing",
+      "disconnectClient": "Disconnect Client",
+      "closeButton": "Close",
+      "unknownBrowser": "Unknown Browser",
+      "unknownSystem": "Unknown System",
+      "connectedAt": "Connected at"
     }
   },
   "AccessView": { 
