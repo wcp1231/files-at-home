@@ -19,6 +19,12 @@ import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 import { ConnectionPhase } from '@/lib/webrtc/host';
 import { ConnectionState } from '@/lib/webrtc';
 import { ClientBrowserType, ClientSystemType } from '@/lib/webrtc/host/enhanced-connection';
+import { QRCodeSVG } from 'qrcode.react';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Get button state and label for connection
 const getConnectionButtonProps = (connectionState: ConnectionState) => {
@@ -112,21 +118,22 @@ const ConnectionInfo = () => {
   const { peerId, encryptionPassphrase } = useWebRTCHostStore();
   
   const [copied, setCopied] = useState(false);
-  const [shareUrl, setShareUrl] = useState('');
+  const [shareLink, setShareLink] = useState('');
+  const [showQRCode, setShowQRCode] = useState(false);
 
   // Update share URL when connection ID changes
   useEffect(() => {
     if (peerId) {
       const url = `${window.location.origin}/access/${peerId}`;
-      setShareUrl(url);
+      setShareLink(url);
     } else {
-      setShareUrl('');
+      setShareLink('');
     }
   }, [peerId]);
 
   // Copy link to clipboard
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl).then(() => {
+    navigator.clipboard.writeText(shareLink).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -139,20 +146,41 @@ const ConnectionInfo = () => {
         {peerId && (
           <div className="flex items-center space-x-1">
             <Input 
-              value={shareUrl} 
+              value={shareLink} 
               readOnly 
               className="h-7 text-sm" 
             />
             <Button 
               size="sm" 
-              className="p-0 w-7 h-7 flex items-center justify-center" 
-              variant="ghost"
+              variant="ghost" 
+              className="h-7 w-7 p-0" 
               onClick={handleCopyLink}
             >
-              {copied ? 
-                <DynamicIcon name="check" className="h-3.5 w-3.5 text-green-500" /> : 
-                <DynamicIcon name="copy" className="h-3.5 w-3.5" />}
+              {copied ? (
+                <DynamicIcon name="check" className="h-4 w-4" />
+              ) : (
+                <DynamicIcon name="copy" className="h-4 w-4" />
+              )}
             </Button>
+            
+            <Popover open={showQRCode} onOpenChange={setShowQRCode}>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                >
+                  <DynamicIcon name="qr-code" className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-fit p-4">
+                <div className="flex flex-col items-center space-y-2">
+                  <QRCodeSVG value={shareLink} size={300} />
+                  <p className="text-xs text-center text-muted-foreground">{t('connected.scanQRCode')}</p>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
           </div>
         )}
         {encryptionPassphrase && (
@@ -370,7 +398,7 @@ const ConnectionsDialog = () => {
               <span className="ml-1">{t(`disconnected.${connectionButtonProps.label}`)}</span>
             </Button>
           )}
-          <DialogClose>
+          <DialogClose asChild>
             <Button type="button" variant="ghost">
               {t('closeButton')}
             </Button>

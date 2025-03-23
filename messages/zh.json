@@ -92,7 +92,8 @@
           "connected": "已连接"
         },
         "shareLink": "分享链接",
-        "connectionPassphrase": "连接密码"
+        "connectionPassphrase": "连接密码",
+        "scanQRCode": "使用您的设备扫描此二维码"
       },
       "connectedClients": "已连接客户端",
       "connectionPhase": {

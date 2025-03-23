@@ -99,7 +99,8 @@
           "connected": "Connected"
         },
         "shareLink": "Share link",
-        "connectionPassphrase": "Connection passphrase"
+        "connectionPassphrase": "Connection passphrase",
+        "scanQRCode": "Scan this QR code with your device"
       },
       "connectedClients": "Connected Clients",
       "connectionPhase": {
@@ -193,4 +194,4 @@
     "deleteSuccess": "File deleted successfully",
     "error": "An error occurred"
   }
-} 
+}
