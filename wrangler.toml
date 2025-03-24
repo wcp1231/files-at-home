@@ -18,5 +18,9 @@ routes = [
 name = "folderport-staging"
 workers_dev = true
 
+routes = [
+  { pattern = "staging.folderport.com", custom_domain = true },
+]
+
 # vars.BASE_URL= "https://folderport-staging.wcp1231.workers.dev"
 # vars.AUTH_URL= "https://folderport-staging.wcp1231.workers.dev/api/auth"
