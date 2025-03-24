@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch"
 import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 import { ConnectionPhase } from '@/lib/webrtc/host';
 import { ConnectionState } from '@/lib/webrtc';
@@ -114,24 +115,10 @@ const DisconnectedState = ({ passphrase, setPassphrase }: DisconnectedStateProps
       <div className="space-y-2 border rounded-md p-3 bg-muted/20">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">{t('disconnected.upload.title')}</h3>
-          <Button
-            variant={allowFileUploads ? "default" : "outline"}
-            size="sm"
-            onClick={() => setAllowFileUploads(!allowFileUploads)}
-            className="h-7 px-3"
-          >
-            {allowFileUploads ? (
-              <>
-                <DynamicIcon name="check" className="h-3.5 w-3.5 mr-1" />
-                {t('disconnected.upload.allowed')}
-              </>
-            ) : (
-              <>
-                <DynamicIcon name="x" className="h-3.5 w-3.5 mr-1" />
-                {t('disconnected.upload.disallowed')}
-              </>
-            )}
-          </Button>
+          <Switch
+            checked={allowFileUploads}
+            onCheckedChange={setAllowFileUploads}
+          />
         </div>
         <p className="text-xs text-muted-foreground">
           {t('disconnected.upload.description')}

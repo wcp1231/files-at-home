@@ -79,7 +79,7 @@
           "placeholder": "passphrase (optional)"
         },
         "upload": {
-          "title": "Allow access to upload files",
+          "title": "Allow upload files",
           "description": "Allow access to upload files to your shared folder.",
           "disallowed": "Disallow",
           "allowed": "Allow"

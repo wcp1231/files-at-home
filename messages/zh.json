@@ -79,8 +79,8 @@
           "placeholder": "密码 (可选)"
         },
         "upload": {
-          "title": "允许访问端上传文件",
-          "description": "允许后，访问端可以上传文件到您的分享文件夹。",
+          "title": "允许上传文件",
+          "description": "允许访问端上传文件到分享文件夹",
           "disallowed": "不允许",
           "allowed": "允许"
         }
