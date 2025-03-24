@@ -207,5 +207,27 @@
     "dropFilesHere": "将文件拖放到此处",
     "dragFilesHere": "将文件拖放到此处或点击选择",
     "uploadNotAllowed": "主机不允许上传文件"
+  },
+  "ReceivedFilesDialog": {
+    "title": "已接收文件",
+    "description": "管理从访问端接收的文件",
+    "noFiles": "暂无接收的文件",
+    "refresh": "刷新",
+    "downloadSuccess": "下载成功",
+    "downloadSuccessDescription": "文件 {fileName} 已成功下载",
+    "deleteSuccess": "删除成功",
+    "deleteSuccessDescription": "文件 {fileName} 已成功删除",
+    "table": {
+      "fileName": "文件名",
+      "fileSize": "大小",
+      "receivedDate": "接收时间",
+      "actions": "操作"
+    },
+    "errors": {
+      "loadFailed": "加载文件失败",
+      "fileNotFound": "文件未找到",
+      "downloadFailed": "下载失败",
+      "deleteFailed": "删除失败"
+    }
   }
 }

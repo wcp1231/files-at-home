@@ -5,6 +5,7 @@ import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 import { Button } from '../ui/button';
 import { DynamicIcon } from 'lucide-react/dynamic';
 import ConnectionsDialog from './ConnectionsDialog';
+import { ReceivedFilesDialog } from './ReceivedFilesDialog';
 
 interface FileExplorerProps {
   id: string;
@@ -51,7 +52,10 @@ export default function FileExplorer({ id, isInitialized, getDirectory, getFile,
         <FileBrowser
           titlePanel={
             <div className="flex items-center justify-between w-full gap-2">
-              <ConnectionsDialog />
+              <div className="flex items-center gap-2">
+                <ReceivedFilesDialog />
+                <ConnectionsDialog />
+              </div>
               <CloseButton onClose={onClose} />
             </div>
           }

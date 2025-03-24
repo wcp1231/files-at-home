@@ -214,5 +214,27 @@
     "dropFilesHere": "Drop files here",
     "dragFilesHere": "Drag files here or click to select",
     "uploadNotAllowed": "File upload not allowed by the host"
+  },
+  "ReceivedFilesDialog": {
+    "title": "Received Files",
+    "description": "Manage files received from clients",
+    "noFiles": "No received files",
+    "refresh": "Refresh",
+    "downloadSuccess": "Download successful",
+    "downloadSuccessDescription": "File {fileName} has been successfully downloaded",
+    "deleteSuccess": "Delete successful",
+    "deleteSuccessDescription": "File {fileName} has been successfully deleted",
+    "table": {
+      "fileName": "File Name",
+      "fileSize": "Size",
+      "receivedDate": "Received Time",
+      "actions": "Actions"
+    },
+    "errors": {
+      "loadFailed": "Failed to load files",
+      "fileNotFound": "File not found",
+      "downloadFailed": "Download failed",
+      "deleteFailed": "Delete failed"
+    }
   }
 }

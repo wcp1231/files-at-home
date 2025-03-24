@@ -155,11 +155,8 @@ export class HostUploadHandler {
       }
       
       // 将base64数据转换为Uint8Array
-      const binaryString = atob(data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
+      const binaryData = Buffer.from(data, 'base64');
+      const bytes = new Uint8Array(binaryData);
       
       // 标记为已接收
       context.receivedChunks.add(chunkIndex);
