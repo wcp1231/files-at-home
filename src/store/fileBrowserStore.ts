@@ -11,6 +11,7 @@ interface FileBrowserState<FileViewEntry> {
   showOperations: boolean;
   packable: boolean;
   writeable: boolean;
+  uploadable: boolean;
   isConnected: boolean;
   role: 'share' | 'access';
 
@@ -34,6 +35,7 @@ interface FileBrowserState<FileViewEntry> {
     showOperations: boolean;
     packable: boolean;
     writeable: boolean;
+    uploadable: boolean;
   }) => void;
   setRole: (role: 'share' | 'access') => void;
 
@@ -94,6 +96,7 @@ export const createFileBrowserStore = () => {
       showOperations: false,
       packable: false,
       writeable: false,
+      uploadable: false,
       isConnected: false,
       role: 'access',
 
@@ -127,6 +130,7 @@ export const createFileBrowserStore = () => {
         state.showOperations = features.showOperations;
         state.packable = features.packable;
         state.writeable = features.writeable;
+        state.uploadable = features.uploadable;
       }),
       setRole: (role) => set((state) => {
         state.role = role;

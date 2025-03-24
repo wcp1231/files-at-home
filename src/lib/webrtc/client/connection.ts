@@ -94,7 +94,7 @@ export class ClientConnectionManager {
   }
 
   private onConnectionError(error: string) {
-    this.onStateChange(ConnectionState.ERROR);
+    // this.onStateChange(ConnectionState.ERROR);
     this.onError(`连接错误: ${error}`);
   }
   
@@ -135,6 +135,10 @@ export class ClientConnectionManager {
   // 获取当前 Peer
   getPeer() {
     return this.peer;
+  }
+
+  getConnection() {
+    return this.enhancedConnection;
   }
 
   /**

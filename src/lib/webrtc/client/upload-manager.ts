@@ -476,32 +476,8 @@ export class ClientUploadManager {
     const uploadState = this.activeUploads.get(uploadId);
     if (!uploadState) return;
     
-    // 创建完成消息
-    const completePayload: FileUploadComplete = {
-      uploadId,
-      success: true,
-      fileName: uploadState.file.name,
-      fileSize: uploadState.file.size
-    };
-    
-    try {
-      // 发送完成消息
-      const requestId = uuidv4();
-      const message: WebRTCMessage = {
-        type: MessageType.FILE_UPLOAD_COMPLETE,
-        payload: completePayload,
-        requestId
-      };
-      
-      // 不需要等待响应，主机会发送FILE_UPLOAD_COMPLETE消息
-      this.connection.sendRequest(message);
-      
-      // 更新状态
-      uploadState.status = FileTransferStatus.ASSEMBLING;
-      
-    } catch (error) {
-      this.handleUploadError(uploadId, error as Error);
-    }
+    // 更新状态
+    uploadState.status = FileTransferStatus.ASSEMBLING;
   }
   
   /**

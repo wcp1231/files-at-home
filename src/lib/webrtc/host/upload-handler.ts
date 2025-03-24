@@ -1,7 +1,8 @@
-import { MessageType, FileUploadRequest, FileUploadResponse, FileUploadChunk, FileUploadComplete, FileUploadCancel, WebRTCMessage, FileTransferStatus } from '../types';
+import { MessageType, FileUploadRequest, FileUploadResponse, FileUploadChunk, FileUploadCancel, WebRTCMessage, FileTransferStatus } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { IndexedDBFileStorage } from '@/utils/IndexedDBFileStorage';
 import { HostMessageHandler } from './message-handler';
+import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 
 /**
  * 上传状态接口
@@ -13,6 +14,8 @@ interface UploadContext {
   fileSize: number;
   totalChunks: number;
   receivedChunks: Set<number>;
+  pendingChunks: Map<number, Uint8Array>;
+  nextChunkToProcess: number;
   chunkSize: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
@@ -44,6 +47,12 @@ export class HostUploadHandler {
    */
   async handleUploadRequest(payload: FileUploadRequest, requestId: string): Promise<void> {
     try {
+      // 检查是否允许文件上传
+      const { allowFileUploads } = useWebRTCHostStore.getState();
+      if (!allowFileUploads) {
+        throw new Error('文件上传未启用。请在分享设置中启用文件上传功能。');
+      }
+      
       const { fileName, fileType, fileSize, totalChunks, chunkSize, metadata } = payload;
       
       // 生成上传ID
@@ -66,6 +75,8 @@ export class HostUploadHandler {
         fileSize,
         totalChunks,
         receivedChunks: new Set<number>(),
+        pendingChunks: new Map<number, Uint8Array>(),
+        nextChunkToProcess: 0,
         chunkSize,
         metadata,
         status: FileTransferStatus.INITIALIZING,
@@ -150,15 +161,14 @@ export class HostUploadHandler {
         bytes[i] = binaryString.charCodeAt(i);
       }
       
-      // 将数据写入文件写入器
-      if (context.fileWriter) {
-        await context.fileWriter.write(bytes);
-      } else {
-        throw new Error('文件写入器未初始化');
-      }
-      
       // 标记为已接收
       context.receivedChunks.add(chunkIndex);
+      
+      // 将数据存储在待处理队列中，而不是直接写入文件
+      context.pendingChunks.set(chunkIndex, bytes);
+      
+      // 尝试按顺序处理可处理的块
+      await this.processChunksInOrder(context);
       
       // 发送成功响应
       const response: FileUploadResponse = {
@@ -174,28 +184,33 @@ export class HostUploadHandler {
       
       this.messageHandler.sendResponse(message);
       
-      // 如果接收完所有块，自动完成上传
-      if (isLast || context.receivedChunks.size === context.totalChunks) {
-        await this.finalizeUpload(uploadId);
-        
-        // 发送完成消息
-        const completeMessage: WebRTCMessage = {
-          type: MessageType.FILE_UPLOAD_COMPLETE,
-          payload: {
-            uploadId,
-            success: true,
-            fileName: context.fileName,
-            fileSize: context.fileSize
-          },
-          requestId: uuidv4() // 使用新的请求ID
-        };
-        
-        this.messageHandler.sendResponse(completeMessage);
+      // 如果接收完所有块且已经全部处理完毕，自动完成上传
+      if ((isLast || context.receivedChunks.size === context.totalChunks) && 
+          context.nextChunkToProcess >= context.totalChunks) {
+        await this.handleUploadComplete(uploadId, context.fileName, context.fileSize);
       }
       
     } catch (error) {
+      console.log('处理上传块时出错:', uploadId, chunkIndex, isLast, (error as Error).message);
       this.sendErrorResponse((error as Error).message, requestId);
     }
+  }
+
+  private async handleUploadComplete(uploadId: string, fileName: string, fileSize: number): Promise<void> {
+    await this.finalizeUpload(uploadId);
+    // 发送完成消息
+    const completeMessage: WebRTCMessage = {
+      type: MessageType.FILE_UPLOAD_COMPLETE,
+      payload: {
+        uploadId,
+        success: true,
+        fileName,
+        fileSize
+      },
+      requestId: uuidv4() // 使用新的请求ID
+    };
+    
+    this.messageHandler.sendResponse(completeMessage);
   }
   
   /**
@@ -227,48 +242,6 @@ export class HostUploadHandler {
           uploadId,
           ready: false,
           error: '上传已取消'
-        },
-        requestId
-      };
-      
-      this.messageHandler.sendResponse(message);
-      
-    } catch (error) {
-      this.sendErrorResponse((error as Error).message, requestId);
-    }
-  }
-  
-  /**
-   * 处理上传完成请求
-   * @param payload 完成请求信息
-   * @param requestId 请求ID
-   */
-  async handleUploadComplete(payload: FileUploadComplete, requestId: string): Promise<void> {
-    try {
-      const { uploadId } = payload;
-      
-      // 获取上传上下文
-      const context = this.activeUploads.get(uploadId);
-      if (!context) {
-        throw new Error(`未找到上传ID: ${uploadId}`);
-      }
-      
-      // 检查是否接收了所有块
-      if (context.receivedChunks.size !== context.totalChunks) {
-        throw new Error(`上传未完成，缺少部分数据块`);
-      }
-      
-      // 完成上传
-      await this.finalizeUpload(uploadId);
-      
-      // 发送确认响应
-      const message: WebRTCMessage = {
-        type: MessageType.FILE_UPLOAD_COMPLETE,
-        payload: {
-          uploadId,
-          success: true,
-          fileName: context.fileName,
-          fileSize: context.fileSize
         },
         requestId
       };
@@ -344,6 +317,41 @@ export class HostUploadHandler {
       } finally {
         // 无论成功失败，都删除上下文
         this.activeUploads.delete(uploadId);
+      }
+    }
+  }
+  
+  /**
+   * 按顺序处理已接收的块
+   * @param context 上传上下文
+   */
+  private async processChunksInOrder(context: UploadContext): Promise<void> {
+    // 从nextChunkToProcess开始，处理所有连续的块
+    let nextIndex = context.nextChunkToProcess;
+    
+    while (context.pendingChunks.has(nextIndex)) {
+      // 获取块数据
+      const chunk = context.pendingChunks.get(nextIndex);
+      if (!chunk) break;
+      
+      try {
+        // 将数据写入文件写入器
+        if (context.fileWriter) {
+          await context.fileWriter.ready; // 确保写入器已就绪
+          await context.fileWriter.write(chunk);
+        } else {
+          throw new Error('文件写入器未初始化');
+        }
+        
+        // 从待处理Map中移除已处理的块，减少内存占用
+        context.pendingChunks.delete(nextIndex);
+        
+        // 更新下一个需要处理的块
+        nextIndex++;
+        context.nextChunkToProcess = nextIndex;
+      } catch (error) {
+        console.error('写入文件时出错:', error);
+        break;
       }
     }
   }

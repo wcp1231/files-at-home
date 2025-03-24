@@ -84,6 +84,7 @@ export interface MetaResponse {
   features: {
     writeable: boolean;
     packable: boolean;
+    uploadable: boolean;
   };
   message: string;
   userAgent?: string;

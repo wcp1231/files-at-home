@@ -142,7 +142,7 @@ export default function FlatConnectionPanel({ initialConnectionId }: FlatConnect
   const {
     initializeClient,
     connectionState,
-  } = useWebRTCClientStore()
+  } = useWebRTCClientStore();
 
   // 连接到主机
   const handleConnect = (id: string) => {
@@ -190,4 +190,4 @@ export default function FlatConnectionPanel({ initialConnectionId }: FlatConnect
       </Popover>
     </div>
   );
-} 
+}

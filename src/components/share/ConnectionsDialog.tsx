@@ -94,6 +94,7 @@ interface DisconnectedStateProps {
 
 const DisconnectedState = ({ passphrase, setPassphrase }: DisconnectedStateProps) => {
   const t = useTranslations('ShareView.connectionsDialog');
+  const { allowFileUploads, setAllowFileUploads } = useWebRTCHostStore();
 
   return (
     <div className="space-y-4 py-4">
@@ -107,6 +108,34 @@ const DisconnectedState = ({ passphrase, setPassphrase }: DisconnectedStateProps
             onChange={(e) => setPassphrase(e.target.value)}
             className="h-7 text-sm"
           />
+      </div>
+      
+      {/* File upload permission toggle */}
+      <div className="space-y-2 border rounded-md p-3 bg-muted/20">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">{t('disconnected.upload.title')}</h3>
+          <Button
+            variant={allowFileUploads ? "default" : "outline"}
+            size="sm"
+            onClick={() => setAllowFileUploads(!allowFileUploads)}
+            className="h-7 px-3"
+          >
+            {allowFileUploads ? (
+              <>
+                <DynamicIcon name="check" className="h-3.5 w-3.5 mr-1" />
+                {t('disconnected.upload.allowed')}
+              </>
+            ) : (
+              <>
+                <DynamicIcon name="x" className="h-3.5 w-3.5 mr-1" />
+                {t('disconnected.upload.disallowed')}
+              </>
+            )}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {t('disconnected.upload.description')}
+        </p>
       </div>
     </div>
   );
@@ -383,7 +412,7 @@ const ConnectionsDialog = () => {
               type="button"
               variant="outline"
               onClick={disconnect}
-              className="mt-2 sm:mt-0 bg-destructive hover:bg-destructive/80"
+              className="mt-2 sm:mt-0 bg-destructive text-destructive-foreground hover:bg-destructive/80"
             >
               {t('stopSharingButton')}
             </Button>

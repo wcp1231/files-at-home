@@ -77,6 +77,12 @@
         "passphrase": {
           "description": "Set AES passphrase to protect your data",
           "placeholder": "passphrase (optional)"
+        },
+        "upload": {
+          "title": "Allow access to upload files",
+          "description": "Allow access to upload files to your shared folder.",
+          "disallowed": "Disallow",
+          "allowed": "Allow"
         }
       },
       "initializing": {
@@ -193,5 +199,20 @@
     "uploadSuccess": "File uploaded successfully",
     "deleteSuccess": "File deleted successfully",
     "error": "An error occurred"
+  },
+  "FileUploadDialog": {
+    "title": "Upload Files",
+    "description": "Select files to upload to the shared folder",
+    "selectFiles": "Select files",
+    "uploadButton": "Upload",
+    "cancelButton": "Cancel",
+    "noFilesSelected": "No files selected",
+    "uploadStarted": "Upload started",
+    "uploadComplete": "Upload complete",
+    "uploadFailed": "Upload failed",
+    "uploading": "Uploading...",
+    "dropFilesHere": "Drop files here",
+    "dragFilesHere": "Drag files here or click to select",
+    "uploadNotAllowed": "File upload not allowed by the host"
   }
 }

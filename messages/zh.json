@@ -77,6 +77,12 @@
         "passphrase": {
           "description": "设置 AES 密码以保护您的数据",
           "placeholder": "密码 (可选)"
+        },
+        "upload": {
+          "title": "允许访问端上传文件",
+          "description": "允许后，访问端可以上传文件到您的分享文件夹。",
+          "disallowed": "不允许",
+          "allowed": "允许"
         }
       },
       "initializing": {
@@ -186,5 +192,20 @@
     "uploadSuccess": "文件上传成功",
     "deleteSuccess": "文件删除成功",
     "error": "发生错误"
+  },
+  "FileUploadDialog": {
+    "title": "上传文件",
+    "description": "选择要上传到共享端的文件",
+    "selectFiles": "选择文件",
+    "uploadButton": "上传",
+    "cancelButton": "取消",
+    "noFilesSelected": "未选择文件",
+    "uploadStarted": "开始上传",
+    "uploadComplete": "上传完成",
+    "uploadFailed": "上传失败",
+    "uploading": "上传中...",
+    "dropFilesHere": "将文件拖放到此处",
+    "dragFilesHere": "将文件拖放到此处或点击选择",
+    "uploadNotAllowed": "主机不允许上传文件"
   }
-} 
+}

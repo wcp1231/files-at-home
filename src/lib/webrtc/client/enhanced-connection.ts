@@ -77,6 +77,10 @@ export class EnhancedConnection {
     return this.messageHandler;
   }
 
+  getUploadManager() {
+    return this.uploadManager;
+  }
+
   disconnect() {
     this.connection.close();
     this.phase = ConnectionPhase.DISCONNECTED;
@@ -175,6 +179,7 @@ export class EnhancedConnection {
       showOperations: true,
       packable: meta.features.packable,
       writeable: meta.features.writeable,
+      uploadable: meta.features.uploadable,
     });
     this.startHandleMessage();
     this.onActive(this.getClientId());

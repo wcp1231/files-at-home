@@ -2,6 +2,7 @@ import { HostInfo, MessageType, MetaRequest, WebRTCMessage } from '@/lib/webrtc'
 import { hostCrypto } from '../crypto';
 import { EnhancedConnection } from './enhanced-connection';
 import { ConnectionPhase } from './connection';
+import { useWebRTCHostStore } from '@/store/webrtcHostStore';
 
 /**
  * Handles the handshake process on the host side.
@@ -15,7 +16,7 @@ export class HostHandshakeHandler {
   private readonly MAX_MISMATCH_COUNT = 3;
   
   // Callbacks for handshake events
-  private onHandshakeComplete: (meta: MetaRequest) => void;
+  private _onHandshakeComplete: (meta: MetaRequest) => void;
   private onHandshakeFailed: (error: string) => void;
   
   constructor(
@@ -25,9 +26,10 @@ export class HostHandshakeHandler {
   ) {
     this.hostInfo = new HostInfo();
     this.connection = connection;
-    this.onHandshakeComplete = onHandshakeComplete;
+    this._onHandshakeComplete = onHandshakeComplete;
     this.onHandshakeFailed = onHandshakeFailed;
-    this.connection.getConnection().on('data', this.handleMessage.bind(this));
+    this.handleMessage = this.handleMessage.bind(this);
+    this.connection.getConnection().on('data', this.handleMessage);
   }
 
   async handleMessage(data: unknown) {
@@ -86,6 +88,11 @@ export class HostHandshakeHandler {
     this.onHandshakeFailed('Passphrase mismatch');
   }
 
+  private onHandshakeComplete(meta: MetaRequest) {
+    this._onHandshakeComplete(meta);
+    this.connection.getConnection().off('data', this.handleMessage);
+  }
+
   private async checkPassphrase(message: string): Promise<boolean> {
     const { encrypted, iv } = JSON.parse(message);
     let decrypted = ''
@@ -99,10 +106,12 @@ export class HostHandshakeHandler {
   }
 
   private sendMetaResponse(requestId: string, message: string) {
+    const meta = this.hostInfo.getMeta();
+    meta.features.uploadable = useWebRTCHostStore.getState().allowFileUploads;
     const wrtcMessage = {
       type: MessageType.META_RESPONSE,
       payload: {
-        ...this.hostInfo.getMeta(),
+        ...meta,
         message
       },
       requestId

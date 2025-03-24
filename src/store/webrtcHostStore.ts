@@ -37,8 +37,10 @@ interface WebRTCHostState {
   connectionId: string | null;
   isInitialized: boolean;
   encryptionPassphrase: string | null;
+  allowFileUploads: boolean;
 
   setPeerId: (peerId: string) => void;
+  setAllowFileUploads: (allow: boolean) => void;
   
   // 访问处理函数
   setFilesystemHandlers: (getDirectory: (path: string, recursive: boolean) => Promise<FSDirectory | null>, getFile: (filePath: string) => Promise<FSFile | null>, listFiles: (path: string) => Promise<FSEntry[] | null>) => void;
@@ -78,6 +80,7 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
     listFiles: null,
     encryptionPassphrase: null,
     _connectionManager: null,
+    allowFileUploads: false,
 
     setFilesystemHandlers: (getDirectory, getFile, listFiles) => { 
       set((state) => {
@@ -94,6 +97,10 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
 
     setPeerId: (peerId: string) => set((state) => {
       state.peerId = peerId;
+    }),
+    
+    setAllowFileUploads: (allow: boolean) => set((state) => {
+      state.allowFileUploads = allow;
     }),
     
     // 初始化方法

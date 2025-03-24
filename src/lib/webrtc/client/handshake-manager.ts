@@ -18,7 +18,7 @@ export class HandshakeManager {
   private timeoutDuration: number = 30000; // 30 seconds default timeout
   
   // Callbacks for handshake events
-  private onHandshakeComplete: (meta: MetaResponse) => void;
+  private _onHandshakeComplete: (meta: MetaResponse) => void;
   private onHandshakeFailed: (error: string) => void;
   private onHandshakeError: (error: string) => void;
   
@@ -30,13 +30,14 @@ export class HandshakeManager {
     timeoutDuration?: number
   ) {
     this.connection = connection;
-    this.onHandshakeComplete = onHandshakeComplete;
+    this._onHandshakeComplete = onHandshakeComplete;
     this.onHandshakeFailed = onHandshakeFailed;
     this.onHandshakeError = onHandshakeError;
     if (timeoutDuration) {
       this.timeoutDuration = timeoutDuration;
     }
-    this.connection.getConnection().on('data', this.handleMessage.bind(this));
+    this.handleMessage = this.handleMessage.bind(this);
+    this.connection.getConnection().on('data', this.handleMessage);
   }
 
   async handleMessage(data: unknown) {
@@ -187,6 +188,11 @@ export class HandshakeManager {
       this.onHandshakeError(`握手错误: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
+  }
+
+  private onHandshakeComplete(meta: MetaResponse) {
+    this._onHandshakeComplete(meta);
+    this.connection.getConnection().off('data', this.handleMessage);
   }
   
   /**

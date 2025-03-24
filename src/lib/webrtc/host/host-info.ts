@@ -13,6 +13,7 @@ export class HostInfo {
       features: {
         writeable: false,
         packable: false,
+        uploadable: false,
       },
       message: ''
     };
