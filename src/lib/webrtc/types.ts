@@ -54,6 +54,13 @@ export enum MessageType {
   FILE_CHUNK_RESPONSE = 'FILE_CHUNK_RESPONSE',
   FILE_TRANSFER_CANCEL = 'FILE_TRANSFER_CANCEL',
 
+  // 文件上传相关消息类型
+  FILE_UPLOAD_REQUEST = 'FILE_UPLOAD_REQUEST',
+  FILE_UPLOAD_RESPONSE = 'FILE_UPLOAD_RESPONSE',
+  FILE_UPLOAD_CHUNK = 'FILE_UPLOAD_CHUNK',
+  FILE_UPLOAD_COMPLETE = 'FILE_UPLOAD_COMPLETE',
+  FILE_UPLOAD_CANCEL = 'FILE_UPLOAD_CANCEL',
+
   // 加密请求
   ENCRYPTED_REQUEST = 'ENCRYPTED_REQUEST',
   ENCRYPTED_RESPONSE = 'ENCRYPTED_RESPONSE',
@@ -166,6 +173,51 @@ export interface FileTransferInfo {
   end: number;         // 结束位置
 }
 
+export interface FileTransferCancel {
+  fileId: string;
+}
+
+// 文件上传请求接口
+export interface FileUploadRequest {
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  totalChunks: number;
+  chunkSize: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata?: Record<string, any>; // 可选的元数据
+}
+
+// 文件上传响应接口
+export interface FileUploadResponse {
+  uploadId: string;
+  ready: boolean;
+  error?: string;
+}
+
+// 文件上传块接口
+export interface FileUploadChunk {
+  uploadId: string;
+  chunkIndex: number;
+  data: string; // base64编码的块数据
+  isLast: boolean;
+}
+
+// 文件上传完成接口
+export interface FileUploadComplete {
+  uploadId: string;
+  success: boolean;
+  fileName: string;
+  fileSize: number;
+  error?: string;
+}
+
+// 文件上传取消接口
+export interface FileUploadCancel {
+  uploadId: string;
+  reason?: string;
+}
+
 export interface EncryptedMessage {
   encrypted: string;
   iv: string;
@@ -200,6 +252,26 @@ export interface FileTransfer {
   endTime?: number;
 }
 
+export type WebRTCMessagePayload = 
+  | MetaRequest
+  | MetaResponse
+  | DirectoryRequest
+  | DirectoryResponse
+  | FileInfoRequest
+  | FileInfoResponse
+  | FileTransferRequest
+  | FileTransferResponse
+  | FileChunkRequest
+  | FileChunkResponse
+  | FileTransferCancel
+  | FileUploadRequest
+  | FileUploadResponse
+  | FileUploadChunk
+  | FileUploadComplete
+  | FileUploadCancel
+  | EncryptedMessage
+  | ErrorResponse;
+
 // 使用映射类型和条件类型优化 WebRTCMessage 接口
 // 定义消息接口 - 使用判别联合类型（Discriminated Union）
 export type WebRTCMessage = 
@@ -213,7 +285,12 @@ export type WebRTCMessage =
   | { type: MessageType.FILE_TRANSFER_RESPONSE; payload: FileTransferResponse; requestId?: string }
   | { type: MessageType.FILE_CHUNK_REQUEST; payload: FileChunkRequest; requestId?: string }
   | { type: MessageType.FILE_CHUNK_RESPONSE; payload: FileChunkResponse; requestId?: string }
-  | { type: MessageType.FILE_TRANSFER_CANCEL; payload: { fileId: string }; requestId?: string }
+  | { type: MessageType.FILE_TRANSFER_CANCEL; payload: FileTransferCancel; requestId?: string }
+  | { type: MessageType.FILE_UPLOAD_REQUEST; payload: FileUploadRequest; requestId?: string }
+  | { type: MessageType.FILE_UPLOAD_RESPONSE; payload: FileUploadResponse; requestId?: string }
+  | { type: MessageType.FILE_UPLOAD_CHUNK; payload: FileUploadChunk; requestId?: string }
+  | { type: MessageType.FILE_UPLOAD_COMPLETE; payload: FileUploadComplete; requestId?: string }
+  | { type: MessageType.FILE_UPLOAD_CANCEL; payload: FileUploadCancel; requestId?: string }
   | { type: MessageType.ENCRYPTED_REQUEST; payload: EncryptedMessage; requestId?: string }
   | { type: MessageType.ENCRYPTED_RESPONSE; payload: EncryptedMessage; requestId?: string }
   | { type: MessageType.ERROR; payload: ErrorResponse; requestId?: string };

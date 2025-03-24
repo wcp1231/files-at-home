@@ -1,9 +1,10 @@
-import { MessageType, SharedFileInfo, FileTransferInfo, FileTransfer, FileTransferResponse, DirectoryResponse, FileInfoResponse, FileChunkResponse, ErrorResponse, WebRTCMessage } from '@/lib/webrtc';
+import { MessageType, SharedFileInfo, FileTransferInfo, FileTransfer, FileTransferResponse, DirectoryResponse, FileInfoResponse, FileChunkResponse, FileTransferCancel, ErrorResponse, WebRTCMessage } from '@/lib/webrtc';
 import { v4 } from 'uuid';
 import { ChunkProcessor, BufferedChunkProcessor, StreamChunkProcessor } from './chunk-processors';
 import { EnhancedConnection } from './enhanced-connection';
 import { WorkerManager } from './worker';
 import { WorkerWritableStream } from './worker-writable-stream';
+import { ClientMessageHandler } from './message-handler';
 
 // 请求类型
 export interface PendingFileRequest {
@@ -39,6 +40,7 @@ export type RequestId = string;
 
 export class ClientRequestManager {
   private enhancedConnection: EnhancedConnection;
+  private messageHandler: ClientMessageHandler;
   private pendingFileRequests: Map<RequestId, PendingFileRequest> = new Map();
   private pendingDirectoryRequests: Map<RequestId, PendingDirectoryRequest> = new Map();
   private pendingFileChunkRequests: Map<RequestId, PendingFileChunkRequest> = new Map();
@@ -59,14 +61,36 @@ export class ClientRequestManager {
     onTransferStatusChange?: (transfer: FileTransfer) => void
   ) {
     this.enhancedConnection = enhancedConnection;
+    this.messageHandler = enhancedConnection.getMessageHandler()!;
     if (timeoutDuration) {
       this.timeoutDuration = timeoutDuration;
     }
     this.onProgressCallback = onProgress || null;
     this.onTransferStatusChange = onTransferStatusChange || null;
 
+    // 添加消息处理器
+    this.setupMessageHandlers();
+  }
+
+  private setupMessageHandlers() {
+    this.messageHandler.registerMessageHandler(MessageType.FILE_INFO_RESPONSE, this.handleFileInfoResponse.bind(this));
+    this.messageHandler.registerMessageHandler(MessageType.DIRECTORY_RESPONSE, this.handleDirectoryResponse.bind(this));
+    this.messageHandler.registerMessageHandler(MessageType.FILE_TRANSFER_RESPONSE, this.handleFileTransferResponse.bind(this));
+    this.messageHandler.registerMessageHandler(MessageType.FILE_CHUNK_RESPONSE, this.handleFileChunkResponse.bind(this));
+    this.messageHandler.registerMessageHandler(MessageType.FILE_TRANSFER_CANCEL, this.handleCancelFileTransfer.bind(this));
+    this.messageHandler.registerMessageHandler(MessageType.ERROR, this.handleErrorResponse.bind(this));
+
     // 设置 worker 消息处理器
     WorkerManager.setMessageHandler(this.workerMessageHandler.bind(this));
+  }
+
+  private cleanupMessageHandlers() {
+    this.messageHandler.unregisterMessageHandler(MessageType.FILE_INFO_RESPONSE, this.handleFileInfoResponse.bind(this));
+    this.messageHandler.unregisterMessageHandler(MessageType.DIRECTORY_RESPONSE, this.handleDirectoryResponse.bind(this));
+    this.messageHandler.unregisterMessageHandler(MessageType.FILE_TRANSFER_RESPONSE, this.handleFileTransferResponse.bind(this));
+    this.messageHandler.unregisterMessageHandler(MessageType.FILE_CHUNK_RESPONSE, this.handleFileChunkResponse.bind(this));
+    this.messageHandler.unregisterMessageHandler(MessageType.FILE_TRANSFER_CANCEL, this.handleCancelFileTransfer.bind(this));
+    this.messageHandler.unregisterMessageHandler(MessageType.ERROR, this.handleErrorResponse.bind(this));
   }
 
   // 处理接收到的响应
@@ -100,6 +124,12 @@ export class ClientRequestManager {
       const request = this.pendingDirectoryRequests.get(requestId)!;
       request.resolve(payload.files);
       this.pendingDirectoryRequests.delete(requestId);
+    }
+  }
+
+  handleCancelFileTransfer(requestId: string, payload: FileTransferCancel) {
+    if (payload && payload.fileId) {
+      this.cancelFileTransfer(payload.fileId);
     }
   }
 

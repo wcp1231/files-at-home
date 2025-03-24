@@ -8,20 +8,22 @@ import { WebRTCMessage } from '@/lib/webrtc';
 import { clientCrypto } from '../crypto';
 import { MessageType } from '@/lib/webrtc';
 import { deserializeMessage } from '../utils';
+import { ClientUploadManager } from './upload-manager';
 
 /**
  * Enhanced connection class that wraps the DataConnection with additional information
  */
 export class EnhancedConnection {
   private connection: DataConnection;
-  private requestManager: ClientRequestManager;
   private onActive: (clientId: string) => void;
   private onClose: (clientId: string) => void;
   private onError: (clientId: string, error: string) => void;
   private onTransferStatusChange: (transfer: FileTransfer) => void;
   private phase: ConnectionPhase = ConnectionPhase.DISCONNECTED;
-  private messageHandler: ClientMessageHandler | undefined;
   private handshakeHandler: HandshakeManager | undefined;
+  private messageHandler: ClientMessageHandler | undefined;
+  private requestManager: ClientRequestManager | undefined;
+  private uploadManager: ClientUploadManager | undefined;
 
   constructor(connection: DataConnection, onActive: (clientId: string) => void, onClose: (clientId: string) => void, onError: (clientId: string, error: string) => void, onTransferStatusChange: (transfer: FileTransfer) => void) {
     this.connection = connection;
@@ -29,20 +31,19 @@ export class EnhancedConnection {
     this.onClose = onClose;
     this.onError = onError;
     this.onTransferStatusChange = onTransferStatusChange;
-    this.requestManager = new ClientRequestManager(this, 30000, () => {}, this.onTransferStatusChange);
     this.setupConnectionEvents();
   }
 
   requestFile(filePath: string) {
-    return this.requestManager.requestFile(filePath) || null;
+    return this.requestManager?.requestFile(filePath) || null;
   }
 
   requestDirectory(path: string) {
-    return this.requestManager.requestDirectory(path) || [];
+    return this.requestManager?.requestDirectory(path) || [];
   }
 
   cancelFileTransfer(fileId: string) {
-    this.requestManager.cancelFileTransfer(fileId);
+    this.requestManager?.cancelFileTransfer(fileId);
   }
 
   async sendRequest(message: WebRTCMessage) {
@@ -70,6 +71,10 @@ export class EnhancedConnection {
 
   getRequestManager() {
     return this.requestManager;
+  }
+
+  getMessageHandler() {
+    return this.messageHandler;
   }
 
   disconnect() {
@@ -191,6 +196,8 @@ export class EnhancedConnection {
   private startHandleMessage() {
     this.messageHandler = new ClientMessageHandler(this, (error: string) => this.onError(this.getClientId(), error));
     this.messageHandler.startHandleMessage();
+    this.requestManager = new ClientRequestManager(this, 30000, () => {}, this.onTransferStatusChange);
+    this.uploadManager = new ClientUploadManager(this);
   }
 
   private getClientId(): string {

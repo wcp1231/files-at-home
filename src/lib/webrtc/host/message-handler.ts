@@ -3,16 +3,19 @@ import { HostRequestHandler } from './request-handler';
 import { ConnectionPhase } from './connection';
 import { EnhancedConnection } from './enhanced-connection';
 import { hostCrypto } from '../crypto';
+import { HostUploadHandler } from './upload-handler';
 
 export class HostMessageHandler {
   private connection: EnhancedConnection;
   private requestHandler: HostRequestHandler;
+  private uploadHandler: HostUploadHandler;
   
   constructor(
     connection: EnhancedConnection,
   ) {
     this.connection = connection;
     this.requestHandler = new HostRequestHandler(this);
+    this.uploadHandler = new HostUploadHandler(this);
     this.connection.getConnection().on('data', this.handleMessage.bind(this));
   }
   
@@ -62,9 +65,26 @@ export class HostMessageHandler {
         this.requestHandler.handleFileChunkRequest(payload, requestId);
         break;
         
+      // 文件上传相关处理
+      case MessageType.FILE_UPLOAD_REQUEST:
+        this.uploadHandler.handleUploadRequest(payload, requestId!);
+        break;
+        
+      case MessageType.FILE_UPLOAD_CHUNK:
+        this.uploadHandler.handleUploadChunk(payload, requestId!);
+        break;
+        
+      case MessageType.FILE_UPLOAD_COMPLETE:
+        this.uploadHandler.handleUploadComplete(payload, requestId!);
+        break;
+        
+      case MessageType.FILE_UPLOAD_CANCEL:
+        this.uploadHandler.handleUploadCancel(payload, requestId!);
+        break;
+        
       default:
         console.warn(`Unexpected message type: ${type}`);
-        this.sendError(requestId, `Unsupported request type: ${type}`);
+        this.sendError(requestId!, `Unsupported request type: ${type}`);
     }
   }
 
@@ -86,7 +106,7 @@ export class HostMessageHandler {
   /**
    * Send error response
    */
-  private sendError(requestId: string | undefined, error: string) {
+  private sendError(requestId: string, error: string) {
     if (!requestId) return;
     
     const message = {
