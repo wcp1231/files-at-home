@@ -74,10 +74,6 @@ export class HostMessageHandler {
         this.uploadHandler.handleUploadChunk(payload, requestId!);
         break;
         
-      case MessageType.FILE_UPLOAD_COMPLETE:
-        this.uploadHandler.handleUploadComplete(payload, requestId!);
-        break;
-        
       case MessageType.FILE_UPLOAD_CANCEL:
         this.uploadHandler.handleUploadCancel(payload, requestId!);
         break;

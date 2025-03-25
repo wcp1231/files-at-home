@@ -39,7 +39,12 @@ export default function Home() {
       icon: "smartphone",
       title: t('features.crossPlatform.title'),
       description: t('features.crossPlatform.description')
-    }
+    },
+    {
+      icon: 'arrow-right-left',
+      title: t('features.dualShare.title'),
+      description: t('features.dualShare.description')
+    },
   ] as const;
 
   return (

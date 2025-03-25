@@ -35,7 +35,11 @@
       },
       "crossPlatform": {
         "title": "跨平台支持",
-        "description": "Windows、Mac、Android 全功能支持，iOS 可直接访问，随时随地轻松分享"
+        "description": "支持 Windows、Mac、Android、iOS，随时随地轻松分享"
+      },
+      "dualShare": {
+        "title": "双向分享",
+        "description": "支持一次连接两端互传，让文件分享更灵活"
       }
     },
     "footer": {

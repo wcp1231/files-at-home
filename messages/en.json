@@ -35,7 +35,11 @@
       },
       "crossPlatform": {
         "title": "Cross-Platform",
-        "description": "Full support for Windows, Mac, and Android. Access from iOS devices. Share from anywhere"
+        "description": "Support for Windows, Mac, Android and iOS. Share from anywhere"
+      },
+      "dualShare": {
+        "title": "Dual Share",
+        "description": "Supports file exchange between two ends to share files anytime, anywhere"
       }
     },
     "footer": {
