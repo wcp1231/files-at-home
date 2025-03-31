@@ -18,14 +18,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://folderport.com'),
   title: {
-    default: 'FolderPort - Fast & Secure Folder Sharing',
+    default: 'FolderPort - Instant Folder Sharing',
     template: '%s | FolderPort'
   },
-  description: 'Share folders quickly and securely from anywhere. Support large file transfers, preview files online, and encrypt your data. No registration required.',
-  keywords: ['folder sharing', 'file transfer', 'P2P', 'online preview', 'encrypted transfer', 'large file transfer'],
-  authors: [{ name: 'FolderPort Team' }],
-  creator: 'FolderPort Team',
-  publisher: 'FolderPort',
+  description: 'Instantly share folders securely anywhere. Supports large files, cross-platform, and encryption. No registration required.',
+  keywords: ['share folders', 'folder sharing', 'files transfer', 'encrypted transfer', 'large file transfer'],
+  authors: [{ name: 'Folder Port Team' }],
+  creator: 'Folder Port Team',
+  publisher: 'Folder Port',
   formatDetection: {
     email: false,
     address: false,
@@ -35,14 +35,14 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://folderport.com',
-    title: 'FolderPort - Fast & Secure Folder Sharing',
-    description: 'Share folders quickly and securely from anywhere. Support large file transfers, preview files online, and encrypt your data. No registration required.',
+    title: 'FolderPort - Instant Folder Sharing',
+    description: 'Instantly share folders securely anywhere. Supports large files, cross-platform, and encryption. No registration required.',
     siteName: 'FolderPort',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FolderPort - Fast & Secure Folder Sharing',
-    description: 'Share folders quickly and securely from anywhere. Support large file transfers, preview files online, and encrypt your data. No registration required.',
+    title: 'FolderPort - Instant Folder Sharing',
+    description: 'Instantly share folders securely anywhere. Supports large files, cross-platform, and encryption. No registration required.',
   },
   robots: {
     index: true,
@@ -92,8 +92,8 @@ export default function RootLayout({
               '@context': 'https://schema.org',
               '@type': 'WebApplication',
               name: 'FolderPort',
-              description: 'Share folders quickly and securely from anywhere. Support large file transfers, preview files online, and encrypt your data. No registration required.',
-              applicationCategory: 'File Sharing',
+              description: 'Instantly share folders securely anywhere. Supports large files, cross-platform, and encryption. No registration required.',
+              applicationCategory: 'Folder Sharing',
               operatingSystem: 'All',
               offers: {
                 '@type': 'Offer',
@@ -101,6 +101,7 @@ export default function RootLayout({
                 priceCurrency: 'USD'
               },
               featureList: [
+                'Instant folders sharing',
                 'No registration required',
                 'Secure P2P transfer',
                 'Large file support',

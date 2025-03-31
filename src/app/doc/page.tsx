@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: 'Documentation - FolderPort',
   description: 'Learn how to use FolderPort for secure file sharing',
   alternates: {
-    canonical: '/documentation'
+    canonical: '/doc'
   },
 }
 

@@ -4,8 +4,8 @@ import { DynamicIcon } from "lucide-react/dynamic";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: 'FolderPort - Fast & Secure Folder Sharing',
-  description: 'Share folders quickly and securely from anywhere. Support large file transfers, preview files online, and encrypt your data. No registration required.',
+  title: 'FolderPort - Instant Folder Sharing',
+  description: 'Instantly share folders securely anywhere. Supports large files, cross-platform, and encryption. No registration required.',
   alternates: {
     canonical: '/'
   },

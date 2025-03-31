@@ -33,5 +33,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
     //   changeFrequency: 'monthly',
     //   priority: 0.5,
     // },
+    {
+      url: 'https://folderport.com/doc',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://folderport.com/privacy',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
+    {
+      url: 'https://folderport.com/terms',
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.8,
+    },
   ]
 } 
