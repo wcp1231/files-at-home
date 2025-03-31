@@ -110,7 +110,7 @@ export default function Home() {
       <footer className="w-full max-w-5xl mx-auto">
         <div className="border-t py-6">
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            <Link href="/#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/doc" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               {t('footer.product.documentation')}
             </Link>
             <span className="text-muted-foreground/40">·</span>
