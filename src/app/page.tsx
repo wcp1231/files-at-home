@@ -114,6 +114,14 @@ export default function Home() {
               {t('footer.product.documentation')}
             </Link>
             <span className="text-muted-foreground/40">·</span>
+            <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              {t('footer.legal.terms')}
+            </Link>
+            <span className="text-muted-foreground/40">·</span>
+            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              {t('footer.legal.privacy')}
+            </Link>
+            <span className="text-muted-foreground/40">·</span>
             <Link href="mailto:contact@folderport.com" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               {t('footer.support.contact')}
             </Link>

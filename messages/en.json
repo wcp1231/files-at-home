@@ -47,11 +47,16 @@
         "title": "Product",
         "documentation": "Documentation"
       },
+      "legal": {
+        "title": "Legal",
+        "terms": "Terms of Service",
+        "privacy": "Privacy Policy"
+      },
       "support": {
         "title": "Support",
         "contact": "Contact Us"
       },
-      "copyright": "© {year} FolderPort. All rights reserved."
+      "copyright": " {year} FolderPort. All rights reserved."
     }
   },
   "ShareView": {

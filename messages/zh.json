@@ -47,6 +47,11 @@
         "title": "产品",
         "documentation": "使用文档"
       },
+      "legal": {
+        "title": "法律",
+        "terms": "服务条款",
+        "privacy": "隐私政策"
+      },
       "support": {
         "title": "支持",
         "contact": "联系我们"
