@@ -55,6 +55,7 @@ interface WebRTCHostState {
   initializeHost: (passphrase: string) => Promise<boolean>;
   disconnect: () => void;
   disconnectClient: (clientId: string) => void;
+  cleanup: () => void;
 
   onError: (error: string | null) => void;
   
@@ -263,6 +264,25 @@ export const useWebRTCHostStore = create<WebRTCHostState>()(
       if (_connectionManager) {
         _connectionManager.disconnectClient(clientId);
       }
+    },
+
+    // 清理
+    cleanup: () => {
+      set({
+        peerId: '',
+        isConnectionInitialized: false,
+        connections: [],
+        connectionState: ConnectionState.DISCONNECTED,
+        error: null,
+        connectionId: null,
+        isInitialized: false,
+        getDirectory: null,
+        getFile: null,
+        listFiles: null,
+        encryptionPassphrase: null,
+        _connectionManager: null,
+        allowFileUploads: false
+      });
     }
   }))
 );

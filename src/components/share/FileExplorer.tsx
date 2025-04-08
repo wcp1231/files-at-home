@@ -31,8 +31,8 @@ function CloseButton({ onClose }: { onClose: () => void }) {
 }
 
 export default function FileExplorer({ id, isInitialized, getDirectory, getFile, listFiles, onClose }: FileExplorerProps) {
-  const { setPeerId, setFilesystemHandlers, getFile: getFileFromStore } = useWebRTCHostStore();
-  const { initialize, setRole } = useFileBrowserStore();
+  const { setPeerId, setFilesystemHandlers, getFile: getFileFromStore, disconnect, cleanup } = useWebRTCHostStore();
+  const { initialize, setRole, cleanup: cleanupFileBrowser } = useFileBrowserStore();
 
   setPeerId(id);
 
@@ -41,6 +41,13 @@ export default function FileExplorer({ id, isInitialized, getDirectory, getFile,
     setRole('share');
     initialize('/');
   }, []);
+
+  const handleClose = () => {
+    disconnect();
+    cleanup();
+    cleanupFileBrowser();
+    onClose();
+  };
 
   if (!isInitialized || !getFileFromStore) {
     return null;
@@ -56,7 +63,7 @@ export default function FileExplorer({ id, isInitialized, getDirectory, getFile,
                 <ReceivedFilesDialog />
                 <ConnectionsDialog />
               </div>
-              <CloseButton onClose={onClose} />
+              <CloseButton onClose={handleClose} />
             </div>
           }
         />
