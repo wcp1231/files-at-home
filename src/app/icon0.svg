@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svgjs="http://svgjs.dev/svgjs" width="512" height="512"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" xmlns:bx="https://boxy-svg.com">
+  <defs>
+    <bx:export>
+      <bx:file format="svg"></bx:file>
+    </bx:export>
+  </defs>
+  <rect width="512" height="512" fill="#3b82f6" rx="85" ry="85"></rect>
+  <g transform="matrix(8.393689, 0, 0, 8.393689, -12.598053, -12.598053)" style="">
+    <path d="M14 22 L14 46 L50 46 L50 22 L33 22 L29 18 L14 18 Z" fill="#FFFFFF"></path>
+    <path d="M28 30 L36 30 L36 25 L44 32 L36 39 L36 34 L28 34 Z" fill="#4285F4"></path>
+  </g>
+</svg><style>@media (prefers-color-scheme: light) { :root { filter: none; } }
+@media (prefers-color-scheme: dark) { :root { filter: none; } }
+</style></svg>
