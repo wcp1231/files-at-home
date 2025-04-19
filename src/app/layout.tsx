@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: '%s | FolderPort'
   },
   description: 'Instantly share folders securely anywhere. Supports large files, cross-platform, and encryption. No registration required.',
-  keywords: ['share folders', 'folder sharing', 'files transfer', 'encrypted transfer', 'large file transfer'],
+  keywords: ['share folders', 'folder sharing', 'encrypted transfer', 'large file transfer', 'Share files online', 'Transfer files', 'Transfer folder', 'Send large files free', 'wifi file transfer', 'wifi folder transfer', 'transfer data', 'iOS', 'Android', 'Windows', 'macOS', 'Linux', 'Wifi direct', 'Cross platform'],
   authors: [{ name: 'Folder Port Team' }],
   creator: 'Folder Port Team',
   publisher: 'Folder Port',
