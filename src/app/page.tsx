@@ -3,6 +3,8 @@ import { useTranslations } from 'next-intl';
 import { DynamicIcon } from "lucide-react/dynamic";
 import { Metadata } from "next";
 
+export const dynamic = 'force-static'
+
 export const metadata: Metadata = {
   title: 'FolderPort - Instant Folder Sharing',
   description: 'Instantly share folders securely anywhere. Supports large files, cross-platform, and encryption. No registration required.',
